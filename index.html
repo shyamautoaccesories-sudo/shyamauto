@@ -80,7 +80,8 @@
 
   /* ---------- Hero ---------- */
   .hero{
-    position:relative;padding:36px 16px 28px;overflow:hidden;isolation:isolate;
+    position:relative;padding:32px 16px 28px;overflow:hidden;isolation:isolate;
+    display:flex;flex-direction:column;gap:22px;
     background:
       radial-gradient(circle at 85% -10%, rgba(245,179,0,0.12), transparent 55%),
       repeating-linear-gradient(180deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px),
@@ -100,13 +101,18 @@
   }
   .hero-ctas{display:flex;gap:10px;margin-top:20px;}
   .hero-visual{
-    position:absolute;right:-26px;top:36px;bottom:0;z-index:0;
-    display:flex;align-items:flex-end;justify-content:flex-end;
-    pointer-events:none;
+    position:relative;z-index:1;width:100%;min-height:220px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hero-visual:empty{display:none;}
+  .hero-visual::before{
+    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(72%,260px);aspect-ratio:1/1;border-radius:50%;z-index:-1;
+    background:radial-gradient(circle, rgba(184,41,26,0.14), transparent 72%);
   }
   .hero-visual img{
-    max-width:135px;max-height:100%;width:auto;height:auto;object-fit:contain;
-    filter:drop-shadow(0 16px 22px rgba(23,20,10,0.18));
+    position:relative;max-width:78%;max-height:280px;width:auto;height:auto;object-fit:contain;
+    filter:drop-shadow(0 18px 26px rgba(23,20,10,0.20));
   }
   .btn-primary{
     background:var(--yellow);color:#fff;font-weight:700;font-size:14px;
@@ -680,11 +686,12 @@
     body{padding-bottom:0;}
     .bottom-nav{display:none;}
     .topbar{padding:14px 40px;max-width:1200px;margin:0 auto;width:100%;}
-    .hero{padding:56px 40px;display:flex;align-items:center;gap:40px;max-width:1200px;margin:0 auto;}
-    .hero-content{flex:1;max-width:560px;}
+    .hero{padding:48px 40px;flex-direction:row;align-items:center;gap:48px;max-width:1200px;margin:0 auto;min-height:400px;}
+    .hero-content{flex:1;max-width:520px;}
     .hero h1{font-size:52px;}
-    .hero-visual{right:-360px;}
-    .hero-visual img{max-width:460px;}
+    .hero-visual{flex:0 0 380px;width:380px;min-height:380px;}
+    .hero-visual::before{width:min(80%,320px);}
+    .hero-visual img{max-width:92%;max-height:400px;}
     section.block,section.brands{padding:40px 40px 8px;max-width:1200px;margin:0 auto;}
     .product-scroll,.testi-scroll{overflow-x:visible;flex-wrap:wrap;}
     .product-scroll .card{width:200px;}
@@ -707,6 +714,8 @@
   @media (min-width:1240px){
     .hero-content{max-width:560px;}
     .hero h1{font-size:58px;}
+    .hero-visual{flex:0 0 440px;width:440px;min-height:420px;}
+    .hero-visual img{max-height:440px;}
   }
 </style>
 </head>
@@ -747,7 +756,6 @@
 <!-- Hero -->
 <section class="hero">
   <div class="hero-content">
-    <div class="hero-visual" id="heroVisual"></div>
     <p class="hero-eyebrow" id="heroEyebrow">PATNA'S OWN GARAGE STORE</p>
     <h1><span id="heroTitle1">BUILT FOR</span><br><span class="accent" id="heroTitle2">THE ROAD</span></h1>
     <p class="hero-sub" id="heroSub">Helmets, riding gear, LED lighting & genuine parts — picked by riders, delivered to your garage.</p>
@@ -759,6 +767,7 @@
       <button class="btn-ghost" id="heroCtaSecondary">Track Order</button>
     </div>
   </div>
+  <div class="hero-visual" id="heroVisual"></div>
 </section>
 
 <!-- Categories -->
