@@ -11,6 +11,7 @@
   :root{
     --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#EBEBED; --line:#DCDCDE;
     --text:#1D1D1F; --muted:#86868B; --accent:#B8291A; --accent-deep:#8F2013; --red:#B8291A; --green:#1E9E5C;
+    --amber:#B2670A; --blue:#1D5FBF;
     --font-display:'Oswald',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --safe-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -91,6 +92,63 @@
   .badge{font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:5px;}
   .badge.on{background:rgba(30,158,92,0.12);color:var(--green);}
   .badge.off{background:var(--surface-2);color:var(--muted);}
+
+  /* ---- Orders (redesigned) ---- */
+  .order-stat-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+  .order-stat-strip .stat-card{padding:12px 10px;}
+  .order-stat-strip .num{font-size:19px;}
+  .order-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+  .order-search{position:relative;}
+  .order-search input{
+    width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px 11px 36px;font-size:13.5px;
+  }
+  .order-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;}
+  .order-filter-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  .order-filter-chip{
+    flex:0 0 auto;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:var(--surface);
+    font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;
+  }
+  .order-filter-chip .count{font-family:var(--font-mono);font-size:10px;background:var(--surface-2);padding:1px 6px;border-radius:8px;}
+  .order-filter-chip.active{background:var(--text);color:#fff;border-color:var(--text);}
+  .order-filter-chip.active .count{background:rgba(255,255,255,0.18);color:#fff;}
+
+  .order-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;
+    box-shadow:0 1px 2px rgba(23,20,10,0.04), 0 8px 18px -12px rgba(23,20,10,0.12);
+  }
+  .order-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line);}
+  .order-card-id{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+  .order-card-date{font-size:11px;color:var(--muted);margin-top:2px;}
+  .status-pill{font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+  .status-pill.Pending{background:rgba(178,103,10,0.12);color:var(--amber);}
+  .status-pill.Shipped{background:rgba(29,95,191,0.12);color:var(--blue);}
+  .status-pill.Delivered{background:rgba(30,158,92,0.12);color:var(--green);}
+  .order-card-body{display:grid;grid-template-columns:1fr;gap:12px;}
+  .order-block-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+  .order-customer-name{font-size:14px;font-weight:700;}
+  .order-customer-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+  .order-address-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;background:var(--surface-2);border-radius:10px;padding:10px 12px;}
+  .order-address-row p{font-size:12.5px;line-height:1.5;}
+  .order-address-warn{background:rgba(184,41,26,0.08);border:1px solid rgba(184,41,26,0.25);border-radius:10px;padding:10px 12px;color:var(--red);font-size:12.5px;font-weight:600;}
+  .copy-btn{flex:0 0 auto;width:26px;height:26px;border-radius:7px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;}
+  .copy-btn svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:2;}
+  .order-items-list{display:flex;flex-direction:column;gap:4px;}
+  .order-item-row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
+  .order-item-row .oi-name{color:var(--text);}
+  .order-item-row .oi-qtyprice{color:var(--muted);font-family:var(--font-mono);font-size:11.5px;}
+  .order-foot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;padding-top:12px;border-top:1px solid var(--line);}
+  .order-total-lbl{font-size:11px;color:var(--muted);}
+  .order-total-num{font-family:var(--font-mono);font-size:17px;font-weight:700;}
+  .pay-pill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;}
+  .pay-pill.paid{background:rgba(30,158,92,0.12);color:var(--green);}
+  .pay-pill.cod{background:var(--surface-2);color:var(--muted);}
+  .pay-pill.failed{background:rgba(184,41,26,0.1);color:var(--red);}
+  .status-select{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12px;font-weight:600;}
+  .shiprocket-strip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:8px 10px;border-radius:9px;}
+  .shiprocket-strip.ok{background:rgba(30,158,92,0.08);color:var(--green);}
+  .shiprocket-strip.err{background:rgba(184,41,26,0.08);color:var(--red);}
+  .shiprocket-strip svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:0 0 auto;}
 
   /* Form */
   .form-group{margin-bottom:14px;}
@@ -234,6 +292,7 @@
     .topbar,main{padding-left:40px;padding-right:40px;}
     main{max-width:1100px;margin:0 auto;width:100%;}
     .stat-grid{grid-template-columns:repeat(4,1fr);}
+    .order-stat-strip{grid-template-columns:repeat(4,1fr);}
     .sheet{max-width:520px;border-radius:18px;margin-bottom:5vh;}
   }
   @media (min-width:860px) and (max-width:1023px){
@@ -455,6 +514,27 @@
     <div class="view" id="view-orders">
       <p class="view-title">Orders</p>
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Live orders placed from the storefront, newest first.</p>
+
+      <div class="order-stat-strip">
+        <div class="stat-card"><div class="num" id="ordStatTotal">0</div><div class="lbl">Total Orders</div></div>
+        <div class="stat-card"><div class="num" id="ordStatPending">0</div><div class="lbl">Pending</div></div>
+        <div class="stat-card"><div class="num" id="ordStatShipped">0</div><div class="lbl">Shipped</div></div>
+        <div class="stat-card"><div class="num" id="ordStatRevenue">₹0</div><div class="lbl">Revenue</div></div>
+      </div>
+
+      <div class="order-toolbar">
+        <div class="order-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="orderSearchInput" placeholder="Search by customer, phone, email or order #" oninput="filterOrdersSearch(this.value)">
+        </div>
+        <div class="order-filter-row" id="orderFilterRow">
+          <button class="order-filter-chip active" data-status="all" onclick="filterOrdersByStatus('all')">All <span class="count" id="fcAll">0</span></button>
+          <button class="order-filter-chip" data-status="Pending" onclick="filterOrdersByStatus('Pending')">Pending <span class="count" id="fcPending">0</span></button>
+          <button class="order-filter-chip" data-status="Shipped" onclick="filterOrdersByStatus('Shipped')">Shipped <span class="count" id="fcShipped">0</span></button>
+          <button class="order-filter-chip" data-status="Delivered" onclick="filterOrdersByStatus('Delivered')">Delivered <span class="count" id="fcDelivered">0</span></button>
+        </div>
+      </div>
+
       <div id="orderList"></div>
     </div>
 
@@ -859,6 +939,7 @@
       itemList: Array.isArray(o.items) ? o.items : [],
       total: Number(o.total),
       status: o.status || 'Pending',
+      createdAt: o.created_at || null,
       shiprocketOrderId: o.shiprocket_order_id || null,
       shiprocketAwb: o.shiprocket_awb || null,
       shiprocketError: o.shiprocket_error || null
@@ -1739,27 +1820,110 @@
     showToast('Bike model deleted');
   }
 
-  // ---- Orders (demo) ----
+  // ---- Orders ----
+  let orderStatusFilter = 'all';
+  let orderSearchTerm = '';
+
+  function filterOrdersByStatus(status){
+    orderStatusFilter = status;
+    document.querySelectorAll('#orderFilterRow .order-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.status === status));
+    renderOrders();
+  }
+  function filterOrdersSearch(val){
+    orderSearchTerm = val.trim().toLowerCase();
+    renderOrders();
+  }
+  function getFilteredOrders(){
+    return orders.filter(o => {
+      if(orderStatusFilter !== 'all' && o.status !== orderStatusFilter) return false;
+      if(orderSearchTerm){
+        const hay = [o.customer, o.phone, String(o.id)].join(' ').toLowerCase();
+        if(!hay.includes(orderSearchTerm)) return false;
+      }
+      return true;
+    });
+  }
+  function formatOrderDate(iso){
+    if(!iso) return '';
+    return new Date(iso).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function copyOrderText(text, label){
+    navigator.clipboard?.writeText(text).then(() => showToast((label || 'Copied') + ' copied'));
+  }
+
+  function renderOrderStats(){
+    document.getElementById('ordStatTotal').textContent = orders.length;
+    document.getElementById('ordStatPending').textContent = orders.filter(o => o.status === 'Pending').length;
+    document.getElementById('ordStatShipped').textContent = orders.filter(o => o.status === 'Shipped').length;
+    document.getElementById('ordStatRevenue').textContent = '₹' + orders.reduce((s,o) => s + (o.total || 0), 0).toLocaleString('en-IN');
+    document.getElementById('fcAll').textContent = orders.length;
+    document.getElementById('fcPending').textContent = orders.filter(o => o.status === 'Pending').length;
+    document.getElementById('fcShipped').textContent = orders.filter(o => o.status === 'Shipped').length;
+    document.getElementById('fcDelivered').textContent = orders.filter(o => o.status === 'Delivered').length;
+  }
+
   function renderOrders(){
+    renderOrderStats();
     const wrap = document.getElementById('orderList');
+    const list = getFilteredOrders();
     if(orders.length === 0){
       wrap.innerHTML = '<p class="empty-hint">No orders yet.</p>';
       return;
     }
-    wrap.innerHTML = orders.map(o => `
-      <div class="row-card" style="flex-wrap:wrap;align-items:flex-start;">
-        <div class="row-media" style="font-size:9px;">${o.id}</div>
-        <div class="row-info">
-          <div class="title">${o.customer}${o.phone ? ' · ' + o.phone : ''}</div>
-          <div class="sub">${o.items} item${o.items>1?'s':''} · ₹${o.total.toLocaleString('en-IN')} · ${o.paymentMethod}${o.paymentStatus ? ` · <span style="color:${o.paymentStatus==='paid'?'#1a9e4a':o.paymentStatus==='failed'?'#c33':'inherit'};font-weight:700;">${o.paymentStatus.toUpperCase()}</span>` : ''}</div>
-          ${o.address ? `<div class="sub" style="margin-top:4px;line-height:1.4;">${o.address}</div>` : `<div class="sub" style="margin-top:4px;color:var(--red, #c33);">No address on file</div>`}
-          ${o.itemList.length ? `<div class="sub" style="margin-top:4px;">${o.itemList.map(it => `${it.name} ×${it.qty}`).join(', ')}</div>` : ''}
-          ${o.shiprocketAwb ? `<div class="sub" style="margin-top:4px;color:var(--green);">Shiprocket AWB: ${o.shiprocketAwb}</div>` : (o.shiprocketOrderId ? `<div class="sub" style="margin-top:4px;color:var(--green);">Pushed to Shiprocket (#${o.shiprocketOrderId})</div>` : '')}
-          ${o.shiprocketError ? `<div class="sub" style="margin-top:4px;color:var(--red);">Shiprocket: ${o.shiprocketError}</div>` : ''}
+    if(list.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No orders match this filter.</p>';
+      return;
+    }
+    wrap.innerHTML = list.map(o => `
+      <div class="order-card">
+        <div class="order-card-head">
+          <div>
+            <div class="order-card-id">ORDER #${o.id}</div>
+            ${o.createdAt ? `<div class="order-card-date">${formatOrderDate(o.createdAt)}</div>` : ''}
+          </div>
+          <span class="status-pill ${o.status}">${o.status}</span>
         </div>
-        <select class="form-select" style="width:auto;padding:8px 10px;font-size:11.5px;" onchange="updateOrderStatus('${o.id}', this.value)">
-          ${['Pending','Shipped','Delivered'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
-        </select>
+        <div class="order-card-body">
+          <div>
+            <div class="order-block-label">Customer</div>
+            <div class="order-customer-name">${o.customer}</div>
+            ${o.phone ? `<div class="order-customer-sub">${o.phone}</div>` : ''}
+          </div>
+
+          <div>
+            <div class="order-block-label">Delivery Address</div>
+            ${o.address
+              ? `<div class="order-address-row"><p>${o.address}</p><button class="copy-btn" onclick="copyOrderText('${o.address.replace(/'/g,"\\'")}', 'Address')" title="Copy address"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>`
+              : `<div class="order-address-warn">⚠ No address on file — cannot ship until customer address is added.</div>`}
+          </div>
+
+          <div>
+            <div class="order-block-label">Items (${o.items})</div>
+            <div class="order-items-list">
+              ${o.itemList.map(it => `<div class="order-item-row"><span class="oi-name">${it.name}</span><span class="oi-qtyprice">×${it.qty} · ₹${(it.price||0).toLocaleString('en-IN')}</span></div>`).join('')}
+            </div>
+          </div>
+
+          ${o.shiprocketAwb ? `
+            <div class="shiprocket-strip ok"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> AWB ${o.shiprocketAwb}</div>
+          ` : o.shiprocketOrderId ? `
+            <div class="shiprocket-strip ok"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Pushed to Shiprocket (#${o.shiprocketOrderId})</div>
+          ` : ''}
+          ${o.shiprocketError ? `
+            <div class="shiprocket-strip err"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Shiprocket: ${o.shiprocketError}</div>
+          ` : ''}
+
+          <div class="order-foot-row">
+            <div>
+              <div class="order-total-lbl">Order Total</div>
+              <div class="order-total-num">₹${o.total.toLocaleString('en-IN')}</div>
+              <span class="pay-pill ${o.paymentStatus === 'paid' ? 'paid' : (o.paymentStatus === 'failed' ? 'failed' : 'cod')}" style="margin-top:4px;display:inline-block;">${o.paymentMethod}${o.paymentStatus ? ' · ' + o.paymentStatus.toUpperCase() : ''}</span>
+            </div>
+            <select class="status-select" onchange="updateOrderStatus('${o.id}', this.value)">
+              ${['Pending','Shipped','Delivered'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
       </div>
     `).join('');
   }
