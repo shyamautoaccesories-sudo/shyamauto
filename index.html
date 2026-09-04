@@ -80,38 +80,26 @@
   .trust-track span::before{content:"●";font-size:6px;}
   @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-  /* ---------- Hero ---------- */
-  .hero{
-    position:relative;padding:26px 16px 20px;overflow:hidden;isolation:isolate;
-    display:flex;flex-direction:row;align-items:stretch;gap:12px;
-    background:
-      radial-gradient(circle at 85% -10%, rgba(245,179,0,0.12), transparent 55%),
-      repeating-linear-gradient(180deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px),
-      var(--bg);
+  /* ---------- Hero banner (image card) ---------- */
+  .hero-banner{padding:14px 16px 8px;}
+  .hero-banner-card{
+    position:relative;display:block;width:100%;border-radius:20px;overflow:hidden;
+    background:var(--surface-2,#eee);box-shadow:0 10px 24px rgba(23,20,10,0.14);
+    text-decoration:none;
   }
-  .hero-eyebrow{
-    font-family:var(--font-mono);font-size:10.5px;color:var(--yellow);letter-spacing:1.2px;
-    margin-bottom:8px;
+  .hero-banner-frame{position:relative;width:100%;padding-top:125%;} /* 4:5 mobile */
+  .hero-banner-img{
+    position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;object-fit:cover;display:none;
   }
-  .hero-content{position:relative;z-index:1;flex:1 1 auto;min-width:0;}
-  .hero h1{
-    font-size:clamp(24px,7.6vw,38px);line-height:1.04;font-weight:700;
+  .hero-banner-img.hb-mobile{display:block;}
+  .hero-shop-btn{
+    position:absolute;top:16px;left:16px;z-index:2;
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--red);color:#fff;font-weight:700;font-size:13px;
+    padding:11px 16px;border-radius:999px;box-shadow:0 8px 18px rgba(0,0,0,0.22);
+    line-height:1;white-space:nowrap;
   }
-  .hero h1 .accent{color:var(--yellow);}
-  .hero-sub{
-    color:var(--muted);font-size:13px;margin-top:10px;line-height:1.45;
-  }
-  .hero-ctas{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
-  .hero-ctas .btn-primary,.hero-ctas .btn-ghost{font-size:12.5px;padding:10px 14px;white-space:nowrap;}
-  .hero-visual{
-    position:relative;z-index:1;flex:0 0 38%;max-width:180px;min-width:120px;
-  }
-  .hero-visual:empty{display:none;}
-  .hero-visual img{
-    position:relative;display:block;width:100%;height:100%;object-fit:cover;
-    border-radius:16px;
-    box-shadow:0 14px 24px rgba(23,20,10,0.20);
-  }
+  .hero-shop-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.4;}
   .btn-primary{
     background:var(--yellow);color:#fff;font-weight:700;font-size:14px;
     padding:13px 22px;border-radius:10px;letter-spacing:0.2px;
@@ -766,13 +754,12 @@
     body{padding-bottom:0;}
     .bottom-nav{display:none;}
     .topbar{padding:14px 40px;max-width:1200px;margin:0 auto;width:100%;}
-    .hero{padding:48px 40px;flex-direction:row;align-items:stretch;gap:48px;max-width:1200px;margin:0 auto;min-height:420px;}
-    .hero-content{flex:1;max-width:520px;display:flex;flex-direction:column;justify-content:center;}
-    .hero h1{font-size:52px;}
-    .hero-sub{font-size:14.5px;max-width:34ch;}
-    .hero-ctas .btn-primary,.hero-ctas .btn-ghost{font-size:14px;padding:13px 22px;}
-    .hero-visual{flex:0 0 400px;width:400px;max-width:none;}
-    .hero-visual img{border-radius:22px;}
+    .hero-banner{padding:24px 40px 8px;max-width:1200px;margin:0 auto;}
+    .hero-banner-frame{padding-top:38.5%;} /* ~2.6:1 desktop */
+    .hero-banner-img.hb-desktop{display:block;}
+    .hero-banner-img.hb-mobile{display:none;}
+    .hero-shop-btn{top:28px;left:28px;font-size:14.5px;padding:13px 22px;}
+    .hero-shop-btn svg{width:15px;height:15px;}
     section.block,section.brands{padding:40px 40px 8px;max-width:1200px;margin:0 auto;}
     .product-scroll,.testi-scroll{overflow-x:visible;flex-wrap:wrap;}
     .product-scroll .card{width:200px;}
@@ -793,9 +780,7 @@
     .model-grid{grid-template-columns:repeat(4,1fr);}
   }
   @media (min-width:1240px){
-    .hero-content{max-width:560px;}
-    .hero h1{font-size:58px;}
-    .hero-visual{flex:0 0 460px;width:460px;}
+    .hero-shop-btn{top:32px;left:32px;}
   }
 </style>
 </head>
@@ -833,21 +818,18 @@
   </div>
 </div>
 
-<!-- Hero -->
-<section class="hero">
-  <div class="hero-content">
-    <p class="hero-eyebrow" id="heroEyebrow">PATNA'S OWN GARAGE STORE</p>
-    <h1><span id="heroTitle1">BUILT FOR</span><br><span class="accent" id="heroTitle2">THE ROAD</span></h1>
-    <p class="hero-sub" id="heroSub">Helmets, riding gear, LED lighting & genuine parts — picked by riders, delivered to your garage.</p>
-    <div class="hero-ctas">
-      <button class="btn-primary" onclick="document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'})">
-        <span id="heroCtaPrimary">Shop Now</span>
-        <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
-      <button class="btn-ghost" id="heroCtaSecondary">Track Order</button>
+<!-- Hero Banner -->
+<section class="hero-banner" id="heroBanner">
+  <a href="#" class="hero-banner-card" id="heroBannerCard" onclick="handleHeroBannerClick();return false;">
+    <div class="hero-banner-frame">
+      <img class="hero-banner-img hb-desktop" id="heroBannerImgDesktop" src="" alt="Shop the latest gear">
+      <img class="hero-banner-img hb-mobile" id="heroBannerImgMobile" src="" alt="Shop the latest gear">
     </div>
-  </div>
-  <div class="hero-visual" id="heroVisual"></div>
+    <span class="hero-shop-btn">
+      <span id="heroCtaPrimary">Shop Now</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </span>
+  </a>
 </section>
 
 <!-- Categories -->
@@ -1560,9 +1542,7 @@
     {name:"Steelbird"},{name:"Vega"},{name:"Studds"},{name:"Rynox"},{name:"Axor"},{name:"Viaterra"}
   ];
   const defaultHero = {
-    eyebrow:"PATNA'S OWN GARAGE STORE", title1:"BUILT FOR", title2:"THE ROAD",
-    sub:"Helmets, riding gear, LED lighting & genuine parts — picked by riders, delivered to your garage.",
-    ctaPrimary:"Shop Now", ctaSecondary:"Track Order"
+    ctaPrimary:"Shop Now", productId:null
   };
   const defaultHeroAd = {
     tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal"
@@ -1597,6 +1577,7 @@
       bikeModels: modelRes.data || [],
       hero: Object.assign({}, defaultHero, siteRow.hero),
       heroImageUrl: siteRow.hero_image_url || null,
+      heroImageMobileUrl: siteRow.hero_image_mobile_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
       deal: Object.assign({}, defaultDeal, siteRow.deal),
       logoUrl: siteRow.logo_url || null,
@@ -1604,7 +1585,7 @@
     };
   }
 
-  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
+  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
   let bestsellers = [], newArrivals = [], helmets = [];
   let categories = [];
@@ -1637,15 +1618,18 @@
     helmets = products.filter(p => p.cat === "Helmets");
     categories = [...new Set(products.map(p => p.cat))];
 
-    // ---- Hero / hero-ad / deal banner text ----
-    document.getElementById('heroEyebrow').textContent = site.hero.eyebrow;
-    document.getElementById('heroTitle1').textContent = site.hero.title1;
-    document.getElementById('heroTitle2').textContent = site.hero.title2;
-    document.getElementById('heroSub').textContent = site.hero.sub;
+    // ---- Hero banner (image card) ----
     document.getElementById('heroCtaPrimary').textContent = site.hero.ctaPrimary;
-    document.getElementById('heroCtaSecondary').textContent = site.hero.ctaSecondary;
-    document.getElementById('heroVisual').innerHTML = site.heroImageUrl
-      ? `<img src="${site.heroImageUrl}" alt="">` : '';
+    const heroBannerEl = document.getElementById('heroBanner');
+    const desktopSrc = site.heroImageUrl || site.heroImageMobileUrl || '';
+    const mobileSrc = site.heroImageMobileUrl || site.heroImageUrl || '';
+    if(desktopSrc || mobileSrc){
+      document.getElementById('heroBannerImgDesktop').src = desktopSrc;
+      document.getElementById('heroBannerImgMobile').src = mobileSrc;
+      heroBannerEl.style.display = '';
+    } else {
+      heroBannerEl.style.display = 'none';
+    }
     document.getElementById('dealTag').textContent = site.deal.tag;
     document.getElementById('dealTitle').textContent = site.deal.title;
     document.getElementById('dealSub').textContent = site.deal.sub;
@@ -1980,6 +1964,13 @@
     renderCart();
   }
   function findProduct(id){ return products.find(p => p.id === Number(id)); }
+
+  function handleHeroBannerClick(){
+    const pid = site.hero && site.hero.productId;
+    const p = pid ? findProduct(pid) : null;
+    if(p){ openProduct(p.id); }
+    else { document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'}); }
+  }
 
   function renderCart(){
     const keys = Object.keys(cart);
