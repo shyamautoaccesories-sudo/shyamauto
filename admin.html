@@ -662,6 +662,35 @@
       <p class="view-title">Settings</p>
 
       <div class="section-block">
+        <h3>Branding</h3>
+        <div class="form-group">
+          <label class="form-label">Store Logo</label>
+          <div id="logo_imgPreviewWrap" style="display:none;margin-bottom:10px;">
+            <img id="logo_imgPreview" style="width:140px;height:56px;object-fit:contain;background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/16px 16px;border-radius:10px;border:1px solid var(--line);display:block;padding:6px;">
+          </div>
+          <input type="file" accept="image/png,image/svg+xml,image/webp" id="logo_imgFile" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Transparent PNG or SVG works best. Recommended size <strong>400×120px</strong> (wide logo) — keep it under <strong>200KB</strong>. Shows in the top navbar and checkout receipts.</p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-outline" id="logo_imgSaveBtn" onclick="saveLogoImage()" style="flex:1;">Upload Logo</button>
+            <button class="btn-outline" onclick="removeLogoImage()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:22px;">
+          <label class="form-label">Favicon</label>
+          <div id="favicon_imgPreviewWrap" style="display:none;margin-bottom:10px;">
+            <img id="favicon_imgPreview" style="width:48px;height:48px;object-fit:contain;background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/16px 16px;border-radius:10px;border:1px solid var(--line);display:block;padding:6px;">
+          </div>
+          <input type="file" accept="image/png,image/x-icon,image/svg+xml" id="favicon_imgFile" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Square PNG or ICO. Recommended size <strong>512×512px</strong> (browsers scale it down automatically) — keep it under <strong>100KB</strong>. Shows as the browser tab icon.</p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-outline" id="favicon_imgSaveBtn" onclick="saveFaviconImage()" style="flex:1;">Upload Favicon</button>
+            <button class="btn-outline" onclick="removeFaviconImage()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
         <h3>Store Details</h3>
         <div class="form-group"><label class="form-label">Store Name</label><input class="form-input" id="s_storeName"></div>
         <div class="form-row2">
@@ -979,10 +1008,12 @@
       heroImageUrl: siteRow.hero_image_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
       deal: Object.assign({}, defaultDeal, siteRow.deal),
-      store: Object.assign({}, defaultStore, siteRow.store)
+      store: Object.assign({}, defaultStore, siteRow.store),
+      logoUrl: siteRow.logo_url || null,
+      faviconUrl: siteRow.favicon_url || null
     };
   }
-  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore };
+  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
 
   async function loadOrders(){
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
@@ -1487,6 +1518,121 @@
     document.getElementById('s_confirmPassword').value = '';
     const { data } = await sb.auth.getUser();
     document.getElementById('s_adminEmail').value = data?.user?.email || '';
+
+    if(site.logoUrl){
+      document.getElementById('logo_imgPreview').src = site.logoUrl;
+      document.getElementById('logo_imgPreviewWrap').style.display = 'block';
+    } else {
+      document.getElementById('logo_imgPreviewWrap').style.display = 'none';
+    }
+    if(site.faviconUrl){
+      document.getElementById('favicon_imgPreview').src = site.faviconUrl;
+      document.getElementById('favicon_imgPreviewWrap').style.display = 'block';
+    } else {
+      document.getElementById('favicon_imgPreviewWrap').style.display = 'none';
+    }
+  }
+
+  document.getElementById('logo_imgFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('logo_imgPreview').src = reader.result;
+        document.getElementById('logo_imgPreviewWrap').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  async function saveLogoImage(){
+    const fileInput = document.getElementById('logo_imgFile');
+    const file = fileInput.files[0];
+    if(!file){ showToast('Choose a logo file first'); return; }
+    if(file.size > 200 * 1024){ showToast('Logo is over 200KB — please compress it first'); return; }
+    const btn = document.getElementById('logo_imgSaveBtn');
+    btn.textContent = 'Uploading...';
+    btn.disabled = true;
+
+    const ext = file.name.split('.').pop();
+    const path = `logo-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('site-assets').upload(path, file);
+    if(uploadError){
+      showToast(uploadError.message);
+      btn.textContent = 'Upload Logo';
+      btn.disabled = false;
+      return;
+    }
+    const imageUrl = sb.storage.from('site-assets').getPublicUrl(path).data.publicUrl;
+    const { error } = await sb.from('site_content').update({ logo_url: imageUrl }).eq('id', 1);
+
+    btn.textContent = 'Upload Logo';
+    btn.disabled = false;
+    if(error){ showToast(error.message); return; }
+
+    site.logoUrl = imageUrl;
+    fileInput.value = '';
+    showToast('Logo saved');
+  }
+
+  async function removeLogoImage(){
+    const { error } = await sb.from('site_content').update({ logo_url: null }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    site.logoUrl = null;
+    document.getElementById('logo_imgPreviewWrap').style.display = 'none';
+    document.getElementById('logo_imgFile').value = '';
+    showToast('Logo removed');
+  }
+
+  document.getElementById('favicon_imgFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('favicon_imgPreview').src = reader.result;
+        document.getElementById('favicon_imgPreviewWrap').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  async function saveFaviconImage(){
+    const fileInput = document.getElementById('favicon_imgFile');
+    const file = fileInput.files[0];
+    if(!file){ showToast('Choose a favicon file first'); return; }
+    if(file.size > 100 * 1024){ showToast('Favicon is over 100KB — please compress it first'); return; }
+    const btn = document.getElementById('favicon_imgSaveBtn');
+    btn.textContent = 'Uploading...';
+    btn.disabled = true;
+
+    const ext = file.name.split('.').pop();
+    const path = `favicon-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('site-assets').upload(path, file);
+    if(uploadError){
+      showToast(uploadError.message);
+      btn.textContent = 'Upload Favicon';
+      btn.disabled = false;
+      return;
+    }
+    const imageUrl = sb.storage.from('site-assets').getPublicUrl(path).data.publicUrl;
+    const { error } = await sb.from('site_content').update({ favicon_url: imageUrl }).eq('id', 1);
+
+    btn.textContent = 'Upload Favicon';
+    btn.disabled = false;
+    if(error){ showToast(error.message); return; }
+
+    site.faviconUrl = imageUrl;
+    fileInput.value = '';
+    showToast('Favicon saved');
+  }
+
+  async function removeFaviconImage(){
+    const { error } = await sb.from('site_content').update({ favicon_url: null }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    site.faviconUrl = null;
+    document.getElementById('favicon_imgPreviewWrap').style.display = 'none';
+    document.getElementById('favicon_imgFile').value = '';
+    showToast('Favicon removed');
   }
 
   async function saveStoreSettings(){
