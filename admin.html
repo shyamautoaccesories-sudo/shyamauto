@@ -653,12 +653,35 @@
       </div>
     </div>
 
-    <!-- Settings (placeholder) -->
+    <!-- Settings -->
     <div class="view" id="view-settings">
       <p class="view-title">Settings</p>
-      <div class="coming-soon-card">
-        <p>Store settings coming soon</p>
-        <p>Store name, currency, tax, admin password change jaisi settings yahan aayengi.</p>
+
+      <div class="section-block">
+        <h3>Store Details</h3>
+        <div class="form-group"><label class="form-label">Store Name</label><input class="form-input" id="s_storeName"></div>
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">Support Email</label><input class="form-input" id="s_supportEmail" type="email"></div>
+          <div class="form-group"><label class="form-label">Support Phone</label><input class="form-input" id="s_supportPhone" type="tel"></div>
+        </div>
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">Currency Symbol</label><input class="form-input" id="s_currency" maxlength="3"></div>
+          <div class="form-group"><label class="form-label">Tax / GST (%)</label><input class="form-input" id="s_taxPercent" type="number" step="0.01" min="0"></div>
+        </div>
+        <button class="btn-accent btn-block" onclick="saveStoreSettings()">Save Store Details</button>
+      </div>
+
+      <div class="section-block">
+        <h3>Admin Account</h3>
+        <div class="form-group">
+          <label class="form-label">Signed in as</label>
+          <input class="form-input" id="s_adminEmail" disabled style="color:var(--muted);">
+        </div>
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">New Password</label><input class="form-input" id="s_newPassword" type="password" placeholder="At least 6 characters"></div>
+          <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" id="s_confirmPassword" type="password"></div>
+        </div>
+        <button class="btn-outline btn-block" onclick="changeAdminPassword()">Update Password</button>
       </div>
     </div>
 
@@ -914,6 +937,7 @@
   };
   const defaultHeroAd = { tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal" };
   const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale" };
+  const defaultStore = { name:"Shyam Auto", supportEmail:"", supportPhone:"", currency:"₹", taxPercent:18 };
 
   let orders = []; // loaded from Supabase `orders` table
   let tickets = []; // loaded from Supabase `tickets` table
@@ -950,10 +974,11 @@
       hero: Object.assign({}, defaultHero, siteRow.hero),
       heroImageUrl: siteRow.hero_image_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
-      deal: Object.assign({}, defaultDeal, siteRow.deal)
+      deal: Object.assign({}, defaultDeal, siteRow.deal),
+      store: Object.assign({}, defaultStore, siteRow.store)
     };
   }
-  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
+  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore };
 
   async function loadOrders(){
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
@@ -1093,6 +1118,7 @@
     window.scrollTo(0,0);
     if(name === 'analytics-sales') renderReports();
     if(name === 'delivery') renderDelivery();
+    if(name === 'settings') renderSettings();
   }
 
   // ---- Render everything ----
@@ -1446,6 +1472,44 @@
     document.getElementById('f_dealSub').value = site.deal.sub;
     document.getElementById('f_dealBtn').value = site.deal.btn;
   }
+  // ---- Settings ----
+  async function renderSettings(){
+    document.getElementById('s_storeName').value = site.store.name || '';
+    document.getElementById('s_supportEmail').value = site.store.supportEmail || '';
+    document.getElementById('s_supportPhone').value = site.store.supportPhone || '';
+    document.getElementById('s_currency').value = site.store.currency || '₹';
+    document.getElementById('s_taxPercent').value = site.store.taxPercent != null ? site.store.taxPercent : 18;
+    document.getElementById('s_newPassword').value = '';
+    document.getElementById('s_confirmPassword').value = '';
+    const { data } = await sb.auth.getUser();
+    document.getElementById('s_adminEmail').value = data?.user?.email || '';
+  }
+
+  async function saveStoreSettings(){
+    site.store = {
+      name: document.getElementById('s_storeName').value.trim() || 'Shyam Auto',
+      supportEmail: document.getElementById('s_supportEmail').value.trim(),
+      supportPhone: document.getElementById('s_supportPhone').value.trim(),
+      currency: document.getElementById('s_currency').value.trim() || '₹',
+      taxPercent: Number(document.getElementById('s_taxPercent').value) || 0
+    };
+    const { error } = await sb.from('site_content').update({ store: site.store }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    showToast('Store details saved');
+  }
+
+  async function changeAdminPassword(){
+    const pass = document.getElementById('s_newPassword').value;
+    const confirm = document.getElementById('s_confirmPassword').value;
+    if(!pass || pass.length < 6){ showToast('Password must be at least 6 characters'); return; }
+    if(pass !== confirm){ showToast('Passwords do not match'); return; }
+    const { error } = await sb.auth.updateUser({ password: pass });
+    if(error){ showToast(error.message); return; }
+    document.getElementById('s_newPassword').value = '';
+    document.getElementById('s_confirmPassword').value = '';
+    showToast('Password updated');
+  }
+
   async function saveHero(){
     site.hero = {
       eyebrow: document.getElementById('f_heroEyebrow').value,
