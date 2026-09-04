@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Shyam Auto — Motorbike Accessories & Gear</title>
+<link rel="icon" id="faviconLink" href="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
@@ -804,7 +805,7 @@
   <button class="icon-btn" aria-label="Menu" id="menuBtn">
     <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <div class="logo">SHYAM <span>AUTO</span></div>
+  <div class="logo" id="navLogo">SHYAM <span>AUTO</span></div>
   <div class="topbar-actions">
     <button class="icon-btn" aria-label="Search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1026,7 +1027,7 @@
 
 <!-- Footer -->
 <footer>
-  <div class="foot-logo">SHYAM <span>AUTO</span></div>
+  <div class="foot-logo" id="footLogo">SHYAM <span>AUTO</span></div>
   <p class="addr">Shop No. 14, Bailey Road, Patna, Bihar 800014<br>Mon–Sun, 10:00 AM – 8:30 PM</p>
   <div class="foot-links">
     <a href="about-us.html">About Us</a>
@@ -1241,7 +1242,7 @@
 <div class="menu-overlay" id="menuOverlay"></div>
 <aside class="menu-drawer" id="menuDrawer" aria-label="Navigation menu">
   <div class="menu-head">
-    <div class="logo">SHYAM <span>AUTO</span></div>
+    <div class="logo" id="menuLogo">SHYAM <span>AUTO</span></div>
     <button class="icon-btn" id="closeMenuBtn" aria-label="Close menu">
       <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
@@ -1595,7 +1596,9 @@
       hero: Object.assign({}, defaultHero, siteRow.hero),
       heroImageUrl: siteRow.hero_image_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
-      deal: Object.assign({}, defaultDeal, siteRow.deal)
+      deal: Object.assign({}, defaultDeal, siteRow.deal),
+      logoUrl: siteRow.logo_url || null,
+      faviconUrl: siteRow.favicon_url || null
     };
   }
 
@@ -1606,7 +1609,26 @@
 
   const iconSvg = `<svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 0 1 16 0v2H4z"/><circle cx="12" cy="18" r="1"/></svg>`;
 
+  function applyBranding(){
+    const logoHtml = site.logoUrl
+      ? `<img src="${site.logoUrl}" alt="Store logo" style="height:28px;width:auto;display:block;object-fit:contain;">`
+      : 'SHYAM <span>AUTO</span>';
+    const navLogo = document.getElementById('navLogo');
+    const menuLogo = document.getElementById('menuLogo');
+    const footLogo = document.getElementById('footLogo');
+    if(navLogo) navLogo.innerHTML = logoHtml;
+    if(menuLogo) menuLogo.innerHTML = logoHtml;
+    if(footLogo) footLogo.innerHTML = logoHtml;
+
+    const favLink = document.getElementById('faviconLink');
+    if(favLink){
+      if(site.faviconUrl) favLink.setAttribute('href', site.faviconUrl);
+      else favLink.removeAttribute('href');
+    }
+  }
+
   function renderStorefront(){
+    applyBranding();
     products = site.products;
     bestsellers = products.slice(0,5);
     newArrivals = products.slice(5,10);
