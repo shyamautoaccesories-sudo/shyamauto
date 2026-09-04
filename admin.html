@@ -669,7 +669,7 @@
             <img id="logo_imgPreview" style="width:140px;height:56px;object-fit:contain;background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/16px 16px;border-radius:10px;border:1px solid var(--line);display:block;padding:6px;">
           </div>
           <input type="file" accept="image/png,image/svg+xml,image/webp" id="logo_imgFile" class="form-input" style="padding:10px;">
-          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Transparent PNG or SVG works best. Recommended size <strong>400×120px</strong> (wide logo) — keep it under <strong>200KB</strong>. Shows in the top navbar and checkout receipts.</p>
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Transparent PNG or SVG works best. Recommended size <strong>400×120px</strong> (wide logo) — keep it under <strong>200KB</strong>. <strong>Crop the file tightly around the logo mark itself</strong> — extra blank space baked into the PNG will make it look small on the storefront, since it displays at a fixed height (40px). Shows in the top navbar and footer.</p>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button class="btn-outline" id="logo_imgSaveBtn" onclick="saveLogoImage()" style="flex:1;">Upload Logo</button>
             <button class="btn-outline" onclick="removeLogoImage()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
