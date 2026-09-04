@@ -602,6 +602,19 @@
       </div>
       <div class="form-group"><label class="form-label">Rating (0-5)</label><input class="form-input" id="p_rating" type="number" step="0.1" min="0" max="5"></div>
 
+      <div class="form-group">
+        <label class="form-label">Shipping — Weight &amp; Dimensions</label>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Used to auto-fill Shiprocket when an order is marked Shipped. Enter the packed box, not just the item.</p>
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">Weight (kg)</label><input class="form-input" id="p_weight" type="number" step="0.01" min="0" placeholder="0.5"></div>
+          <div class="form-group"><label class="form-label">Length (cm)</label><input class="form-input" id="p_length" type="number" step="0.1" min="0" placeholder="20"></div>
+        </div>
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">Breadth (cm)</label><input class="form-input" id="p_breadth" type="number" step="0.1" min="0" placeholder="20"></div>
+          <div class="form-group"><label class="form-label">Height (cm)</label><input class="form-input" id="p_height" type="number" step="0.1" min="0" placeholder="20"></div>
+        </div>
+      </div>
+
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">This product has variants (size / color etc.)</span>
         <label class="switch"><input type="checkbox" id="p_hasVariants" onchange="toggleVariantMode()"><span class="switch-track"></span></label>
@@ -811,7 +824,11 @@
     const products = prodRows.map(p => ({
       id: p.id, name: p.name, cat: p.cat, brand: p.brand || null, price: Number(p.price), mrp: p.mrp != null ? Number(p.mrp) : null,
       rating: p.rating, sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
-      bike_model_ids: p.bike_model_ids || [], images: p.images || []
+      bike_model_ids: p.bike_model_ids || [], images: p.images || [],
+      weight_kg: p.weight_kg != null ? Number(p.weight_kg) : null,
+      length_cm: p.length_cm != null ? Number(p.length_cm) : null,
+      breadth_cm: p.breadth_cm != null ? Number(p.breadth_cm) : null,
+      height_cm: p.height_cm != null ? Number(p.height_cm) : null
     }));
     const siteRow = siteRes.data || {};
     return {
@@ -841,7 +858,10 @@
       items: Array.isArray(o.items) ? o.items.reduce((s,it)=>s+(it.qty||1),0) : 0,
       itemList: Array.isArray(o.items) ? o.items : [],
       total: Number(o.total),
-      status: o.status || 'Pending'
+      status: o.status || 'Pending',
+      shiprocketOrderId: o.shiprocket_order_id || null,
+      shiprocketAwb: o.shiprocket_awb || null,
+      shiprocketError: o.shiprocket_error || null
     }));
   }
 
@@ -1079,6 +1099,10 @@
       document.getElementById('p_cat').value = p.cat;
       document.getElementById('p_brand').value = p.brand || '';
       document.getElementById('p_rating').value = p.rating;
+      document.getElementById('p_weight').value = p.weight_kg != null ? p.weight_kg : '';
+      document.getElementById('p_length').value = p.length_cm != null ? p.length_cm : '';
+      document.getElementById('p_breadth').value = p.breadth_cm != null ? p.breadth_cm : '';
+      document.getElementById('p_height').value = p.height_cm != null ? p.height_cm : '';
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_sale').checked = !!p.sale;
@@ -1094,6 +1118,10 @@
       document.getElementById('p_name').value = '';
       document.getElementById('p_brand').value = '';
       document.getElementById('p_rating').value = '4.0';
+      document.getElementById('p_weight').value = '';
+      document.getElementById('p_length').value = '';
+      document.getElementById('p_breadth').value = '';
+      document.getElementById('p_height').value = '';
       document.getElementById('p_price').value = '';
       document.getElementById('p_mrp').value = '';
       document.getElementById('p_sale').checked = false;
@@ -1250,6 +1278,10 @@
       cat: document.getElementById('p_cat').value,
       brand: document.getElementById('p_brand').value || null,
       rating: document.getElementById('p_rating').value || '4.0',
+      weight_kg: Number(document.getElementById('p_weight').value) || null,
+      length_cm: Number(document.getElementById('p_length').value) || null,
+      breadth_cm: Number(document.getElementById('p_breadth').value) || null,
+      height_cm: Number(document.getElementById('p_height').value) || null,
       price,
       mrp,
       sale: document.getElementById('p_sale').checked,
@@ -1722,6 +1754,8 @@
           <div class="sub">${o.items} item${o.items>1?'s':''} · ₹${o.total.toLocaleString('en-IN')} · ${o.paymentMethod}${o.paymentStatus ? ` · <span style="color:${o.paymentStatus==='paid'?'#1a9e4a':o.paymentStatus==='failed'?'#c33':'inherit'};font-weight:700;">${o.paymentStatus.toUpperCase()}</span>` : ''}</div>
           ${o.address ? `<div class="sub" style="margin-top:4px;line-height:1.4;">${o.address}</div>` : `<div class="sub" style="margin-top:4px;color:var(--red, #c33);">No address on file</div>`}
           ${o.itemList.length ? `<div class="sub" style="margin-top:4px;">${o.itemList.map(it => `${it.name} ×${it.qty}`).join(', ')}</div>` : ''}
+          ${o.shiprocketAwb ? `<div class="sub" style="margin-top:4px;color:var(--green);">Shiprocket AWB: ${o.shiprocketAwb}</div>` : (o.shiprocketOrderId ? `<div class="sub" style="margin-top:4px;color:var(--green);">Pushed to Shiprocket (#${o.shiprocketOrderId})</div>` : '')}
+          ${o.shiprocketError ? `<div class="sub" style="margin-top:4px;color:var(--red);">Shiprocket: ${o.shiprocketError}</div>` : ''}
         </div>
         <select class="form-select" style="width:auto;padding:8px 10px;font-size:11.5px;" onchange="updateOrderStatus('${o.id}', this.value)">
           ${['Pending','Shipped','Delivered'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
@@ -1734,7 +1768,28 @@
     if(error){ showToast(error.message); return; }
     const o = orders.find(x => x.id == id);
     if(o) o.status = status;
+    renderOrders();
     showToast('Order ' + id + ' marked ' + status);
+
+    // Auto-push to Shiprocket the moment an order is marked Shipped.
+    if(status === 'Shipped' && o && !o.shiprocketOrderId){
+      showToast('Pushing order to Shiprocket...');
+      const { data, error: shipError } = await sb.functions.invoke('ship-order', { body: { order_id: id } });
+      if(shipError || !data || data.error){
+        const msg = data?.error || shipError?.message || 'Unknown error';
+        if(o) o.shiprocketError = msg;
+        renderOrders();
+        showToast('Shiprocket push failed: ' + msg);
+        return;
+      }
+      if(o){
+        o.shiprocketOrderId = data.shiprocket_order_id || null;
+        o.shiprocketAwb = data.awb_code || null;
+        o.shiprocketError = null;
+      }
+      renderOrders();
+      showToast('Order ' + id + ' pushed to Shiprocket');
+    }
   }
 
   // ---- Support Tickets ----
