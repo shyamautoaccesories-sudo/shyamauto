@@ -749,6 +749,75 @@
   .toast.show{opacity:1;transform:translate(-50%,0);}
   .toast svg{width:15px;height:15px;stroke:var(--yellow);fill:none;stroke-width:2;}
 
+  /* ---------- Order result popup (Blinkit-style) ---------- */
+  .order-result-overlay{
+    position:fixed;inset:0;z-index:300;
+    background:rgba(20,18,14,0.55);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    opacity:0;pointer-events:none;transition:opacity 0.25s ease;
+  }
+  .order-result-overlay.show{opacity:1;pointer-events:auto;}
+  .order-result-card{
+    background:var(--surface);border-radius:22px;padding:34px 26px 26px;
+    width:100%;max-width:300px;text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.28);
+    transform:scale(0.8) translateY(6px);opacity:0;
+    transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.3s ease;
+  }
+  .order-result-overlay.show .order-result-card{transform:scale(1) translateY(0);opacity:1;}
+
+  .order-result-icon{position:relative;width:84px;height:84px;margin:0 auto 18px;}
+  .order-result-icon svg{position:absolute;inset:0;width:100%;height:100%;}
+  .order-result-ring{
+    position:absolute;inset:0;border-radius:50%;
+    box-shadow:0 0 0 0 rgba(46,167,90,0.35);
+  }
+  .order-result-icon.success .order-result-ring{animation:orderRipple 1s ease-out 0.15s;}
+  .order-result-icon.fail .order-result-ring{box-shadow:0 0 0 0 rgba(184,41,26,0.35);animation:orderRippleFail 1s ease-out 0.15s;}
+  @keyframes orderRipple{
+    0%{box-shadow:0 0 0 0 rgba(46,167,90,0.4);}
+    100%{box-shadow:0 0 0 16px rgba(46,167,90,0);}
+  }
+  @keyframes orderRippleFail{
+    0%{box-shadow:0 0 0 0 rgba(184,41,26,0.4);}
+    100%{box-shadow:0 0 0 16px rgba(184,41,26,0);}
+  }
+
+  .order-result-circle-bg{fill:none;stroke:var(--surface-2);stroke-width:4;}
+  .order-result-circle-progress{
+    fill:none;stroke-width:4;stroke-linecap:round;
+    stroke-dasharray:226;stroke-dashoffset:226;transform:rotate(-90deg);transform-origin:50% 50%;
+  }
+  .order-result-icon.success .order-result-circle-progress{stroke:#2EA75A;animation:orderCircleDraw 0.5s ease-out 0.05s forwards;}
+  .order-result-icon.fail .order-result-circle-progress{stroke:var(--red);animation:orderCircleDraw 0.5s ease-out 0.05s forwards;}
+  @keyframes orderCircleDraw{to{stroke-dashoffset:0;}}
+
+  .order-result-check,.order-result-cross{display:none;}
+  .order-result-check-path{
+    fill:none;stroke:#2EA75A;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:36;stroke-dashoffset:36;
+  }
+  .order-result-cross-path1,.order-result-cross-path2{
+    fill:none;stroke:var(--red);stroke-width:4.5;stroke-linecap:round;
+    stroke-dasharray:29;stroke-dashoffset:29;
+  }
+  .order-result-icon.success .order-result-check{display:block;}
+  .order-result-icon.success .order-result-check-path{animation:orderDraw 0.35s ease-out 0.45s forwards;}
+  .order-result-icon.fail .order-result-cross{display:block;}
+  .order-result-icon.fail .order-result-cross-path1{animation:orderDraw 0.25s ease-out 0.45s forwards;}
+  .order-result-icon.fail .order-result-cross-path2{animation:orderDraw 0.25s ease-out 0.68s forwards;}
+  @keyframes orderDraw{to{stroke-dashoffset:0;}}
+
+  .order-result-title{font-family:var(--font-display);font-size:19px;font-weight:600;margin-bottom:6px;text-transform:none;letter-spacing:0.2px;}
+  .order-result-sub{color:var(--muted);font-size:13.5px;line-height:1.45;margin-bottom:0;}
+  .order-result-card.has-btn .order-result-sub{margin-bottom:18px;}
+  .order-result-btn{
+    display:none;width:100%;background:var(--yellow);color:#fff;font-weight:700;font-size:14px;
+    padding:12px;border-radius:10px;
+  }
+  .order-result-card.has-btn .order-result-btn{display:block;}
+  .order-result-btn:active{background:var(--yellow-deep);}
+
   /* ---------- Desktop enhancements ---------- */
   @media (min-width:860px){
     body{padding-bottom:0;}
@@ -1474,6 +1543,28 @@
   <span id="toastMsg">Added to cart</span>
 </div>
 
+<div class="order-result-overlay" id="orderResultOverlay">
+  <div class="order-result-card" id="orderResultCard">
+    <div class="order-result-icon" id="orderResultIcon">
+      <div class="order-result-ring"></div>
+      <svg viewBox="0 0 80 80">
+        <circle class="order-result-circle-bg" cx="40" cy="40" r="36"/>
+        <circle class="order-result-circle-progress" cx="40" cy="40" r="36"/>
+      </svg>
+      <svg class="order-result-check" viewBox="0 0 52 52">
+        <path class="order-result-check-path" d="M14 27l8 8 16-16"/>
+      </svg>
+      <svg class="order-result-cross" viewBox="0 0 52 52">
+        <path class="order-result-cross-path1" d="M17 17l18 18"/>
+        <path class="order-result-cross-path2" d="M35 17l-18 18"/>
+      </svg>
+    </div>
+    <h3 class="order-result-title" id="orderResultTitle">Order Placed!</h3>
+    <p class="order-result-sub" id="orderResultSub">Your order has been placed successfully.</p>
+    <button class="order-result-btn" id="orderResultBtn" onclick="closeOrderResult()">OK</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.razorpay.com/v2/checkout.js"></script>
 <script>
@@ -2019,6 +2110,39 @@
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(()=>t.classList.remove('show'), 1600);
   }
+
+  // ---- Blinkit-style order result popup ----
+  function showOrderResult(status, title, sub, opts){
+    opts = opts || {};
+    const overlay = document.getElementById('orderResultOverlay');
+    const card = document.getElementById('orderResultCard');
+    const icon = document.getElementById('orderResultIcon');
+    document.getElementById('orderResultTitle').textContent = title;
+    document.getElementById('orderResultSub').textContent = sub;
+    card.classList.toggle('has-btn', !!opts.showButton);
+    document.getElementById('orderResultBtn').textContent = opts.buttonText || 'OK';
+
+    // restart animations every time it's shown
+    icon.classList.remove('success','fail');
+    void icon.offsetWidth; // force reflow so animation replays
+    icon.classList.add(status);
+
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    clearTimeout(window._orderResultTimer);
+    if(status === 'success' && !opts.showButton){
+      window._orderResultTimer = setTimeout(closeOrderResult, opts.duration || 2200);
+    }
+  }
+  function closeOrderResult(){
+    document.getElementById('orderResultOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+    clearTimeout(window._orderResultTimer);
+  }
+  document.getElementById('orderResultOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'orderResultOverlay') closeOrderResult();
+  });
 
   // ---- Product detail modal ----
   let pdpCurrentId = null;
@@ -2944,12 +3068,16 @@
       });
       btn.disabled = false;
       btn.textContent = 'Place Order';
-      if(error){ showToast(error.message); return; }
+      if(error){
+        closeCheckoutFn();
+        showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
+        return;
+      }
       cart = {};
       saveCartToStorage();
       renderCart();
       closeCheckoutFn();
-      showToast('Order placed successfully!');
+      showOrderResult('success', 'Order Placed!', 'Your order has been placed successfully.');
       return;
     }
 
@@ -2975,12 +3103,16 @@
       });
       btn.disabled = false;
       btn.textContent = 'Place Order';
-      if(error){ showToast(error.message); return; }
+      if(error){
+        closeCheckoutFn();
+        showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
+        return;
+      }
       cart = {};
       saveCartToStorage();
       renderCart();
       closeCheckoutFn();
-      showToast('Order placed successfully! (test mode — payment bypassed)');
+      showOrderResult('success', 'Order Placed!', 'Order placed successfully. (test mode — payment bypassed)');
       return;
     }
 
@@ -3019,14 +3151,15 @@
           btn.disabled = false;
           btn.textContent = 'Place Order';
           if(verifyErr || !verifyData || !verifyData.verified || !verifyData.saved){
-            showToast('Payment done but order save failed. Contact support with Payment ID: ' + response.razorpay_payment_id);
+            closeCheckoutFn();
+            showOrderResult('fail', 'Order Failed', 'Payment done but order save failed. Contact support with Payment ID: ' + response.razorpay_payment_id, { showButton:true, buttonText:'OK' });
             return;
           }
           cart = {};
           saveCartToStorage();
           renderCart();
           closeCheckoutFn();
-          showToast('Payment successful! Order placed.');
+          showOrderResult('success', 'Order Placed!', 'Payment successful! Your order has been placed.');
         },
         modal: {
           ondismiss: function(){
@@ -3039,14 +3172,16 @@
       rzp.on('payment.failed', function(){
         btn.disabled = false;
         btn.textContent = 'Place Order';
-        showToast('Payment failed. Please try again.');
+        closeCheckoutFn();
+        showOrderResult('fail', 'Payment Failed', 'Something went wrong with your payment. Please try again.', { showButton:true, buttonText:'Try Again' });
       });
       rzp.open();
       btn.textContent = 'Place Order';
     }catch(err){
       btn.disabled = false;
       btn.textContent = 'Place Order';
-      showToast(err.message || 'Something went wrong');
+      closeCheckoutFn();
+      showOrderResult('fail', 'Order Failed', err.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
     }
   });
 
