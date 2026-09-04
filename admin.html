@@ -475,28 +475,42 @@
 
       <div class="section-block">
         <h3>Hero Section</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">The homepage hero is now a single full-width banner image with a "Shop Now" button on top. Upload separate images for desktop and mobile so each looks sharp on its screen size.</p>
+
         <div class="form-group">
-          <label class="form-label">Hero Image (transparent PNG)</label>
+          <label class="form-label">Desktop Banner Image</label>
           <div id="hero_imgPreviewWrap" style="display:none;margin-bottom:10px;">
-            <img id="hero_imgPreview" style="width:160px;height:160px;object-fit:contain;background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/16px 16px;border-radius:12px;border:1px solid var(--line);display:block;">
+            <img id="hero_imgPreview" style="width:100%;max-width:340px;aspect-ratio:2.6/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
           </div>
-          <input type="file" accept="image/png" id="hero_imgFile" class="form-input" style="padding:10px;">
-          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Use a transparent PNG (bike, helmet, gear cutout) — recommended size <strong>900×900px</strong> (or up to 800×1100px portrait), under 500KB. It sits to the right of the hero text, filling the empty space.</p>
+          <input type="file" accept="image/*" id="hero_imgFile" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended size: <strong>1920×720px</strong> (wide banner, ~2.6:1 ratio). JPG/PNG/WebP, ideally under 800KB. Shown on screens wider than 860px.</p>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-outline" id="hero_imgSaveBtn" onclick="saveHeroImage()" style="flex:1;">Upload Image</button>
+            <button class="btn-outline" id="hero_imgSaveBtn" onclick="saveHeroImage()" style="flex:1;">Upload Desktop Image</button>
             <button class="btn-outline" onclick="removeHeroImage()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
           </div>
         </div>
-        <div class="form-group" style="margin-top:6px;"><label class="form-label">Eyebrow text</label><input class="form-input" id="f_heroEyebrow"></div>
-        <div class="form-row2">
-          <div class="form-group"><label class="form-label">Title line 1</label><input class="form-input" id="f_heroTitle1"></div>
-          <div class="form-group"><label class="form-label">Title line 2 (accent)</label><input class="form-input" id="f_heroTitle2"></div>
+
+        <div class="form-group" style="margin-top:18px;">
+          <label class="form-label">Mobile Banner Image</label>
+          <div id="hero_imgMobilePreviewWrap" style="display:none;margin-bottom:10px;">
+            <img id="hero_imgMobilePreview" style="width:160px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
+          </div>
+          <input type="file" accept="image/*" id="hero_imgMobileFile" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended size: <strong>750×940px</strong> (portrait, ~4:5 ratio). JPG/PNG/WebP, ideally under 400KB. Shown on screens narrower than 860px — if left empty, the desktop image is used instead.</p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-outline" id="hero_imgMobileSaveBtn" onclick="saveHeroImageMobile()" style="flex:1;">Upload Mobile Image</button>
+            <button class="btn-outline" onclick="removeHeroImageMobile()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
+          </div>
         </div>
-        <div class="form-group"><label class="form-label">Subtitle</label><textarea class="form-textarea" id="f_heroSub"></textarea></div>
-        <div class="form-row2">
-          <div class="form-group"><label class="form-label">Primary button text</label><input class="form-input" id="f_heroCtaPrimary"></div>
-          <div class="form-group"><label class="form-label">Secondary button text</label><input class="form-input" id="f_heroCtaSecondary"></div>
+
+        <div class="form-group" style="margin-top:18px;"><label class="form-label">Shop Now button text</label><input class="form-input" id="f_heroCtaPrimary"></div>
+
+        <div class="form-group">
+          <label class="form-label">Links to product</label>
+          <select class="form-select" id="f_heroProduct"><option value="">— None (scrolls to Bestsellers) —</option></select>
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Pick which product the Shop Now button opens. Tip: you can also turn on <strong>"Add to Home Hero Banner"</strong> from inside any product's edit screen — it links that product here automatically.</p>
         </div>
+
         <button class="btn-accent btn-block" onclick="saveHero()">Save Hero Section</button>
       </div>
 
@@ -804,6 +818,11 @@
         <span style="font-size:13px;font-weight:600;">Mark as SALE</span>
         <label class="switch"><input type="checkbox" id="p_sale"><span class="switch-track"></span></label>
       </div>
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
+        <label class="switch"><input type="checkbox" id="p_heroBanner"><span class="switch-track"></span></label>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Turning this on makes the homepage's Shop Now button open this product. Only one product can be linked at a time — enabling it here replaces whatever was linked before.</p>
       <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="p_desc"></textarea></div>
       <label class="form-label">Specifications</label>
       <div id="specRows"></div>
@@ -964,9 +983,7 @@
     {name:"Steelbird"},{name:"Vega"},{name:"Studds"},{name:"Rynox"},{name:"Axor"},{name:"Viaterra"}
   ];
   const defaultHero = {
-    eyebrow:"PATNA'S OWN GARAGE STORE", title1:"BUILT FOR", title2:"THE ROAD",
-    sub:"Helmets, riding gear, LED lighting & genuine parts — picked by riders, delivered to your garage.",
-    ctaPrimary:"Shop Now", ctaSecondary:"Track Order"
+    ctaPrimary:"Shop Now", productId:null
   };
   const defaultHeroAd = { tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal" };
   const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale" };
@@ -1006,6 +1023,7 @@
       bikeModels: modelRes.data || [],
       hero: Object.assign({}, defaultHero, siteRow.hero),
       heroImageUrl: siteRow.hero_image_url || null,
+      heroImageMobileUrl: siteRow.hero_image_mobile_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
       deal: Object.assign({}, defaultDeal, siteRow.deal),
       store: Object.assign({}, defaultStore, siteRow.store),
@@ -1013,7 +1031,7 @@
       faviconUrl: siteRow.favicon_url || null
     };
   }
-  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
+  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
 
   async function loadOrders(){
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
@@ -1284,6 +1302,7 @@
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_sale').checked = !!p.sale;
+      document.getElementById('p_heroBanner').checked = !!(site.hero && Number(site.hero.productId) === Number(p.id));
       document.getElementById('p_desc').value = p.desc || '';
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
       renderModelCheckList(p.bike_model_ids || []);
@@ -1303,6 +1322,7 @@
       document.getElementById('p_price').value = '';
       document.getElementById('p_mrp').value = '';
       document.getElementById('p_sale').checked = false;
+      document.getElementById('p_heroBanner').checked = false;
       document.getElementById('p_desc').value = '';
       addSpecRow('', '');
       renderModelCheckList([]);
@@ -1470,38 +1490,61 @@
       variants
     };
 
-    let error;
+    const wantsHeroBanner = document.getElementById('p_heroBanner').checked;
+
+    let error, savedProductId = editingProductId;
     if(editingProductId){
       ({ error } = await sb.from('products').update(data).eq('id', editingProductId));
     } else {
-      ({ error } = await sb.from('products').insert(data));
+      let insertedRow;
+      ({ data: insertedRow, error } = await sb.from('products').insert(data).select().single());
+      if(insertedRow) savedProductId = insertedRow.id;
     }
 
     saveBtn.textContent = originalBtnText;
     saveBtn.disabled = false;
     if(error){ showToast(error.message); return; }
 
+    // ---- Sync "Add to Home Hero Banner" toggle with site_content.hero.productId ----
+    const currentHeroProductId = site.hero && site.hero.productId != null ? Number(site.hero.productId) : null;
+    if(wantsHeroBanner && savedProductId != null && currentHeroProductId !== Number(savedProductId)){
+      site.hero = Object.assign({}, site.hero, { productId: Number(savedProductId) });
+      await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
+    } else if(!wantsHeroBanner && savedProductId != null && currentHeroProductId === Number(savedProductId)){
+      site.hero = Object.assign({}, site.hero, { productId: null });
+      await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
+    }
+
     site = await loadSite();
     renderProductList();
     renderDashboard();
+    renderBannerForm();
     closeProductSheet();
     showToast('Product saved');
   }
 
   // ---- Banners ----
   function renderBannerForm(){
-    document.getElementById('f_heroEyebrow').value = site.hero.eyebrow;
-    document.getElementById('f_heroTitle1').value = site.hero.title1;
-    document.getElementById('f_heroTitle2').value = site.hero.title2;
-    document.getElementById('f_heroSub').value = site.hero.sub;
     document.getElementById('f_heroCtaPrimary').value = site.hero.ctaPrimary;
-    document.getElementById('f_heroCtaSecondary').value = site.hero.ctaSecondary;
+
+    const prodSel = document.getElementById('f_heroProduct');
+    prodSel.innerHTML = '<option value="">— None (scrolls to Bestsellers) —</option>' +
+      site.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    prodSel.value = site.hero.productId || '';
+
     if(site.heroImageUrl){
       document.getElementById('hero_imgPreview').src = site.heroImageUrl;
       document.getElementById('hero_imgPreviewWrap').style.display = 'block';
     } else {
       document.getElementById('hero_imgPreviewWrap').style.display = 'none';
     }
+    if(site.heroImageMobileUrl){
+      document.getElementById('hero_imgMobilePreview').src = site.heroImageMobileUrl;
+      document.getElementById('hero_imgMobilePreviewWrap').style.display = 'block';
+    } else {
+      document.getElementById('hero_imgMobilePreviewWrap').style.display = 'none';
+    }
+
     document.getElementById('f_dealTag').value = site.deal.tag;
     document.getElementById('f_dealTitle').value = site.deal.title;
     document.getElementById('f_dealSub').value = site.deal.sub;
@@ -1661,13 +1704,10 @@
   }
 
   async function saveHero(){
+    const productIdVal = document.getElementById('f_heroProduct').value;
     site.hero = {
-      eyebrow: document.getElementById('f_heroEyebrow').value,
-      title1: document.getElementById('f_heroTitle1').value,
-      title2: document.getElementById('f_heroTitle2').value,
-      sub: document.getElementById('f_heroSub').value,
-      ctaPrimary: document.getElementById('f_heroCtaPrimary').value,
-      ctaSecondary: document.getElementById('f_heroCtaSecondary').value
+      ctaPrimary: document.getElementById('f_heroCtaPrimary').value || 'Shop Now',
+      productId: productIdVal ? Number(productIdVal) : null
     };
     const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     if(error){ showToast(error.message); return; }
@@ -1689,30 +1729,30 @@
   async function saveHeroImage(){
     const fileInput = document.getElementById('hero_imgFile');
     const file = fileInput.files[0];
-    if(!file){ showToast('Choose a PNG first'); return; }
+    if(!file){ showToast('Choose an image first'); return; }
     const btn = document.getElementById('hero_imgSaveBtn');
     btn.textContent = 'Uploading...';
     btn.disabled = true;
 
     const ext = file.name.split('.').pop();
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const path = `desktop-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const { error: uploadError } = await sb.storage.from('hero-images').upload(path, file);
     if(uploadError){
       showToast(uploadError.message);
-      btn.textContent = 'Upload Image';
+      btn.textContent = 'Upload Desktop Image';
       btn.disabled = false;
       return;
     }
     const imageUrl = sb.storage.from('hero-images').getPublicUrl(path).data.publicUrl;
     const { error } = await sb.from('site_content').update({ hero_image_url: imageUrl }).eq('id', 1);
 
-    btn.textContent = 'Upload Image';
+    btn.textContent = 'Upload Desktop Image';
     btn.disabled = false;
     if(error){ showToast(error.message); return; }
 
     site.heroImageUrl = imageUrl;
     fileInput.value = '';
-    showToast('Hero image saved');
+    showToast('Desktop hero image saved');
   }
 
   async function removeHeroImage(){
@@ -1721,7 +1761,57 @@
     site.heroImageUrl = null;
     document.getElementById('hero_imgPreviewWrap').style.display = 'none';
     document.getElementById('hero_imgFile').value = '';
-    showToast('Hero image removed');
+    showToast('Desktop hero image removed');
+  }
+
+  document.getElementById('hero_imgMobileFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('hero_imgMobilePreview').src = reader.result;
+        document.getElementById('hero_imgMobilePreviewWrap').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  async function saveHeroImageMobile(){
+    const fileInput = document.getElementById('hero_imgMobileFile');
+    const file = fileInput.files[0];
+    if(!file){ showToast('Choose an image first'); return; }
+    const btn = document.getElementById('hero_imgMobileSaveBtn');
+    btn.textContent = 'Uploading...';
+    btn.disabled = true;
+
+    const ext = file.name.split('.').pop();
+    const path = `mobile-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('hero-images').upload(path, file);
+    if(uploadError){
+      showToast(uploadError.message);
+      btn.textContent = 'Upload Mobile Image';
+      btn.disabled = false;
+      return;
+    }
+    const imageUrl = sb.storage.from('hero-images').getPublicUrl(path).data.publicUrl;
+    const { error } = await sb.from('site_content').update({ hero_image_mobile_url: imageUrl }).eq('id', 1);
+
+    btn.textContent = 'Upload Mobile Image';
+    btn.disabled = false;
+    if(error){ showToast(error.message); return; }
+
+    site.heroImageMobileUrl = imageUrl;
+    fileInput.value = '';
+    showToast('Mobile hero image saved');
+  }
+
+  async function removeHeroImageMobile(){
+    const { error } = await sb.from('site_content').update({ hero_image_mobile_url: null }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    site.heroImageMobileUrl = null;
+    document.getElementById('hero_imgMobilePreviewWrap').style.display = 'none';
+    document.getElementById('hero_imgMobileFile').value = '';
+    showToast('Mobile hero image removed');
   }
   async function saveDeal(){
     site.deal = {
