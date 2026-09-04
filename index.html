@@ -582,6 +582,7 @@
   .order-tracker-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 14px 14px;margin:14px 0 18px;}
   .order-tracker-eta{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:16px;}
   .order-tracker-eta .hl{color:#1E9E5C;}
+  .order-tracker-eta .eta-estimate-note{font-size:11px;font-weight:600;color:var(--muted);text-transform:none;}
   .order-tracker-steps{display:flex;align-items:flex-start;}
   .order-tracker-step{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;}
   .order-tracker-line{position:absolute;top:12px;left:-50%;width:100%;height:2px;background:var(--line);z-index:0;}
@@ -2621,10 +2622,20 @@
     if(isDelivered){
       eta = `<span class="hl">Delivered</span> — hope you're enjoying your gear!`;
     } else {
-      const est = new Date(order.created_at);
-      est.setDate(est.getDate() + 5);
+      // Prefer the real Shiprocket EDD (synced from admin's tracking refresh) over a guess.
+      const realEdd = order.shiprocket_edd ? new Date(order.shiprocket_edd) : null;
+      const hasRealEdd = realEdd instanceof Date && !isNaN(realEdd.getTime());
+      let est;
+      if(hasRealEdd){
+        est = realEdd;
+      } else {
+        est = new Date(order.created_at);
+        est.setDate(est.getDate() + 5);
+      }
       const estStr = est.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
-      eta = `Arriving by <span class="hl">${estStr}</span>`;
+      eta = hasRealEdd
+        ? `Arriving by <span class="hl">${estStr}</span>`
+        : `Arriving by <span class="hl">${estStr}</span> <span class="eta-estimate-note">(estimated)</span>`;
     }
     const stepsHtml = ORDER_TRACK_LABELS.map((label, i) => {
       let cls = '';
