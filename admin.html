@@ -150,6 +150,38 @@
   .shiprocket-strip.err{background:rgba(184,41,26,0.08);color:var(--red);}
   .shiprocket-strip svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:0 0 auto;}
 
+  /* ---- Delivery tab ---- */
+  .delivery-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;
+    box-shadow:0 1px 2px rgba(23,20,10,0.04), 0 8px 18px -12px rgba(23,20,10,0.12);
+  }
+  .delivery-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .delivery-order-id{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+  .delivery-customer{font-size:14px;font-weight:700;margin-top:2px;}
+  .delivery-awb-row{display:flex;flex-wrap:wrap;gap:10px 18px;margin-bottom:12px;padding:11px 12px;background:var(--surface-2);border-radius:10px;}
+  .delivery-awb-item .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;}
+  .delivery-awb-item .val{font-size:12.5px;font-weight:700;margin-top:2px;font-family:var(--font-mono);}
+  .delivery-refresh-btn{
+    flex:0 0 auto;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:5px;
+  }
+  .delivery-refresh-btn svg{width:12px;height:12px;stroke:var(--accent);fill:none;stroke-width:2.2;}
+  .delivery-refresh-btn.loading svg{animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .delivery-timeline{display:flex;flex-direction:column;gap:0;margin-top:4px;}
+  .delivery-timeline-item{display:flex;gap:10px;padding:8px 0;border-left:2px solid var(--line);padding-left:14px;margin-left:5px;position:relative;}
+  .delivery-timeline-item::before{content:"";position:absolute;left:-6px;top:12px;width:9px;height:9px;border-radius:50%;background:var(--accent);}
+  .delivery-timeline-item:last-child{border-left-color:transparent;}
+  .delivery-timeline-item .dt-activity{font-size:12.5px;font-weight:600;}
+  .delivery-timeline-item .dt-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+  .delivery-empty-note{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .delivery-toggle-timeline{font-size:11.5px;font-weight:600;color:var(--accent);margin-top:8px;display:inline-block;}
+  .delivery-status-pill{font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+  .delivery-status-pill.delivered{background:rgba(30,158,92,0.12);color:var(--green);}
+  .delivery-status-pill.transit{background:rgba(29,95,191,0.12);color:var(--blue);}
+  .delivery-status-pill.issue{background:rgba(184,41,26,0.12);color:var(--red);}
+  .delivery-status-pill.pending{background:rgba(178,103,10,0.12);color:var(--amber);}
+
   /* Form */
   .form-group{margin-bottom:14px;}
   .form-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;display:block;}
@@ -560,13 +592,11 @@
       </div>
     </div>
 
-    <!-- Delivery (placeholder) -->
+    <!-- Delivery — live Shiprocket tracking -->
     <div class="view" id="view-delivery">
       <p class="view-title">Delivery</p>
-      <div class="coming-soon-card">
-        <p>Delivery management coming soon</p>
-        <p>Shipping zones, courier partners aur delivery tracking yahan set up hoga jab backend (jaise Supabase/Shiprocket) connect hoga.</p>
-      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Live courier status for every order pushed to Shiprocket.</p>
+      <div id="deliveryList"></div>
     </div>
 
     <!-- Inventory (placeholder) -->
@@ -942,7 +972,12 @@
       createdAt: o.created_at || null,
       shiprocketOrderId: o.shiprocket_order_id || null,
       shiprocketAwb: o.shiprocket_awb || null,
-      shiprocketError: o.shiprocket_error || null
+      shiprocketError: o.shiprocket_error || null,
+      shiprocketCourier: o.shiprocket_courier || null,
+      shiprocketStatus: o.shiprocket_status || null,
+      shiprocketEdd: o.shiprocket_edd || null,
+      shiprocketActivities: Array.isArray(o.shiprocket_track_activities) ? o.shiprocket_track_activities : [],
+      shiprocketTrackedAt: o.shiprocket_tracked_at || null
     }));
   }
 
@@ -1057,6 +1092,7 @@
     closeSidebar();
     window.scrollTo(0,0);
     if(name === 'analytics-sales') renderReports();
+    if(name === 'delivery') renderDelivery();
   }
 
   // ---- Render everything ----
@@ -1954,6 +1990,81 @@
       renderOrders();
       showToast('Order ' + id + ' pushed to Shiprocket');
     }
+  }
+
+  // ---- Delivery — live Shiprocket tracking ----
+  function deliveryStatusClass(status){
+    const s = (status || '').toLowerCase();
+    if(s.includes('deliver') && !s.includes('undeliver')) return 'delivered';
+    if(s.includes('rto') || s.includes('undeliver') || s.includes('fail') || s.includes('cancel') || s.includes('lost')) return 'issue';
+    if(s.includes('transit') || s.includes('out for') || s.includes('picked') || s.includes('shipped')) return 'transit';
+    return 'pending';
+  }
+
+  function renderDelivery(){
+    const wrap = document.getElementById('deliveryList');
+    const shipped = orders.filter(o => o.shiprocketOrderId || o.shiprocketAwb);
+    if(shipped.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No orders pushed to Shiprocket yet. Mark an order Shipped in Orders to see it here.</p>';
+      return;
+    }
+    wrap.innerHTML = shipped.map(o => {
+      const status = o.shiprocketStatus || (o.shiprocketAwb ? 'Not tracked yet — tap Refresh' : 'Awaiting courier assignment');
+      return `
+      <div class="delivery-card" id="deliveryCard-${o.id}">
+        <div class="delivery-card-head">
+          <div>
+            <div class="delivery-order-id">ORDER #${o.id}</div>
+            <div class="delivery-customer">${o.customer}</div>
+          </div>
+          <span class="delivery-status-pill ${deliveryStatusClass(o.shiprocketStatus)}">${status}</span>
+        </div>
+        <div class="delivery-awb-row">
+          <div class="delivery-awb-item"><div class="lbl">AWB</div><div class="val">${o.shiprocketAwb || '—'}</div></div>
+          <div class="delivery-awb-item"><div class="lbl">Courier</div><div class="val">${o.shiprocketCourier || '—'}</div></div>
+          <div class="delivery-awb-item"><div class="lbl">Est. Delivery</div><div class="val">${o.shiprocketEdd || '—'}</div></div>
+          <button class="delivery-refresh-btn" onclick="refreshTracking('${o.id}', this)">
+            <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        ${o.shiprocketActivities && o.shiprocketActivities.length ? `
+          <a class="delivery-toggle-timeline" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'flex' : 'none'">View tracking history (${o.shiprocketActivities.length})</a>
+          <div class="delivery-timeline" style="display:none;">
+            ${o.shiprocketActivities.slice().reverse().map(a => `
+              <div class="delivery-timeline-item">
+                <div>
+                  <div class="dt-activity">${a.activity || ''}</div>
+                  <div class="dt-meta">${[a.date, a.location].filter(Boolean).join(' · ')}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `<p class="delivery-empty-note">No tracking history yet — tap Refresh once the courier scans the package.</p>`}
+      </div>
+    `;
+    }).join('');
+  }
+
+  async function refreshTracking(orderId, btnEl){
+    btnEl.classList.add('loading');
+    btnEl.disabled = true;
+    const { data, error } = await sb.functions.invoke('track-shipment', { body: { order_id: orderId } });
+    btnEl.classList.remove('loading');
+    btnEl.disabled = false;
+    if(error || !data || data.error){
+      showToast(data?.error || error?.message || 'Could not fetch tracking');
+      return;
+    }
+    const o = orders.find(x => x.id == orderId);
+    if(o){
+      o.shiprocketStatus = data.status || o.shiprocketStatus;
+      o.shiprocketCourier = data.courier || o.shiprocketCourier;
+      o.shiprocketEdd = data.edd || o.shiprocketEdd;
+      o.shiprocketActivities = data.activities || o.shiprocketActivities;
+    }
+    renderDelivery();
+    showToast('Tracking updated for order ' + orderId);
   }
 
   // ---- Support Tickets ----
