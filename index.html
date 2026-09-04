@@ -1291,15 +1291,20 @@
 
       <label class="auth-label" style="margin-top:18px;">Payment Method</label>
       <div class="pay-options">
-        <label class="pay-option disabled" id="payCODOption">
-          <input type="radio" name="coPayment" value="Cash on Delivery" disabled>
+        <!-- TEST MODE — COD temporarily enabled to test Shiprocket without real payments.
+             To go back live: add `disabled` back to the input below, restore the
+             "Currently Unavailable" badge/sub-text, and remove the `checked` on the
+             Online option below isn't needed to change back since it was never touched. -->
+        <label class="pay-option active" id="payCODOption">
+          <input type="radio" name="coPayment" value="Cash on Delivery" checked>
           <div>
-            <div class="pay-option-label">Cash on Delivery <span class="pay-option-badge">Currently Unavailable</span></div>
-            <div class="pay-option-sub">COD is temporarily paused — please pay online</div>
+            <div class="pay-option-label">Cash on Delivery</div>
+            <div class="pay-option-sub">Pay when your order arrives</div>
           </div>
         </label>
-        <label class="pay-option active" id="payOnlineOption">
-          <input type="radio" name="coPayment" value="Online (UPI/Card)" checked>
+        <!-- END TEST MODE -->
+        <label class="pay-option" id="payOnlineOption">
+          <input type="radio" name="coPayment" value="Online (UPI/Card)">
           <div>
             <div class="pay-option-label">Online Payment (UPI / Card)</div>
             <div class="pay-option-sub">We'll share a secure payment link on your phone</div>
@@ -2695,9 +2700,12 @@
     document.getElementById('coState').classList.remove('co-input-auto');
     document.getElementById('coPincode').value = '';
     document.getElementById('coError').classList.remove('show');
-    document.querySelector('input[name="coPayment"][value="Online (UPI/Card)"]').checked = true;
-    document.getElementById('payCODOption').classList.remove('active');
-    document.getElementById('payOnlineOption').classList.add('active');
+    // TEST MODE — defaults to COD so shipping can be tested without real payments.
+    // To go back live: change the line below to select 'Online (UPI/Card)' again
+    // (see the matching TEST MODE block in the Payment Method HTML above).
+    document.querySelector('input[name="coPayment"][value="Cash on Delivery"]').checked = true;
+    document.getElementById('payCODOption').classList.add('active');
+    document.getElementById('payOnlineOption').classList.remove('active');
     const total = keysTotal();
     document.getElementById('checkoutTotal').textContent = '₹' + total.toLocaleString('en-IN');
     closeCartFn();
