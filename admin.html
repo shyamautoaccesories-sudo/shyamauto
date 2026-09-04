@@ -123,7 +123,9 @@
   .status-pill{font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
   .status-pill.Pending{background:rgba(178,103,10,0.12);color:var(--amber);}
   .status-pill.Shipped{background:rgba(29,95,191,0.12);color:var(--blue);}
+  .status-pill.Out-for-Delivery{background:rgba(124,58,237,0.12);color:#7c3aed;}
   .status-pill.Delivered{background:rgba(30,158,92,0.12);color:var(--green);}
+  .status-pill.Cancelled{background:rgba(184,41,26,0.12);color:var(--red);}
   .order-card-body{display:grid;grid-template-columns:1fr;gap:12px;}
   .order-block-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
   .order-customer-name{font-size:14px;font-weight:700;}
@@ -563,7 +565,9 @@
           <button class="order-filter-chip active" data-status="all" onclick="filterOrdersByStatus('all')">All <span class="count" id="fcAll">0</span></button>
           <button class="order-filter-chip" data-status="Pending" onclick="filterOrdersByStatus('Pending')">Pending <span class="count" id="fcPending">0</span></button>
           <button class="order-filter-chip" data-status="Shipped" onclick="filterOrdersByStatus('Shipped')">Shipped <span class="count" id="fcShipped">0</span></button>
+          <button class="order-filter-chip" data-status="Out for Delivery" onclick="filterOrdersByStatus('Out for Delivery')">Out for Delivery <span class="count" id="fcOutForDelivery">0</span></button>
           <button class="order-filter-chip" data-status="Delivered" onclick="filterOrdersByStatus('Delivered')">Delivered <span class="count" id="fcDelivered">0</span></button>
+          <button class="order-filter-chip" data-status="Cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled <span class="count" id="fcCancelled">0</span></button>
         </div>
       </div>
 
@@ -1959,7 +1963,9 @@
     document.getElementById('fcAll').textContent = orders.length;
     document.getElementById('fcPending').textContent = orders.filter(o => o.status === 'Pending').length;
     document.getElementById('fcShipped').textContent = orders.filter(o => o.status === 'Shipped').length;
+    document.getElementById('fcOutForDelivery').textContent = orders.filter(o => o.status === 'Out for Delivery').length;
     document.getElementById('fcDelivered').textContent = orders.filter(o => o.status === 'Delivered').length;
+    document.getElementById('fcCancelled').textContent = orders.filter(o => o.status === 'Cancelled').length;
   }
 
   function renderOrders(){
@@ -1981,7 +1987,7 @@
             <div class="order-card-id">ORDER #${o.id}</div>
             ${o.createdAt ? `<div class="order-card-date">${formatOrderDate(o.createdAt)}</div>` : ''}
           </div>
-          <span class="status-pill ${o.status}">${o.status}</span>
+          <span class="status-pill ${(o.status||'').replace(/\s+/g,'-')}">${o.status}</span>
         </div>
         <div class="order-card-body">
           <div>
@@ -2020,7 +2026,7 @@
               <span class="pay-pill ${o.paymentStatus === 'paid' ? 'paid' : (o.paymentStatus === 'failed' ? 'failed' : 'cod')}" style="margin-top:4px;display:inline-block;">${o.paymentMethod}${o.paymentStatus ? ' · ' + o.paymentStatus.toUpperCase() : ''}</span>
             </div>
             <select class="status-select" onchange="updateOrderStatus('${o.id}', this.value)">
-              ${['Pending','Shipped','Delivered'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
+              ${['Pending','Shipped','Out for Delivery','Delivered','Cancelled'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
             </select>
           </div>
         </div>
