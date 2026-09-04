@@ -44,7 +44,7 @@
   .topbar{
     position:sticky;top:0;z-index:40;
     display:flex;align-items:center;justify-content:space-between;
-    padding:12px 16px;background:rgba(244,242,236,0.92);backdrop-filter:blur(10px);
+    padding:8px 16px;background:rgba(244,242,236,0.92);backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line);
   }
   .icon-btn{
@@ -53,8 +53,9 @@
   }
   .icon-btn:active{background:var(--surface-2);}
   .icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;}
-  .logo{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:0.5px;}
+  .logo{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:0.5px;display:flex;align-items:center;line-height:1;}
   .logo span{color:var(--yellow);}
+  .logo img{display:block;max-height:40px;width:auto;}
   .topbar-actions{display:flex;gap:4px;}
   .cart-count{
     position:absolute;top:2px;right:2px;background:var(--yellow);color:#fff;
@@ -347,7 +348,8 @@
   footer{
     margin-top:32px;padding:28px 16px 24px;background:var(--surface);border-top:1px solid var(--line);
   }
-  .foot-logo{font-family:var(--font-display);font-size:20px;font-weight:700;margin-bottom:8px;}
+  .foot-logo{font-family:var(--font-display);font-size:20px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;line-height:1;}
+  .foot-logo img{display:block;max-height:36px;width:auto;}
   .foot-logo span{color:var(--yellow);}
   footer p.addr{color:var(--muted);font-size:12.5px;line-height:1.6;margin-bottom:16px;}
   .foot-links{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;}
@@ -1611,7 +1613,7 @@
 
   function applyBranding(){
     const logoHtml = site.logoUrl
-      ? `<img src="${site.logoUrl}" alt="Store logo" style="height:28px;width:auto;display:block;object-fit:contain;">`
+      ? `<img src="${site.logoUrl}" alt="Store logo">`
       : 'SHYAM <span>AUTO</span>';
     const navLogo = document.getElementById('navLogo');
     const menuLogo = document.getElementById('menuLogo');
