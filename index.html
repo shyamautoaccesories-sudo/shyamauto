@@ -654,6 +654,19 @@
   .pay-option-badge{font-size:10px;font-weight:700;color:var(--red);margin-left:6px;text-transform:uppercase;letter-spacing:0.3px;}
   .co-row{display:flex;gap:10px;}
   .co-row .auth-field{flex:1;min-width:0;}
+  .phone-input-row{display:flex;gap:8px;}
+  .phone-prefix{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:48px;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    font-size:14px;font-weight:600;color:var(--text);
+  }
+  .phone-input-row .auth-input{flex:1;min-width:0;}
+  .info-dot{
+    width:14px;height:14px;border-radius:50%;background:var(--surface-2);color:var(--muted);
+    font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
+    cursor:help;flex:0 0 auto;
+  }
+  .co-input-auto{background:var(--surface-2);color:var(--text);}
   .checkout-summary-row{
     display:flex;justify-content:space-between;font-size:14px;font-weight:700;
     padding-top:14px;margin-top:16px;border-top:1px solid var(--line);
@@ -1246,28 +1259,34 @@
       <h2 class="auth-title">Delivery Details</h2>
       <p class="auth-sub">Confirm where we should deliver this order and how you'll pay.</p>
 
+      <label class="auth-label">Mobile Number</label>
+      <div class="phone-input-row" style="margin-bottom:16px;">
+        <span class="phone-prefix">+91</span>
+        <input class="auth-input" id="coPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter mobile number">
+      </div>
+
       <label class="auth-label">Full Name</label>
-      <input class="auth-input" id="coName" type="text" placeholder="Your name" style="margin-bottom:16px;">
+      <input class="auth-input" id="coName" type="text" placeholder="Enter Full Name" style="margin-bottom:16px;">
 
-      <label class="auth-label">Phone Number</label>
-      <input class="auth-input" id="coPhone" type="tel" placeholder="10-digit mobile number" style="margin-bottom:16px;">
+      <label class="auth-label" style="display:flex;align-items:center;gap:6px;">Complete Address <span class="info-dot" title="House/flat no., street name, area or locality">?</span></label>
+      <textarea class="auth-input" id="coAddress" rows="2" placeholder="Enter your full address" style="margin-bottom:16px;"></textarea>
 
-      <label class="auth-label">Delivery Address</label>
-      <textarea class="auth-input" id="coAddress" rows="2" placeholder="House no., street, area / locality" style="margin-bottom:12px;"></textarea>
+      <label class="auth-label">Landmark <span style="font-weight:400;">(Optional)</span></label>
+      <input class="auth-input" id="coLandmark" type="text" placeholder="Enter any nearby landmark" style="margin-bottom:16px;">
 
-      <div class="co-row" style="margin-bottom:12px;">
+      <label class="auth-label">Pincode</label>
+      <input class="auth-input" id="coPincode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter pincode" style="margin-bottom:16px;">
+
+      <div class="co-row" style="margin-bottom:4px;">
         <div class="auth-field">
           <label class="auth-label">City</label>
-          <input class="auth-input" id="coCity" type="text" placeholder="e.g. Patna">
+          <input class="auth-input" id="coCity" type="text" placeholder="City">
         </div>
         <div class="auth-field">
           <label class="auth-label">State</label>
-          <input class="auth-input" id="coState" type="text" placeholder="e.g. Bihar">
+          <input class="auth-input" id="coState" type="text" placeholder="State">
         </div>
       </div>
-
-      <label class="auth-label">Pincode</label>
-      <input class="auth-input" id="coPincode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit pincode" style="margin-bottom:4px;">
       <p class="field-error" id="coError">Please fill in all fields correctly before placing the order.</p>
 
       <label class="auth-label" style="margin-top:18px;">Payment Method</label>
@@ -2616,6 +2635,36 @@
   document.getElementById('checkoutClose').addEventListener('click', closeCheckoutFn);
   checkoutOverlay.addEventListener('click', closeCheckoutFn);
 
+  // ---- Pincode → auto-fill City & State ----
+  document.getElementById('coPincode').addEventListener('input', async (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    e.target.value = val;
+    const cityEl = document.getElementById('coCity');
+    const stateEl = document.getElementById('coState');
+    if(val.length !== 6){
+      cityEl.classList.remove('co-input-auto');
+      stateEl.classList.remove('co-input-auto');
+      return;
+    }
+    try{
+      const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+      const data = await res.json();
+      const po = data && data[0] && data[0].Status === 'Success' ? data[0].PostOffice[0] : null;
+      if(po){
+        cityEl.value = po.District;
+        stateEl.value = po.State;
+        cityEl.classList.add('co-input-auto');
+        stateEl.classList.add('co-input-auto');
+      } else {
+        showToast('Could not auto-detect city/state — please enter manually');
+      }
+    }catch(err){
+      // Network hiccup — user can still type city/state manually, so fail quietly.
+    }
+  });
+  document.getElementById('coCity').addEventListener('input', (e) => e.target.classList.remove('co-input-auto'));
+  document.getElementById('coState').addEventListener('input', (e) => e.target.classList.remove('co-input-auto'));
+
   document.querySelectorAll('input[name="coPayment"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('payCODOption').classList.toggle('active', radio.value === 'Cash on Delivery' && radio.checked);
@@ -2637,10 +2686,13 @@
     }
     // Prefill from the logged-in account, but let the user edit before placing the order
     document.getElementById('coName').value = currentUser.name || '';
-    document.getElementById('coPhone').value = currentUser.sub || '';
+    document.getElementById('coPhone').value = '';
     document.getElementById('coAddress').value = '';
+    document.getElementById('coLandmark').value = '';
     document.getElementById('coCity').value = '';
     document.getElementById('coState').value = '';
+    document.getElementById('coCity').classList.remove('co-input-auto');
+    document.getElementById('coState').classList.remove('co-input-auto');
     document.getElementById('coPincode').value = '';
     document.getElementById('coError').classList.remove('show');
     document.querySelector('input[name="coPayment"][value="Online (UPI/Card)"]').checked = true;
@@ -2657,15 +2709,17 @@
     const name = document.getElementById('coName').value.trim();
     const phone = document.getElementById('coPhone').value.trim();
     const addressLine = document.getElementById('coAddress').value.trim();
+    const landmark = document.getElementById('coLandmark').value.trim();
     const city = document.getElementById('coCity').value.trim();
     const state = document.getElementById('coState').value.trim();
     const pincode = document.getElementById('coPincode').value.trim();
     const paymentMethod = document.querySelector('input[name="coPayment"]:checked').value;
-    if(!name || !phone || !addressLine || !city || !state || !/^\d{6}$/.test(pincode)){
+    if(!name || !/^\d{10}$/.test(phone) || !addressLine || !city || !state || !/^\d{6}$/.test(pincode)){
       document.getElementById('coError').classList.add('show');
       return;
     }
-    const address = `${addressLine}, ${city}, ${state} - ${pincode}`;
+    const phoneWithCode = '+91' + phone;
+    const address = `${addressLine}${landmark ? ', Near ' + landmark : ''}, ${city}, ${state} - ${pincode}`;
     const keys = Object.keys(cart);
     if(keys.length === 0){ showToast('Your cart is empty'); closeCheckoutFn(); return; }
 
@@ -2684,7 +2738,7 @@
       const { error } = await sb.from('orders').insert({
         user_id: user.id,
         customer_name: name,
-        phone,
+        phone: phoneWithCode,
         address,
         city,
         state,
@@ -2717,7 +2771,7 @@
       }
 
       const rzpOrder = createData.order;
-      const orderPayload = { user_id: user.id, customer_name: name, phone, address, city, state, pincode, items, total };
+      const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total };
 
       const rzp = new Razorpay({
         key: createData.key_id,
@@ -2726,7 +2780,7 @@
         name: 'Shyam Auto',
         description: 'Order payment',
         order_id: rzpOrder.id,
-        prefill: { name, contact: phone },
+        prefill: { name, contact: phoneWithCode },
         theme: { color: '#f5a623' },
         handler: async function(response){
           btn.textContent = 'Confirming payment...';
