@@ -2409,17 +2409,37 @@
   // Google login — real Supabase OAuth. Enable the Google provider in
   // Supabase Dashboard → Authentication → Providers first.
   document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+    // Always send a clean base URL (no leftover ?code=/#access_token= from a
+    // previous login attempt) and force Google's account chooser so the
+    // same-account-stuck / re-login-fails bug can't happen.
+    const cleanRedirect = window.location.origin + window.location.pathname;
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.href }
+      options: {
+        redirectTo: cleanRedirect,
+        queryParams: { prompt: 'select_account' }
+      }
     });
     if(error) showToast(error.message);
   });
 
   // Phone OTP — step 1: send code. Enable a Phone/SMS provider in
   // Supabase Dashboard → Authentication → Providers first.
+  async function doLogout(){
+    await sb.auth.signOut({ scope: 'local' });
+    currentUser = null;
+    updateAccountNav();
+    // Wipe any leftover Supabase auth keys so a stuck/partial session can
+    // never block the next login attempt.
+    try{
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+    }catch(e){}
+  }
+
   document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await sb.auth.signOut();
+    await doLogout();
     showToast('Logged out');
     closeAuth();
     closeChat();
@@ -2439,6 +2459,15 @@
     updateAccountNav();
     loadWishlist().then(refreshWishlistUI);
   });
+
+  // Defensive cleanup: if the page ever loads with a leftover OAuth
+  // ?code=/#access_token= in the address bar (e.g. a failed/aborted
+  // exchange), strip it so it can never be dragged into the next login.
+  if(window.location.search.includes('code=') || window.location.hash.includes('access_token')){
+    setTimeout(() => {
+      window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+    }, 500);
+  }
 
   // ---- Drawer open/close ----
   const overlay = document.getElementById('cartOverlay');
@@ -2462,7 +2491,7 @@
   document.getElementById('menuAccountRow').addEventListener('click', () => { closeMenu(); openAuth(); });
   document.getElementById('menuLogoutBtn').addEventListener('click', async () => {
     closeMenu();
-    await sb.auth.signOut();
+    await doLogout();
     showToast('Logged out');
   });
 
