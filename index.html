@@ -2653,6 +2653,42 @@
     return data || [];
   }
 
+  // ---- Realtime sync: reflect admin status changes (e.g. Cancelled) instantly ----
+  let ordersRealtimeChannel = null;
+  function handleOrderRealtimeChange(payload){
+    if(payload.eventType === 'DELETE'){
+      const oldId = payload.old && payload.old.id;
+      myOrders = myOrders.filter(o => String(o.id) !== String(oldId));
+    } else {
+      const updated = payload.new;
+      if(!updated) return;
+      const idx = myOrders.findIndex(o => String(o.id) === String(updated.id));
+      if(idx !== -1) myOrders[idx] = { ...myOrders[idx], ...updated };
+      else myOrders.unshift(updated);
+    }
+    if(!ordersOverlay.classList.contains('open')) return;
+    const detailOpen = document.getElementById('orderDetailView').style.display === 'block';
+    if(detailOpen && activeOrder && payload.new && String(activeOrder.id) === String(payload.new.id)){
+      openOrderDetail(payload.new.id); // re-render detail + tracker with the fresh status
+    } else {
+      renderMyOrdersList();
+    }
+  }
+  async function subscribeOrdersRealtime(){
+    if(ordersRealtimeChannel) return;
+    const { data: userRes } = await sb.auth.getUser();
+    if(!userRes || !userRes.user) return;
+    ordersRealtimeChannel = sb.channel('customer-orders-' + userRes.user.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${userRes.user.id}` }, handleOrderRealtimeChange)
+      .subscribe();
+  }
+  function unsubscribeOrdersRealtime(){
+    if(ordersRealtimeChannel){
+      sb.removeChannel(ordersRealtimeChannel);
+      ordersRealtimeChannel = null;
+    }
+  }
+
   async function openMyOrders(){
     if(!currentUser){
       closeAuth();
@@ -2667,9 +2703,10 @@
     ordersOverlay.classList.add('open');
     myOrders = await loadMyOrders();
     renderMyOrdersList();
+    subscribeOrdersRealtime();
   }
-  document.getElementById('ordersClose').addEventListener('click', () => ordersOverlay.classList.remove('open'));
-  ordersOverlay.addEventListener('click', () => ordersOverlay.classList.remove('open'));
+  document.getElementById('ordersClose').addEventListener('click', () => { ordersOverlay.classList.remove('open'); unsubscribeOrdersRealtime(); });
+  ordersOverlay.addEventListener('click', () => { ordersOverlay.classList.remove('open'); unsubscribeOrdersRealtime(); });
 
   function renderMyOrdersList(){
     const wrap = document.getElementById('ordersList');
