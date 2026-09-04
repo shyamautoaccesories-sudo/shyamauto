@@ -130,6 +130,15 @@
   .spec-remove svg{width:14px;height:14px;stroke:var(--red);fill:none;stroke-width:2;}
   .add-spec-btn{font-size:12.5px;color:var(--accent);font-weight:600;padding:8px 0;}
 
+  .variant-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .variant-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .variant-card-head .form-input{flex:1;}
+  .variant-remove{width:32px;height:32px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .variant-remove svg{width:14px;height:14px;stroke:var(--red);fill:none;stroke-width:2;}
+  .variant-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .variant-fields .form-label{margin-bottom:4px;font-size:10.5px;}
+  .add-variant-btn{font-size:12.5px;color:var(--accent);font-weight:600;padding:8px 0;}
+
   .empty-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:30px 0;}
 
   /* Support tickets */
@@ -592,10 +601,26 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">Rating (0-5)</label><input class="form-input" id="p_rating" type="number" step="0.1" min="0" max="5"></div>
-      <div class="form-row2">
-        <div class="form-group"><label class="form-label">Selling Price (₹)</label><input class="form-input" id="p_price" type="number"></div>
-        <div class="form-group"><label class="form-label">MRP (₹) — optional</label><input class="form-input" id="p_mrp" type="number"></div>
+
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">This product has variants (size / color etc.)</span>
+        <label class="switch"><input type="checkbox" id="p_hasVariants" onchange="toggleVariantMode()"><span class="switch-track"></span></label>
       </div>
+
+      <div id="p_singlePriceBlock">
+        <div class="form-row2">
+          <div class="form-group"><label class="form-label">Selling Price (₹)</label><input class="form-input" id="p_price" type="number"></div>
+          <div class="form-group"><label class="form-label">MRP (₹) — optional</label><input class="form-input" id="p_mrp" type="number"></div>
+        </div>
+      </div>
+
+      <div id="p_variantsBlock" style="display:none;">
+        <label class="form-label">Variants</label>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">e.g. "Red — Medium", "Black — Large". Customer picks one on the product page; price/stock shown will match their pick.</p>
+        <div id="variantRows"></div>
+        <button class="add-variant-btn" onclick="addVariantRow()">+ Add Variant</button>
+      </div>
+
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Mark as SALE</span>
         <label class="switch"><input type="checkbox" id="p_sale"><span class="switch-track"></span></label>
@@ -978,7 +1003,7 @@
         </div>
         <div class="row-info">
           <div class="title">${p.name}</div>
-          <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ₹${p.price.toLocaleString('en-IN')} ${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}</div>
+          <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}</div>
         </div>
         <div class="row-actions">
           <button class="icon-sm" onclick="openProductSheet(${p.id})" aria-label="Edit">
@@ -1044,6 +1069,7 @@
     renderProductBrandOptions();
     document.getElementById('productSheetTitle').textContent = id ? 'Edit Product' : 'Add Product';
     document.getElementById('specRows').innerHTML = '';
+    document.getElementById('variantRows').innerHTML = '';
     document.getElementById('p_imageFile').value = '';
     p_newImageFiles = [];
 
@@ -1060,6 +1086,10 @@
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
       renderModelCheckList(p.bike_model_ids || []);
       p_existingImages = Array.isArray(p.images) ? [...p.images] : [];
+      const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+      document.getElementById('p_hasVariants').checked = hasVariants;
+      if(hasVariants) p.variants.forEach(v => addVariantRow(v));
+      toggleVariantMode();
     } else {
       document.getElementById('p_name').value = '';
       document.getElementById('p_brand').value = '';
@@ -1071,6 +1101,8 @@
       addSpecRow('', '');
       renderModelCheckList([]);
       p_existingImages = [];
+      document.getElementById('p_hasVariants').checked = false;
+      toggleVariantMode();
     }
     renderProductImageGrid();
     productSheetOverlay.classList.add('open');
@@ -1113,6 +1145,36 @@
     renderProductImageGrid();
   });
 
+  // ---- Product variants ----
+  function toggleVariantMode(){
+    const on = document.getElementById('p_hasVariants').checked;
+    document.getElementById('p_variantsBlock').style.display = on ? 'block' : 'none';
+    document.getElementById('p_singlePriceBlock').style.display = on ? 'none' : 'block';
+    if(on && document.querySelectorAll('#variantRows .variant-card').length === 0){
+      addVariantRow();
+    }
+  }
+
+  function addVariantRow(v){
+    v = v || {};
+    const wrap = document.getElementById('variantRows');
+    const row = document.createElement('div');
+    row.className = 'variant-card';
+    row.innerHTML = `
+      <div class="variant-card-head">
+        <input class="form-input variant-name" placeholder="Variant name (e.g. Red — Medium)" value="${v.name || ''}">
+        <button type="button" class="variant-remove" onclick="this.closest('.variant-card').remove()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="variant-fields">
+        <div><label class="form-label">Price (₹)</label><input class="form-input variant-price" type="number" value="${v.price != null ? v.price : ''}"></div>
+        <div><label class="form-label">MRP (₹)</label><input class="form-input variant-mrp" type="number" value="${v.mrp != null ? v.mrp : ''}"></div>
+        <div><label class="form-label">Stock Qty</label><input class="form-input variant-stock" type="number" value="${v.stock != null ? v.stock : ''}"></div>
+      </div>`;
+    wrap.appendChild(row);
+  }
+
   function addSpecRow(key, val){
     const wrap = document.getElementById('specRows');
     const row = document.createElement('div');
@@ -1128,8 +1190,29 @@
 
   async function saveProduct(){
     const name = document.getElementById('p_name').value.trim();
-    const price = Number(document.getElementById('p_price').value);
-    if(!name || !price){ showToast('Name and price are required'); return; }
+    if(!name){ showToast('Product name is required'); return; }
+
+    const hasVariants = document.getElementById('p_hasVariants').checked;
+    let price, mrp, variants = [];
+
+    if(hasVariants){
+      variants = Array.from(document.querySelectorAll('#variantRows .variant-card')).map(card => ({
+        name: card.querySelector('.variant-name').value.trim(),
+        price: Number(card.querySelector('.variant-price').value) || 0,
+        mrp: Number(card.querySelector('.variant-mrp').value) || null,
+        stock: card.querySelector('.variant-stock').value === '' ? null : Number(card.querySelector('.variant-stock').value)
+      })).filter(v => v.name && v.price > 0);
+
+      if(variants.length === 0){ showToast('Add at least one variant with a name and price'); return; }
+
+      price = Math.min(...variants.map(v => v.price));
+      const cheapest = variants.find(v => v.price === price);
+      mrp = cheapest.mrp || null;
+    } else {
+      price = Number(document.getElementById('p_price').value);
+      if(!price){ showToast('Selling price is required'); return; }
+      mrp = Number(document.getElementById('p_mrp').value) || null;
+    }
 
     const specs = Array.from(document.querySelectorAll('#specRows .spec-row')).map(row => {
       const k = row.querySelector('.spec-key').value.trim();
@@ -1168,12 +1251,13 @@
       brand: document.getElementById('p_brand').value || null,
       rating: document.getElementById('p_rating').value || '4.0',
       price,
-      mrp: Number(document.getElementById('p_mrp').value) || null,
+      mrp,
       sale: document.getElementById('p_sale').checked,
       description: document.getElementById('p_desc').value.trim(),
       specs,
       bike_model_ids: bikeModelIds,
-      images
+      images,
+      variants
     };
 
     let error;
