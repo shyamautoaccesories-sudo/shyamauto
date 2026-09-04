@@ -1441,6 +1441,13 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_CNo_dLrIRcK5iwrBT_-MUA_vmw3L7v_';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // TEST MODE — when true, "Online Payment" skips Razorpay entirely (no
+  // create-razorpay-order / verify-razorpay-payment calls) and inserts the
+  // order straight into Supabase marked as paid, so the Shiprocket flow can
+  // be tested without real payments or a working Razorpay function.
+  // To go back live: set this to false.
+  const TEST_MODE_SKIP_RAZORPAY = true;
+
   // Fallback/reference data — used only if Supabase has no rows yet (e.g. fresh project)
   const defaultProducts = [
     {id:1,name:"Steelbird SBA-1 Full Face Helmet",cat:"Helmets",brand:"Steelbird",price:1899,mrp:2499,rating:"4.5",sale:true,
@@ -2765,6 +2772,37 @@
       renderCart();
       closeCheckoutFn();
       showToast('Order placed successfully!');
+      return;
+    }
+
+    // ---- Online Payment ----
+    if(TEST_MODE_SKIP_RAZORPAY){
+      // TEST MODE — bypasses Razorpay completely, order seedhe 'paid' maan
+      // ke Supabase mein daal diya jaata hai. Revert karne ke liye upar
+      // TEST_MODE_SKIP_RAZORPAY ko false karein.
+      btn.textContent = 'Placing order...';
+      const { error } = await sb.from('orders').insert({
+        user_id: user.id,
+        customer_name: name,
+        phone: phoneWithCode,
+        address,
+        city,
+        state,
+        pincode,
+        payment_method: paymentMethod,
+        items,
+        total,
+        status: 'Pending',
+        payment_status: 'paid'
+      });
+      btn.disabled = false;
+      btn.textContent = 'Place Order';
+      if(error){ showToast(error.message); return; }
+      cart = {};
+      saveCartToStorage();
+      renderCart();
+      closeCheckoutFn();
+      showToast('Order placed successfully! (test mode — payment bypassed)');
       return;
     }
 
