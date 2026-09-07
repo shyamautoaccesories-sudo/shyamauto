@@ -740,6 +740,23 @@
     display:flex;justify-content:space-between;font-size:14px;font-weight:700;
     padding-top:14px;margin-top:16px;border-top:1px solid var(--line);
   }
+  .checkout-summary-row.checkout-summary-sub{font-weight:500;font-size:13px;color:var(--muted);border-top:none;padding-top:0;margin-top:10px;}
+  .checkout-summary-row.checkout-summary-discount{font-weight:600;font-size:13px;color:var(--green,#1E9E5C);border-top:none;padding-top:0;margin-top:6px;}
+  .coupon-box{margin-top:18px;}
+  .coupon-input-row{display:flex;gap:8px;}
+  .coupon-input-row .auth-input{flex:1;min-width:0;text-transform:uppercase;}
+  .coupon-apply-btn{
+    flex:0 0 auto;background:var(--text);color:#fff;font-weight:700;font-size:13px;
+    padding:0 18px;border-radius:10px;white-space:nowrap;
+  }
+  .coupon-apply-btn:active{opacity:0.85;}
+  .coupon-applied-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:rgba(30,158,92,0.08);border:1px solid rgba(30,158,92,0.35);border-radius:10px;padding:11px 14px;
+  }
+  .coupon-applied-info{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green,#1E9E5C);}
+  .coupon-applied-info svg{width:16px;height:16px;stroke:var(--green,#1E9E5C);flex:0 0 auto;}
+  .coupon-remove-btn{font-size:12px;font-weight:700;color:var(--red);flex:0 0 auto;}
   .auth-terms a{color:var(--muted);font-weight:600;text-decoration:underline;}
   .account-head{display:flex;align-items:center;gap:14px;margin-top:16px;margin-bottom:22px;}
   .account-avatar{
@@ -1448,6 +1465,23 @@
         </label>
       </div>
 
+      <div class="coupon-box" id="couponBox">
+        <div class="coupon-input-row" id="couponInputRow">
+          <input class="auth-input" id="couponCodeInput" type="text" placeholder="Enter coupon code" maxlength="30">
+          <button class="coupon-apply-btn" id="couponApplyBtn" onclick="applyCoupon()">Apply</button>
+        </div>
+        <div class="coupon-applied-row" id="couponAppliedRow" style="display:none;">
+          <div class="coupon-applied-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <span id="couponAppliedText">Coupon applied</span>
+          </div>
+          <button class="coupon-remove-btn" onclick="removeCoupon()">Remove</button>
+        </div>
+        <p class="field-error" id="couponError"></p>
+      </div>
+
+      <div class="checkout-summary-row checkout-summary-sub"><span>Subtotal</span><span id="checkoutSubtotal">₹0</span></div>
+      <div class="checkout-summary-row checkout-summary-discount" id="checkoutDiscountRow" style="display:none;"><span>Discount</span><span id="checkoutDiscountAmount">−₹0</span></div>
       <div class="checkout-summary-row"><span>Order Total</span><span id="checkoutTotal">₹0</span></div>
     </div>
     <div class="pdp-foot">
@@ -2045,6 +2079,7 @@
     try{ localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); }catch(e){}
   }
   let cart = loadCartFromStorage();
+  let appliedCoupon = null; // { id, code, type, value, max_discount, discountAmount }
   function cartKeyFor(id, variantIndex){ return variantIndex != null ? `${id}-v${variantIndex}` : `${id}`; }
 
   function cartLineInfo(key){
@@ -2060,6 +2095,105 @@
 
   function keysTotal(){
     return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitPrice * info.qty : sum; }, 0);
+  }
+
+  // ---------------------------------------------------------------------
+  // Coupon codes at checkout — validates a code against the `discounts`
+  // table (active, not expired, usage limit, minimum order value) and
+  // computes the discount amount for the current cart subtotal.
+  // ---------------------------------------------------------------------
+  function computeCouponDiscount(d, subtotal){
+    let raw = d.type === 'percent' ? (subtotal * Number(d.value) / 100) : Number(d.value);
+    if(d.type === 'percent' && d.max_discount != null) raw = Math.min(raw, Number(d.max_discount));
+    return Math.round(Math.min(raw, subtotal));
+  }
+
+  function updateCheckoutTotals(){
+    const subtotal = keysTotal();
+    document.getElementById('checkoutSubtotal').textContent = '₹' + subtotal.toLocaleString('en-IN');
+
+    const discountRow = document.getElementById('checkoutDiscountRow');
+    let discount = 0;
+    if(appliedCoupon){
+      // Re-derive the discount against the current subtotal in case the cart changed while a coupon was applied.
+      discount = computeCouponDiscount(appliedCoupon, subtotal);
+      appliedCoupon.discountAmount = discount;
+      discountRow.style.display = 'flex';
+      document.getElementById('checkoutDiscountAmount').textContent = '−₹' + discount.toLocaleString('en-IN');
+    } else {
+      discountRow.style.display = 'none';
+    }
+
+    const total = Math.max(0, subtotal - discount);
+    document.getElementById('checkoutTotal').textContent = '₹' + total.toLocaleString('en-IN');
+    return total;
+  }
+
+  function resetCouponUI(){
+    appliedCoupon = null;
+    document.getElementById('couponCodeInput').value = '';
+    document.getElementById('couponError').textContent = '';
+    document.getElementById('couponInputRow').style.display = 'flex';
+    document.getElementById('couponAppliedRow').style.display = 'none';
+    document.getElementById('couponApplyBtn').disabled = false;
+    document.getElementById('couponApplyBtn').textContent = 'Apply';
+  }
+
+  async function applyCoupon(){
+    const input = document.getElementById('couponCodeInput');
+    const errorEl = document.getElementById('couponError');
+    const code = input.value.trim().toUpperCase();
+    errorEl.textContent = '';
+    if(!code){ errorEl.textContent = 'Enter a coupon code.'; return; }
+
+    const btn = document.getElementById('couponApplyBtn');
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+
+    const { data, error } = await sb.from('discounts').select('*').ilike('code', code).maybeSingle();
+
+    btn.disabled = false;
+    btn.textContent = 'Apply';
+
+    if(error || !data){
+      errorEl.textContent = 'Invalid coupon code.';
+      return;
+    }
+    if(!data.active){
+      errorEl.textContent = 'This coupon is no longer active.';
+      return;
+    }
+    if(data.expires_at && new Date(data.expires_at) < new Date()){
+      errorEl.textContent = 'This coupon has expired.';
+      return;
+    }
+    if(data.usage_limit != null && data.used_count >= data.usage_limit){
+      errorEl.textContent = 'This coupon has reached its usage limit.';
+      return;
+    }
+    const subtotal = keysTotal();
+    if(data.min_order_value && subtotal < Number(data.min_order_value)){
+      errorEl.textContent = `Add ₹${(Number(data.min_order_value) - subtotal).toLocaleString('en-IN')} more to use this coupon.`;
+      return;
+    }
+
+    const discount = computeCouponDiscount(data, subtotal);
+    if(discount <= 0){
+      errorEl.textContent = 'This coupon does not apply to your order.';
+      return;
+    }
+
+    appliedCoupon = { id: data.id, code: data.code, type: data.type, value: data.value, max_discount: data.max_discount, discountAmount: discount };
+    document.getElementById('couponInputRow').style.display = 'none';
+    document.getElementById('couponAppliedRow').style.display = 'flex';
+    document.getElementById('couponAppliedText').textContent = `${data.code} applied — you saved ₹${discount.toLocaleString('en-IN')}`;
+    updateCheckoutTotals();
+    showToast(`Coupon applied! You saved ₹${discount.toLocaleString('en-IN')}`);
+  }
+
+  function removeCoupon(){
+    resetCouponUI();
+    updateCheckoutTotals();
   }
 
   function addToCart(id, btnEl){
@@ -3224,8 +3358,8 @@
     document.querySelector('input[name="coPayment"][value="Cash on Delivery"]').checked = true;
     document.getElementById('payCODOption').classList.add('active');
     document.getElementById('payOnlineOption').classList.remove('active');
-    const total = keysTotal();
-    document.getElementById('checkoutTotal').textContent = '₹' + total.toLocaleString('en-IN');
+    resetCouponUI();
+    updateCheckoutTotals();
     closeCartFn();
     checkoutOverlay.classList.add('open');
   });
@@ -3257,7 +3391,16 @@
       const info = cartLineInfo(key);
       return { product_id: info.product.id, name: info.variant ? `${info.product.name} — ${info.variant.name}` : info.product.name, variant: info.variant ? info.variant.name : null, qty: info.qty, price: info.unitPrice };
     });
-    const total = items.reduce((sum, it) => sum + it.price * it.qty, 0);
+    const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
+    const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+    const total = Math.max(0, subtotal - discountAmount);
+    const couponCode = appliedCoupon ? appliedCoupon.code : null;
+
+    async function markCouponUsed(){
+      if(!appliedCoupon) return;
+      try{ await sb.rpc('increment_discount_usage', { discount_id: appliedCoupon.id }); }
+      catch(e){ /* non-fatal — order already placed */ }
+    }
 
     if(paymentMethod === 'Cash on Delivery'){
       btn.textContent = 'Placing order...';
@@ -3272,6 +3415,8 @@
         payment_method: paymentMethod,
         items,
         total,
+        coupon_code: couponCode,
+        discount_amount: discountAmount,
         status: 'Pending',
         payment_status: 'cod'
       });
@@ -3282,9 +3427,11 @@
         showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
         return;
       }
+      await markCouponUsed();
       cart = {};
       saveCartToStorage();
       renderCart();
+      resetCouponUI();
       closeCheckoutFn();
       showOrderResult('success', 'Order Placed!', 'Your order has been placed successfully.');
       return;
@@ -3307,6 +3454,8 @@
         payment_method: paymentMethod,
         items,
         total,
+        coupon_code: couponCode,
+        discount_amount: discountAmount,
         status: 'Pending',
         payment_status: 'paid'
       });
@@ -3317,9 +3466,11 @@
         showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
         return;
       }
+      await markCouponUsed();
       cart = {};
       saveCartToStorage();
       renderCart();
+      resetCouponUI();
       closeCheckoutFn();
       showOrderResult('success', 'Order Placed!', 'Order placed successfully. (test mode — payment bypassed)');
       return;
@@ -3336,7 +3487,7 @@
       }
 
       const rzpOrder = createData.order;
-      const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total };
+      const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total, coupon_code: couponCode, discount_amount: discountAmount };
 
       const rzp = new Razorpay({
         key: createData.key_id,
@@ -3364,9 +3515,11 @@
             showOrderResult('fail', 'Order Failed', 'Payment done but order save failed. Contact support with Payment ID: ' + response.razorpay_payment_id, { showButton:true, buttonText:'OK' });
             return;
           }
+          await markCouponUsed();
           cart = {};
           saveCartToStorage();
           renderCart();
+          resetCouponUI();
           closeCheckoutFn();
           showOrderResult('success', 'Order Placed!', 'Payment successful! Your order has been placed.');
         },
