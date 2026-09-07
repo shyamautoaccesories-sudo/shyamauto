@@ -224,6 +224,13 @@
     position:absolute;top:8px;left:8px;background:var(--red);color:#fff;font-family:var(--font-mono);
     font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:5px;
   }
+  .badge-oos{
+    position:absolute;top:8px;left:8px;background:#3a3a3c;color:#fff;font-family:var(--font-mono);
+    font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:5px;z-index:2;
+  }
+  .card.is-oos .card-media img{filter:grayscale(70%);opacity:0.65;}
+  .add-btn:disabled{opacity:0.4;box-shadow:none;}
+  .pdp-add-btn:disabled{background:var(--muted);opacity:0.75;}
   .wish-btn{
     position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;
     background:rgba(255,255,255,0.85);backdrop-filter:blur(2px);border:none;
@@ -1718,7 +1725,8 @@
     const mappedProducts = rows.map(p => ({
       id: p.id, name: p.name, cat: p.cat, brand: p.brand || null, price: Number(p.price), mrp: p.mrp != null ? Number(p.mrp) : null,
       rating: p.rating, sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
-      bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : []
+      bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : [],
+      stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true
     }));
     const siteRow = siteRes.data || {};
 
@@ -1850,10 +1858,11 @@
   function cardHtml(p){
     const thumb = Array.isArray(p.images) && p.images.length ? p.images[0] : null;
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+    const outOfStock = isProductOutOfStock(p);
     return `
-    <div class="card" onclick="openProduct(${p.id})">
+    <div class="card ${outOfStock ? 'is-oos' : ''}" onclick="openProduct(${p.id})">
       <div class="card-media">
-        ${p.sale ? '<span class="badge-sale">SALE</span>' : ''}
+        ${outOfStock ? '<span class="badge-oos">OUT OF STOCK</span>' : (p.sale ? '<span class="badge-sale">SALE</span>' : '')}
         <button class="wish-btn ${isWished(p.id) ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist(${p.id})" aria-label="Toggle wishlist">
           <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10.2-9.2C.1 8.6 1.6 5 5.3 4.3c2-.4 4 .5 5.2 2.3 1.2-1.8 3.2-2.7 5.2-2.3 3.7.7 5.2 4.3 3.5 7.5C19.5 16.4 12 21 12 21z"/></svg>
         </button>
@@ -1865,12 +1874,20 @@
         <span class="plate"><span class="price">${hasVariants ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')}</span>${p.sale ? `<span class="mrp">₹${p.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
         <div class="card-foot">
           <span class="rating">★ ${p.rating}</span>
-          <button class="add-btn" onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${hasVariants ? 'Select options' : 'Add to cart'}">
+          <button class="add-btn" ${outOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${outOfStock ? 'Out of stock' : (hasVariants ? 'Select options' : 'Add to cart')}">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
       </div>
     </div>`;
+  }
+  function isProductOutOfStock(p){
+    if(!p) return false;
+    if(p.in_stock === false) return true;
+    if(Array.isArray(p.variants) && p.variants.length){
+      return p.variants.every(v => v.stock != null && v.stock <= 0);
+    }
+    return p.stock != null && p.stock <= 0;
   }
   // ---- Products view (in-page listing) ----
   let activeCat = 'All';
@@ -2198,7 +2215,9 @@
 
   function addToCart(id, btnEl){
     const p = findProduct(id);
-    if(p && Array.isArray(p.variants) && p.variants.length){
+    if(!p) return;
+    if(isProductOutOfStock(p)){ showToast('This product is out of stock'); return; }
+    if(Array.isArray(p.variants) && p.variants.length){
       // Variant products need an option picked first — open the detail sheet instead of a blind add.
       openProduct(id);
       return;
@@ -2506,7 +2525,8 @@
     document.getElementById('pdpPlate').innerHTML =
       `<span class="price">₹${price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${mrp.toLocaleString('en-IN')}</span>` : ''}`;
     const addBtn = document.getElementById('pdpAddBtn');
-    const outOfStock = v && v.stock != null && v.stock <= 0;
+    const variantOutOfStock = v && v.stock != null && v.stock <= 0;
+    const outOfStock = isProductOutOfStock(p) || variantOutOfStock;
     addBtn.disabled = !!outOfStock;
     addBtn.textContent = outOfStock ? 'Out of Stock' : 'Add to Cart';
   }
@@ -2516,7 +2536,7 @@
     if(!p) return;
     const img = pdpImages[pdpActiveImgIdx];
     document.getElementById('pdpMedia').innerHTML =
-      (p.sale ? '<span class="badge-sale">SALE</span>' : '') +
+      (isProductOutOfStock(p) ? '<span class="badge-oos">OUT OF STOCK</span>' : (p.sale ? '<span class="badge-sale">SALE</span>' : '')) +
       (img ? `<img src="${img}" alt="${p.name}">` : iconSvg);
   }
   function renderPdpThumbs(){
@@ -2543,7 +2563,9 @@
   document.getElementById('pdpAddBtn').addEventListener('click', () => {
     if(pdpCurrentId == null) return;
     const p = findProduct(pdpCurrentId);
-    if(p && Array.isArray(p.variants) && p.variants.length && pdpSelectedVariantIndex == null){
+    if(!p) return;
+    if(isProductOutOfStock(p)){ showToast('This product is out of stock'); return; }
+    if(Array.isArray(p.variants) && p.variants.length && pdpSelectedVariantIndex == null){
       showToast('Please select an option'); return;
     }
     const v = (pdpSelectedVariantIndex != null && p.variants) ? p.variants[pdpSelectedVariantIndex] : null;
