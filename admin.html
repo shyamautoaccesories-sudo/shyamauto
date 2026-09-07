@@ -92,6 +92,7 @@
   .badge{font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:5px;}
   .badge.on{background:rgba(30,158,92,0.12);color:var(--green);}
   .badge.off{background:var(--surface-2);color:var(--muted);}
+  .badge.warn{background:rgba(184,41,26,0.12);color:var(--accent,#B8291A);}
 
   /* ---- Orders (redesigned) ---- */
   .order-stat-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
@@ -635,13 +636,14 @@
       </div>
     </div>
 
-    <!-- Discounts (placeholder) -->
+    <!-- Discounts -->
     <div class="view" id="view-discounts">
       <p class="view-title">Discounts</p>
-      <div class="coming-soon-card">
-        <p>Discount codes coming soon</p>
-        <p>Yahan se coupon codes aur % off offers bana sakoge jo checkout pe apply honge — checkout backend ready hone ke baad.</p>
-      </div>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+        Create coupon codes for % off or flat ₹ off. Customers enter these at checkout — the discount is validated and applied automatically.
+      </p>
+      <button class="btn-accent btn-block" style="margin-bottom:16px;" onclick="openDiscountSheet()">+ Add Discount Code</button>
+      <div id="discountList"></div>
     </div>
 
     <!-- Audience (placeholder) -->
@@ -849,6 +851,61 @@
   </div>
 </div>
 
+<!-- Discount code sheet -->
+<div class="sheet-overlay" id="discountSheetOverlay">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-head">
+      <h3 id="discountSheetTitle">Add Discount Code</h3>
+      <button class="sheet-close" onclick="closeDiscountSheet()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">Coupon Code</label>
+        <input class="form-input" id="d_code" placeholder="e.g. RIDE20" style="text-transform:uppercase;">
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Customers will type this exact code at checkout (not case-sensitive).</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Discount Type</label>
+        <select class="form-select" id="d_type" onchange="toggleDiscountTypeFields()">
+          <option value="percent">Percentage off (%)</option>
+          <option value="flat">Flat amount off (₹)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="d_valueLabel">Value (%)</label>
+        <input class="form-input" id="d_value" type="number" min="0" step="0.01" placeholder="e.g. 20">
+      </div>
+      <div class="form-group" id="d_maxDiscountWrap">
+        <label class="form-label">Max Discount Cap (₹)</label>
+        <input class="form-input" id="d_maxDiscount" type="number" min="0" step="1" placeholder="Optional — leave blank for no cap">
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Caps how much a % discount can be worth. E.g. 20% off capped at ₹500.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Minimum Order Value (₹)</label>
+        <input class="form-input" id="d_minOrder" type="number" min="0" step="1" placeholder="Optional — leave blank for no minimum">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Usage Limit</label>
+        <input class="form-input" id="d_usageLimit" type="number" min="1" step="1" placeholder="Optional — leave blank for unlimited uses">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expiry Date</label>
+        <input class="form-input" id="d_expiresAt" type="date">
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Optional — leave blank for a code that never expires.</p>
+      </div>
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Active</span>
+        <label class="switch"><input type="checkbox" id="d_active" checked><span class="switch-track"></span></label>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn-accent btn-block" id="d_saveBtn" onclick="saveDiscount()">Save Discount Code</button>
+    </div>
+  </div>
+</div>
+
 <!-- Ticket detail sheet -->
 <div class="sheet-overlay" id="ticketSheetOverlay">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -1044,6 +1101,8 @@
       items: Array.isArray(o.items) ? o.items.reduce((s,it)=>s+(it.qty||1),0) : 0,
       itemList: Array.isArray(o.items) ? o.items : [],
       total: Number(o.total),
+      couponCode: o.coupon_code || null,
+      discountAmount: o.discount_amount != null ? Number(o.discount_amount) : 0,
       status: o.status || 'Pending',
       createdAt: o.created_at || null,
       shiprocketOrderId: o.shiprocket_order_id || null,
@@ -1177,6 +1236,7 @@
     site = await loadSite();
     orders = await loadOrders();
     tickets = await loadTickets();
+    discounts = await loadDiscounts();
     renderDashboard();
     renderProductList();
     renderBannerForm();
@@ -1188,6 +1248,7 @@
     renderOrders();
     renderTickets();
     renderReports();
+    renderDiscountList();
   }
 
   function renderDashboard(){
@@ -2256,6 +2317,159 @@
     showToast('Bike model deleted');
   }
 
+  // ---- Discounts ----
+  let discounts = [];
+  const discountSheetOverlay = document.getElementById('discountSheetOverlay');
+  let editingDiscountId = null;
+
+  async function loadDiscounts(){
+    const { data, error } = await sb.from('discounts').select('*').order('id', { ascending: false });
+    if(error){ console.warn('discounts table not available yet:', error.message); return []; }
+    return data || [];
+  }
+
+  function discountStatusInfo(d){
+    const now = new Date();
+    if(!d.active) return { label:'INACTIVE', cls:'off' };
+    if(d.expires_at && new Date(d.expires_at) < now) return { label:'EXPIRED', cls:'warn' };
+    if(d.usage_limit != null && d.used_count >= d.usage_limit) return { label:'LIMIT REACHED', cls:'warn' };
+    return { label:'ACTIVE', cls:'on' };
+  }
+
+  function renderDiscountList(){
+    const wrap = document.getElementById('discountList');
+    if(!wrap) return;
+    if(!discounts.length){
+      wrap.innerHTML = '<p class="empty-hint">No discount codes yet. Tap "+ Add Discount Code" to create one.</p>';
+      return;
+    }
+    wrap.innerHTML = discounts.map(d => {
+      const status = discountStatusInfo(d);
+      const valueText = d.type === 'percent'
+        ? `${d.value}% off${d.max_discount != null ? ` (capped ₹${Number(d.max_discount).toLocaleString('en-IN')})` : ''}`
+        : `₹${Number(d.value).toLocaleString('en-IN')} off`;
+      const usageText = d.usage_limit != null ? `${d.used_count}/${d.usage_limit} used` : `${d.used_count} used`;
+      const minText = d.min_order_value ? ` · Min ₹${Number(d.min_order_value).toLocaleString('en-IN')}` : '';
+      const expText = d.expires_at ? ` · Expires ${new Date(d.expires_at).toLocaleDateString('en-IN')}` : '';
+      return `
+      <div class="row-card">
+        <div class="row-media" style="font-size:15px;font-weight:700;">${d.type === 'percent' ? '%' : '₹'}</div>
+        <div class="row-info">
+          <div class="title">${d.code} <span class="badge ${status.cls}" style="margin-left:6px;">${status.label}</span></div>
+          <div class="sub">${valueText} · ${usageText}${minText}${expText}</div>
+        </div>
+        <div class="row-actions">
+          <button class="icon-sm" onclick="openDiscountSheet(${d.id})" aria-label="Edit">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          </button>
+          <button class="icon-sm danger" onclick="deleteDiscount(${d.id})" aria-label="Delete">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  function toggleDiscountTypeFields(){
+    const type = document.getElementById('d_type').value;
+    document.getElementById('d_valueLabel').textContent = type === 'percent' ? 'Value (%)' : 'Value (₹)';
+    document.getElementById('d_maxDiscountWrap').style.display = type === 'percent' ? 'block' : 'none';
+  }
+
+  function openDiscountSheet(id){
+    editingDiscountId = id || null;
+    document.getElementById('discountSheetTitle').textContent = id ? 'Edit Discount Code' : 'Add Discount Code';
+
+    if(id){
+      const d = discounts.find(x => x.id === id);
+      document.getElementById('d_code').value = d.code;
+      document.getElementById('d_type').value = d.type;
+      document.getElementById('d_value').value = d.value;
+      document.getElementById('d_maxDiscount').value = d.max_discount != null ? d.max_discount : '';
+      document.getElementById('d_minOrder').value = d.min_order_value != null ? d.min_order_value : '';
+      document.getElementById('d_usageLimit').value = d.usage_limit != null ? d.usage_limit : '';
+      document.getElementById('d_expiresAt').value = d.expires_at ? d.expires_at.slice(0,10) : '';
+      document.getElementById('d_active').checked = !!d.active;
+    } else {
+      document.getElementById('d_code').value = '';
+      document.getElementById('d_type').value = 'percent';
+      document.getElementById('d_value').value = '';
+      document.getElementById('d_maxDiscount').value = '';
+      document.getElementById('d_minOrder').value = '';
+      document.getElementById('d_usageLimit').value = '';
+      document.getElementById('d_expiresAt').value = '';
+      document.getElementById('d_active').checked = true;
+    }
+    toggleDiscountTypeFields();
+    discountSheetOverlay.classList.add('open');
+  }
+  function closeDiscountSheet(){ discountSheetOverlay.classList.remove('open'); }
+  discountSheetOverlay.addEventListener('click', closeDiscountSheet);
+
+  async function saveDiscount(){
+    const code = document.getElementById('d_code').value.trim().toUpperCase();
+    const type = document.getElementById('d_type').value;
+    const value = parseFloat(document.getElementById('d_value').value);
+    const maxDiscountRaw = document.getElementById('d_maxDiscount').value;
+    const minOrderRaw = document.getElementById('d_minOrder').value;
+    const usageLimitRaw = document.getElementById('d_usageLimit').value;
+    const expiresAtRaw = document.getElementById('d_expiresAt').value;
+    const active = document.getElementById('d_active').checked;
+
+    if(!code){ showToast('Enter a coupon code'); return; }
+    if(isNaN(value) || value <= 0){ showToast('Enter a valid discount value'); return; }
+    if(type === 'percent' && value > 100){ showToast('Percentage discount cannot exceed 100'); return; }
+
+    const data = {
+      code,
+      type,
+      value,
+      max_discount: (type === 'percent' && maxDiscountRaw !== '') ? Number(maxDiscountRaw) : null,
+      min_order_value: minOrderRaw !== '' ? Number(minOrderRaw) : 0,
+      usage_limit: usageLimitRaw !== '' ? Number(usageLimitRaw) : null,
+      expires_at: expiresAtRaw || null,
+      active
+    };
+
+    const btn = document.getElementById('d_saveBtn');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    let error;
+    if(editingDiscountId){
+      ({ error } = await sb.from('discounts').update(data).eq('id', editingDiscountId));
+    } else {
+      ({ error } = await sb.from('discounts').insert(data));
+    }
+
+    btn.textContent = 'Save Discount Code';
+    btn.disabled = false;
+
+    if(error){
+      if(error.message && error.message.toLowerCase().includes('duplicate')){
+        showToast('This coupon code already exists');
+      } else {
+        showToast(error.message);
+      }
+      return;
+    }
+
+    discounts = await loadDiscounts();
+    renderDiscountList();
+    closeDiscountSheet();
+    showToast('Discount code saved');
+  }
+
+  async function deleteDiscount(id){
+    if(!confirm('Delete this discount code? It will stop working at checkout immediately.')) return;
+    const { error } = await sb.from('discounts').delete().eq('id', id);
+    if(error){ showToast(error.message); return; }
+    discounts = discounts.filter(d => d.id !== id);
+    renderDiscountList();
+    showToast('Discount code deleted');
+  }
+
   // ---- Orders ----
   let orderStatusFilter = 'all';
   let orderSearchTerm = '';
@@ -2340,6 +2554,7 @@
             <div class="order-items-list">
               ${o.itemList.map(it => `<div class="order-item-row"><span class="oi-name">${it.name}</span><span class="oi-qtyprice">×${it.qty} · ₹${(it.price||0).toLocaleString('en-IN')}</span></div>`).join('')}
             </div>
+            ${o.couponCode ? `<div class="order-item-row" style="color:var(--green);font-weight:600;"><span class="oi-name">Coupon: ${o.couponCode}</span><span class="oi-qtyprice">−₹${o.discountAmount.toLocaleString('en-IN')}</span></div>` : ''}
           </div>
 
           ${o.shiprocketAwb ? `
