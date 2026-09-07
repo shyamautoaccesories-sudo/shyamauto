@@ -475,43 +475,9 @@
 
       <div class="section-block">
         <h3>Hero Section</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">The homepage hero is now a single full-width banner image with a "Shop Now" button on top. Upload separate images for desktop and mobile so each looks sharp on its screen size.</p>
-
-        <div class="form-group">
-          <label class="form-label">Desktop Banner Image</label>
-          <div id="hero_imgPreviewWrap" style="display:none;margin-bottom:10px;">
-            <img id="hero_imgPreview" style="width:100%;max-width:340px;aspect-ratio:2.6/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
-          </div>
-          <input type="file" accept="image/*" id="hero_imgFile" class="form-input" style="padding:10px;">
-          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended size: <strong>1920×720px</strong> (wide banner, ~2.6:1 ratio). JPG/PNG/WebP, ideally under 800KB. Shown on screens wider than 860px.</p>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-outline" id="hero_imgSaveBtn" onclick="saveHeroImage()" style="flex:1;">Upload Desktop Image</button>
-            <button class="btn-outline" onclick="removeHeroImage()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-top:18px;">
-          <label class="form-label">Mobile Banner Image</label>
-          <div id="hero_imgMobilePreviewWrap" style="display:none;margin-bottom:10px;">
-            <img id="hero_imgMobilePreview" style="width:160px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
-          </div>
-          <input type="file" accept="image/*" id="hero_imgMobileFile" class="form-input" style="padding:10px;">
-          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended size: <strong>750×940px</strong> (portrait, ~4:5 ratio). JPG/PNG/WebP, ideally under 400KB. Shown on screens narrower than 860px — if left empty, the desktop image is used instead.</p>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-outline" id="hero_imgMobileSaveBtn" onclick="saveHeroImageMobile()" style="flex:1;">Upload Mobile Image</button>
-            <button class="btn-outline" onclick="removeHeroImageMobile()" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-top:18px;"><label class="form-label">Shop Now button text</label><input class="form-input" id="f_heroCtaPrimary"></div>
-
-        <div class="form-group">
-          <label class="form-label">Links to product</label>
-          <select class="form-select" id="f_heroProduct"><option value="">— None (scrolls to Bestsellers) —</option></select>
-          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Pick which product the Shop Now button opens. Tip: you can also turn on <strong>"Add to Home Hero Banner"</strong> from inside any product's edit screen — it links that product here automatically.</p>
-        </div>
-
-        <button class="btn-accent btn-block" onclick="saveHero()">Save Hero Section</button>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">The homepage hero is an auto-scrolling carousel of up to <strong>3 banners</strong>. Fill in Banner 1 to start — Banners 2 and 3 are optional, and slides only show once an image is uploaded. Each banner can link to its own product.</p>
+        <div id="heroBannerSlots"></div>
+        <button class="btn-accent btn-block" onclick="saveHero()" style="margin-top:8px;">Save Hero Section</button>
       </div>
 
       <div class="section-block">
@@ -822,7 +788,7 @@
         <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
         <label class="switch"><input type="checkbox" id="p_heroBanner"><span class="switch-track"></span></label>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Turning this on makes the homepage's Shop Now button open this product. Only one product can be linked at a time — enabling it here replaces whatever was linked before.</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Turning this on links this product to <strong>Banner 1</strong> of the homepage hero carousel — tapping that banner opens this product. Enabling it here replaces whatever was linked to Banner 1 before. Banners 2 &amp; 3 can be linked from Banners &amp; Homepage Text.</p>
       <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="p_desc"></textarea></div>
       <label class="form-label">Specifications</label>
       <div id="specRows"></div>
@@ -983,8 +949,10 @@
     {name:"Steelbird"},{name:"Vega"},{name:"Studds"},{name:"Rynox"},{name:"Axor"},{name:"Viaterra"}
   ];
   const defaultHero = {
-    ctaPrimary:"Shop Now", productId:null
+    ctaPrimary:"Shop Now", productId:null, banners:[]
   };
+  const HERO_BANNER_SLOTS = 3;
+  function emptyHeroBanner(){ return { ctaPrimary:'Shop Now', productId:null, imageUrl:null, imageMobileUrl:null }; }
   const defaultHeroAd = { tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal" };
   const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale" };
   const defaultStore = { name:"Shyam Auto", supportEmail:"", supportPhone:"", currency:"₹", taxPercent:18 };
@@ -1015,15 +983,29 @@
       height_cm: p.height_cm != null ? Number(p.height_cm) : null
     }));
     const siteRow = siteRes.data || {};
+
+    // ---- Hero banners: up to 3 auto-scroll slides. Migrates old single-image
+    // hero fields into Banner 1 the first time a store loads this admin. ----
+    const heroObj = Object.assign({}, defaultHero, siteRow.hero);
+    let heroBanners = Array.isArray(heroObj.banners) ? heroObj.banners.filter(Boolean) : [];
+    if(!heroBanners.length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
+      heroBanners = [{
+        ctaPrimary: heroObj.ctaPrimary || 'Shop Now',
+        productId: heroObj.productId != null ? heroObj.productId : null,
+        imageUrl: siteRow.hero_image_url || null,
+        imageMobileUrl: siteRow.hero_image_mobile_url || null
+      }];
+    }
+    while(heroBanners.length < HERO_BANNER_SLOTS) heroBanners.push(emptyHeroBanner());
+    heroObj.banners = heroBanners;
+
     return {
       products,
       categories: (catRes.data && catRes.data.length ? catRes.data : defaultCategories.slice()),
       brands: (brandRes.data && brandRes.data.length ? brandRes.data : defaultBrands.slice()),
       productBrands: (gearBrandRes.data && gearBrandRes.data.length ? gearBrandRes.data : defaultProductBrands.slice()),
       bikeModels: modelRes.data || [],
-      hero: Object.assign({}, defaultHero, siteRow.hero),
-      heroImageUrl: siteRow.hero_image_url || null,
-      heroImageMobileUrl: siteRow.hero_image_mobile_url || null,
+      hero: heroObj,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
       deal: Object.assign({}, defaultDeal, siteRow.deal),
       store: Object.assign({}, defaultStore, siteRow.store),
@@ -1031,7 +1013,7 @@
       faviconUrl: siteRow.favicon_url || null
     };
   }
-  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
+  let site = { products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
 
   async function loadOrders(){
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
@@ -1302,7 +1284,7 @@
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_sale').checked = !!p.sale;
-      document.getElementById('p_heroBanner').checked = !!(site.hero && Number(site.hero.productId) === Number(p.id));
+      document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
       document.getElementById('p_desc').value = p.desc || '';
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
       renderModelCheckList(p.bike_model_ids || []);
@@ -1505,13 +1487,17 @@
     saveBtn.disabled = false;
     if(error){ showToast(error.message); return; }
 
-    // ---- Sync "Add to Home Hero Banner" toggle with site_content.hero.productId ----
-    const currentHeroProductId = site.hero && site.hero.productId != null ? Number(site.hero.productId) : null;
+    // ---- Sync "Add to Home Hero Banner" toggle with Banner 1's product link ----
+    const heroBanners0 = (site.hero && Array.isArray(site.hero.banners)) ? site.hero.banners.slice() : [];
+    while(heroBanners0.length < HERO_BANNER_SLOTS) heroBanners0.push(emptyHeroBanner());
+    const currentHeroProductId = heroBanners0[0].productId != null ? Number(heroBanners0[0].productId) : null;
     if(wantsHeroBanner && savedProductId != null && currentHeroProductId !== Number(savedProductId)){
-      site.hero = Object.assign({}, site.hero, { productId: Number(savedProductId) });
+      heroBanners0[0] = Object.assign({}, heroBanners0[0], { productId: Number(savedProductId) });
+      site.hero = Object.assign({}, site.hero, { banners: heroBanners0 });
       await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     } else if(!wantsHeroBanner && savedProductId != null && currentHeroProductId === Number(savedProductId)){
-      site.hero = Object.assign({}, site.hero, { productId: null });
+      heroBanners0[0] = Object.assign({}, heroBanners0[0], { productId: null });
+      site.hero = Object.assign({}, site.hero, { banners: heroBanners0 });
       await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     }
 
@@ -1524,25 +1510,95 @@
   }
 
   // ---- Banners ----
+  function heroBannerSlotHtml(n){
+    return `
+      <div class="hero-slot-block" style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <p style="font-size:13px;font-weight:700;margin-bottom:10px;">Banner ${n}${n===1 ? '' : ' <span style="color:var(--muted);font-weight:500;">(optional)</span>'}</p>
+        <div class="form-group">
+          <label class="form-label">Desktop Image</label>
+          <div id="hero_imgPreviewWrap_${n}" style="display:none;margin-bottom:10px;">
+            <img id="hero_imgPreview_${n}" style="width:100%;max-width:340px;aspect-ratio:2.6/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
+          </div>
+          <input type="file" accept="image/*" id="hero_imgFile_${n}" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended: <strong>1920×720px</strong> (~2.6:1 ratio), under 800KB. Shown on screens wider than 860px.</p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-outline" id="hero_imgSaveBtn_${n}" onclick="saveHeroImage(${n})" style="flex:1;">Upload Desktop Image</button>
+            <button class="btn-outline" onclick="removeHeroImage(${n})" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Mobile Image</label>
+          <div id="hero_imgMobilePreviewWrap_${n}" style="display:none;margin-bottom:10px;">
+            <img id="hero_imgMobilePreview_${n}" style="width:160px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;">
+          </div>
+          <input type="file" accept="image/*" id="hero_imgMobileFile_${n}" class="form-input" style="padding:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">Recommended: <strong>750×940px</strong> (~4:5 ratio), under 400KB. Shown on screens narrower than 860px — falls back to the desktop image if left empty.</p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-outline" id="hero_imgMobileSaveBtn_${n}" onclick="saveHeroImageMobile(${n})" style="flex:1;">Upload Mobile Image</button>
+            <button class="btn-outline" onclick="removeHeroImageMobile(${n})" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px;"><label class="form-label">Button text</label><input class="form-input" id="f_heroCtaPrimary_${n}" placeholder="Shop Now"></div>
+        <div class="form-group">
+          <label class="form-label">Links to product</label>
+          <select class="form-select" id="f_heroProduct_${n}"><option value="">— None (scrolls to Bestsellers) —</option></select>
+        </div>
+      </div>
+    `;
+  }
+
+  function wireHeroSlotFilePreview(fileInputId, previewImgId, previewWrapId){
+    const input = document.getElementById(fileInputId);
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(file){
+        const reader = new FileReader();
+        reader.onload = () => {
+          document.getElementById(previewImgId).src = reader.result;
+          document.getElementById(previewWrapId).style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
   function renderBannerForm(){
-    document.getElementById('f_heroCtaPrimary').value = site.hero.ctaPrimary;
+    // ---- Hero carousel: 3 banner slots ----
+    document.getElementById('heroBannerSlots').innerHTML =
+      Array.from({length: HERO_BANNER_SLOTS}, (_, i) => heroBannerSlotHtml(i + 1)).join('');
 
-    const prodSel = document.getElementById('f_heroProduct');
-    prodSel.innerHTML = '<option value="">— None (scrolls to Bestsellers) —</option>' +
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+
+    const prodOptions = '<option value="">— None (scrolls to Bestsellers) —</option>' +
       site.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    prodSel.value = site.hero.productId || '';
 
-    if(site.heroImageUrl){
-      document.getElementById('hero_imgPreview').src = site.heroImageUrl;
-      document.getElementById('hero_imgPreviewWrap').style.display = 'block';
-    } else {
-      document.getElementById('hero_imgPreviewWrap').style.display = 'none';
-    }
-    if(site.heroImageMobileUrl){
-      document.getElementById('hero_imgMobilePreview').src = site.heroImageMobileUrl;
-      document.getElementById('hero_imgMobilePreviewWrap').style.display = 'block';
-    } else {
-      document.getElementById('hero_imgMobilePreviewWrap').style.display = 'none';
+    for(let i = 0; i < HERO_BANNER_SLOTS; i++){
+      const n = i + 1;
+      const b = banners[i] || emptyHeroBanner();
+
+      document.getElementById(`f_heroCtaPrimary_${n}`).value = b.ctaPrimary || 'Shop Now';
+
+      const prodSel = document.getElementById(`f_heroProduct_${n}`);
+      prodSel.innerHTML = prodOptions;
+      prodSel.value = b.productId || '';
+
+      if(b.imageUrl){
+        document.getElementById(`hero_imgPreview_${n}`).src = b.imageUrl;
+        document.getElementById(`hero_imgPreviewWrap_${n}`).style.display = 'block';
+      } else {
+        document.getElementById(`hero_imgPreviewWrap_${n}`).style.display = 'none';
+      }
+      if(b.imageMobileUrl){
+        document.getElementById(`hero_imgMobilePreview_${n}`).src = b.imageMobileUrl;
+        document.getElementById(`hero_imgMobilePreviewWrap_${n}`).style.display = 'block';
+      } else {
+        document.getElementById(`hero_imgMobilePreviewWrap_${n}`).style.display = 'none';
+      }
+
+      // file inputs are rebuilt each render (innerHTML above), so (re)wire their previews here
+      wireHeroSlotFilePreview(`hero_imgFile_${n}`, `hero_imgPreview_${n}`, `hero_imgPreviewWrap_${n}`);
+      wireHeroSlotFilePreview(`hero_imgMobileFile_${n}`, `hero_imgMobilePreview_${n}`, `hero_imgMobilePreviewWrap_${n}`);
     }
 
     document.getElementById('f_dealTag').value = site.deal.tag;
@@ -1704,38 +1760,33 @@
   }
 
   async function saveHero(){
-    const productIdVal = document.getElementById('f_heroProduct').value;
-    site.hero = {
-      ctaPrimary: document.getElementById('f_heroCtaPrimary').value || 'Shop Now',
-      productId: productIdVal ? Number(productIdVal) : null
-    };
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+
+    for(let i = 0; i < HERO_BANNER_SLOTS; i++){
+      const n = i + 1;
+      const productIdVal = document.getElementById(`f_heroProduct_${n}`).value;
+      banners[i] = Object.assign({}, banners[i], {
+        ctaPrimary: document.getElementById(`f_heroCtaPrimary_${n}`).value || 'Shop Now',
+        productId: productIdVal ? Number(productIdVal) : null
+      });
+    }
+    site.hero = Object.assign({}, site.hero, { banners });
     const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     if(error){ showToast(error.message); return; }
     showToast('Hero section saved');
   }
 
-  document.getElementById('hero_imgFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(file){
-      const reader = new FileReader();
-      reader.onload = () => {
-        document.getElementById('hero_imgPreview').src = reader.result;
-        document.getElementById('hero_imgPreviewWrap').style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
-  async function saveHeroImage(){
-    const fileInput = document.getElementById('hero_imgFile');
+  async function saveHeroImage(n){
+    const fileInput = document.getElementById(`hero_imgFile_${n}`);
     const file = fileInput.files[0];
     if(!file){ showToast('Choose an image first'); return; }
-    const btn = document.getElementById('hero_imgSaveBtn');
+    const btn = document.getElementById(`hero_imgSaveBtn_${n}`);
     btn.textContent = 'Uploading...';
     btn.disabled = true;
 
     const ext = file.name.split('.').pop();
-    const path = `desktop-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const path = `desktop-${n}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const { error: uploadError } = await sb.storage.from('hero-images').upload(path, file);
     if(uploadError){
       showToast(uploadError.message);
@@ -1744,48 +1795,45 @@
       return;
     }
     const imageUrl = sb.storage.from('hero-images').getPublicUrl(path).data.publicUrl;
-    const { error } = await sb.from('site_content').update({ hero_image_url: imageUrl }).eq('id', 1);
+
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+    banners[n - 1] = Object.assign({}, banners[n - 1], { imageUrl });
+    site.hero = Object.assign({}, site.hero, { banners });
+    const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
 
     btn.textContent = 'Upload Desktop Image';
     btn.disabled = false;
     if(error){ showToast(error.message); return; }
 
-    site.heroImageUrl = imageUrl;
     fileInput.value = '';
-    showToast('Desktop hero image saved');
+    document.getElementById(`hero_imgPreview_${n}`).src = imageUrl;
+    document.getElementById(`hero_imgPreviewWrap_${n}`).style.display = 'block';
+    showToast(`Banner ${n} desktop image saved`);
   }
 
-  async function removeHeroImage(){
-    const { error } = await sb.from('site_content').update({ hero_image_url: null }).eq('id', 1);
+  async function removeHeroImage(n){
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+    banners[n - 1] = Object.assign({}, banners[n - 1], { imageUrl: null });
+    site.hero = Object.assign({}, site.hero, { banners });
+    const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     if(error){ showToast(error.message); return; }
-    site.heroImageUrl = null;
-    document.getElementById('hero_imgPreviewWrap').style.display = 'none';
-    document.getElementById('hero_imgFile').value = '';
-    showToast('Desktop hero image removed');
+    document.getElementById(`hero_imgPreviewWrap_${n}`).style.display = 'none';
+    document.getElementById(`hero_imgFile_${n}`).value = '';
+    showToast(`Banner ${n} desktop image removed`);
   }
 
-  document.getElementById('hero_imgMobileFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(file){
-      const reader = new FileReader();
-      reader.onload = () => {
-        document.getElementById('hero_imgMobilePreview').src = reader.result;
-        document.getElementById('hero_imgMobilePreviewWrap').style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-
-  async function saveHeroImageMobile(){
-    const fileInput = document.getElementById('hero_imgMobileFile');
+  async function saveHeroImageMobile(n){
+    const fileInput = document.getElementById(`hero_imgMobileFile_${n}`);
     const file = fileInput.files[0];
     if(!file){ showToast('Choose an image first'); return; }
-    const btn = document.getElementById('hero_imgMobileSaveBtn');
+    const btn = document.getElementById(`hero_imgMobileSaveBtn_${n}`);
     btn.textContent = 'Uploading...';
     btn.disabled = true;
 
     const ext = file.name.split('.').pop();
-    const path = `mobile-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const path = `mobile-${n}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const { error: uploadError } = await sb.storage.from('hero-images').upload(path, file);
     if(uploadError){
       showToast(uploadError.message);
@@ -1794,24 +1842,33 @@
       return;
     }
     const imageUrl = sb.storage.from('hero-images').getPublicUrl(path).data.publicUrl;
-    const { error } = await sb.from('site_content').update({ hero_image_mobile_url: imageUrl }).eq('id', 1);
+
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+    banners[n - 1] = Object.assign({}, banners[n - 1], { imageMobileUrl: imageUrl });
+    site.hero = Object.assign({}, site.hero, { banners });
+    const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
 
     btn.textContent = 'Upload Mobile Image';
     btn.disabled = false;
     if(error){ showToast(error.message); return; }
 
-    site.heroImageMobileUrl = imageUrl;
     fileInput.value = '';
-    showToast('Mobile hero image saved');
+    document.getElementById(`hero_imgMobilePreview_${n}`).src = imageUrl;
+    document.getElementById(`hero_imgMobilePreviewWrap_${n}`).style.display = 'block';
+    showToast(`Banner ${n} mobile image saved`);
   }
 
-  async function removeHeroImageMobile(){
-    const { error } = await sb.from('site_content').update({ hero_image_mobile_url: null }).eq('id', 1);
+  async function removeHeroImageMobile(n){
+    const banners = (site.hero.banners && site.hero.banners.length) ? site.hero.banners.slice() : [];
+    while(banners.length < HERO_BANNER_SLOTS) banners.push(emptyHeroBanner());
+    banners[n - 1] = Object.assign({}, banners[n - 1], { imageMobileUrl: null });
+    site.hero = Object.assign({}, site.hero, { banners });
+    const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     if(error){ showToast(error.message); return; }
-    site.heroImageMobileUrl = null;
-    document.getElementById('hero_imgMobilePreviewWrap').style.display = 'none';
-    document.getElementById('hero_imgMobileFile').value = '';
-    showToast('Mobile hero image removed');
+    document.getElementById(`hero_imgMobilePreviewWrap_${n}`).style.display = 'none';
+    document.getElementById(`hero_imgMobileFile_${n}`).value = '';
+    showToast(`Banner ${n} mobile image removed`);
   }
   async function saveDeal(){
     site.deal = {
