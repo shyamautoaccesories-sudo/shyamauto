@@ -970,7 +970,7 @@
     <p class="tag" id="dealTag">MONSOON READY</p>
     <h3 id="dealTitle">Rain Gear — Up to 40% Off</h3>
     <p class="sub" id="dealSub">Waterproof jackets, boot covers & visors, in stock now.</p>
-    <button id="dealBtn">Shop the Sale</button>
+    <button id="dealBtn" onclick="handleDealBtnClick()">Shop the Sale</button>
   </div>
 </div>
 
@@ -1666,7 +1666,8 @@
   };
   const defaultDeal = {
     tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off",
-    sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale"
+    sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale",
+    linkType:"none", category:null, productId:null
   };
 
   // ---- Load site content from Supabase (falls back to defaults if a table is empty) ----
@@ -2169,6 +2170,18 @@
     const p = pid ? findProduct(pid) : null;
     if(p){ openProduct(p.id); }
     else { document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'}); }
+  }
+
+  function handleDealBtnClick(){
+    const deal = site.deal || {};
+    if(deal.linkType === 'product' && deal.productId){
+      const p = findProduct(deal.productId);
+      if(p){ openProduct(p.id); return; }
+    } else if(deal.linkType === 'category' && deal.category){
+      showProducts('cat', deal.category);
+      return;
+    }
+    document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'});
   }
 
   let heroSwipeInit = false;
