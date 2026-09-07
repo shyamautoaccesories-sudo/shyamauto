@@ -80,16 +80,22 @@
   .trust-track span::before{content:"●";font-size:6px;}
   @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-  /* ---------- Hero banner (image card) ---------- */
+  /* ---------- Hero banner (auto-scroll carousel) ---------- */
   .hero-banner{padding:14px 16px 8px;}
-  .hero-banner-card{
-    position:relative;display:block;width:100%;border-radius:20px;overflow:hidden;
+  .hero-carousel{
+    position:relative;width:100%;border-radius:20px;overflow:hidden;
     background:var(--surface-2,#eee);box-shadow:0 10px 24px rgba(23,20,10,0.14);
-    text-decoration:none;
+    touch-action:pan-y;
   }
-  .hero-banner-frame{position:relative;width:100%;padding-top:125%;} /* 4:5 mobile */
+  .hero-carousel-track{display:flex;width:100%;transform:translateX(0);will-change:transform;}
+  .hero-slide{
+    position:relative;display:block;flex:0 0 100%;width:100%;text-decoration:none;
+    -webkit-user-drag:none;user-select:none;
+  }
+  .hero-banner-frame{position:relative;width:100%;padding-top:125%;pointer-events:none;} /* 4:5 mobile */
   .hero-banner-img{
     position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;object-fit:cover;display:none;
+    -webkit-user-drag:none;pointer-events:none;
   }
   .hero-banner-img.hb-mobile{display:block;}
   .hero-shop-btn{
@@ -100,6 +106,21 @@
     line-height:1;white-space:nowrap;
   }
   .hero-shop-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.4;}
+
+  /* ---------- Hero carousel controls ---------- */
+  .hero-carousel-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;}
+  .hero-dot{width:7px;height:7px;border-radius:50%;background:var(--line);border:none;padding:0;transition:width .25s ease,background .25s ease;flex:0 0 auto;}
+  .hero-dot.active{width:20px;border-radius:4px;background:var(--red);}
+  .hero-carousel-arrow{
+    position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+    width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.85);
+    display:none;align-items:center;justify-content:center;color:var(--text);
+    box-shadow:0 4px 12px rgba(0,0,0,0.18);
+  }
+  .hero-carousel-arrow svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;}
+  .hero-carousel-arrow.prev{left:12px;}
+  .hero-carousel-arrow.next{right:12px;}
+  .hero-carousel-arrow:active{transform:translateY(-50%) scale(0.92);}
   .btn-primary{
     background:var(--yellow);color:#fff;font-weight:700;font-size:14px;
     padding:13px 22px;border-radius:10px;letter-spacing:0.2px;
@@ -830,6 +851,10 @@
     .hero-banner-img.hb-mobile{display:none;}
     .hero-shop-btn{top:28px;left:28px;font-size:14.5px;padding:13px 22px;}
     .hero-shop-btn svg{width:15px;height:15px;}
+    .hero-carousel-arrow{display:flex;}
+    .hero-carousel-dots{margin-top:14px;}
+    .hero-dot{width:8px;height:8px;}
+    .hero-dot.active{width:24px;}
     section.block,section.brands{padding:40px 40px 8px;max-width:1200px;margin:0 auto;}
     .product-scroll,.testi-scroll{overflow-x:visible;flex-wrap:wrap;}
     .product-scroll .card{width:200px;}
@@ -888,18 +913,18 @@
   </div>
 </div>
 
-<!-- Hero Banner -->
+<!-- Hero Banner (auto-scroll carousel, up to 3 slides) -->
 <section class="hero-banner" id="heroBanner">
-  <a href="#" class="hero-banner-card" id="heroBannerCard" onclick="handleHeroBannerClick();return false;">
-    <div class="hero-banner-frame">
-      <img class="hero-banner-img hb-desktop" id="heroBannerImgDesktop" src="" alt="Shop the latest gear">
-      <img class="hero-banner-img hb-mobile" id="heroBannerImgMobile" src="" alt="Shop the latest gear">
-    </div>
-    <span class="hero-shop-btn">
-      <span id="heroCtaPrimary">Shop Now</span>
-      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-    </span>
-  </a>
+  <div class="hero-carousel" id="heroCarousel">
+    <div class="hero-carousel-track" id="heroCarouselTrack"></div>
+    <button class="hero-carousel-arrow prev" id="heroPrevBtn" onclick="goToHeroSlide(heroSlideIndex-1)" aria-label="Previous banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="hero-carousel-arrow next" id="heroNextBtn" onclick="goToHeroSlide(heroSlideIndex+1)" aria-label="Next banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+  <div class="hero-carousel-dots" id="heroCarouselDots"></div>
 </section>
 
 <!-- Categories -->
@@ -1634,7 +1659,7 @@
     {name:"Steelbird"},{name:"Vega"},{name:"Studds"},{name:"Rynox"},{name:"Axor"},{name:"Viaterra"}
   ];
   const defaultHero = {
-    ctaPrimary:"Shop Now", productId:null
+    ctaPrimary:"Shop Now", productId:null, banners:[]
   };
   const defaultHeroAd = {
     tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal"
@@ -1661,13 +1686,28 @@
       bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : []
     }));
     const siteRow = siteRes.data || {};
+
+    // ---- Hero banners: supports up to 3 auto-scroll slides. Falls back to the
+    // old single-image hero fields so existing stores keep working unchanged. ----
+    const heroObj = Object.assign({}, defaultHero, siteRow.hero);
+    let heroBanners = Array.isArray(heroObj.banners) ? heroObj.banners.filter(Boolean) : [];
+    if(!heroBanners.length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
+      heroBanners = [{
+        ctaPrimary: heroObj.ctaPrimary || 'Shop Now',
+        productId: heroObj.productId != null ? heroObj.productId : null,
+        imageUrl: siteRow.hero_image_url || null,
+        imageMobileUrl: siteRow.hero_image_mobile_url || null
+      }];
+    }
+
     return {
       products: mappedProducts,
       categories: (catRes.data && catRes.data.length ? catRes.data : defaultCategories),
       brands: (brandRes.data && brandRes.data.length ? brandRes.data : defaultBrands),
       productBrands: (gearBrandRes.data && gearBrandRes.data.length ? gearBrandRes.data : defaultProductBrands),
       bikeModels: modelRes.data || [],
-      hero: Object.assign({}, defaultHero, siteRow.hero),
+      hero: heroObj,
+      heroBanners: heroBanners,
       heroImageUrl: siteRow.hero_image_url || null,
       heroImageMobileUrl: siteRow.hero_image_mobile_url || null,
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
@@ -1677,7 +1717,7 @@
     };
   }
 
-  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
+  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
   let bestsellers = [], newArrivals = [], helmets = [];
   let categories = [];
@@ -1710,18 +1750,8 @@
     helmets = products.filter(p => p.cat === "Helmets");
     categories = [...new Set(products.map(p => p.cat))];
 
-    // ---- Hero banner (image card) ----
-    document.getElementById('heroCtaPrimary').textContent = site.hero.ctaPrimary;
-    const heroBannerEl = document.getElementById('heroBanner');
-    const desktopSrc = site.heroImageUrl || site.heroImageMobileUrl || '';
-    const mobileSrc = site.heroImageMobileUrl || site.heroImageUrl || '';
-    if(desktopSrc || mobileSrc){
-      document.getElementById('heroBannerImgDesktop').src = desktopSrc;
-      document.getElementById('heroBannerImgMobile').src = mobileSrc;
-      heroBannerEl.style.display = '';
-    } else {
-      heroBannerEl.style.display = 'none';
-    }
+    // ---- Hero banner (auto-scroll carousel, up to 3 slides) ----
+    renderHeroCarousel();
     document.getElementById('dealTag').textContent = site.deal.tag;
     document.getElementById('dealTitle').textContent = site.deal.title;
     document.getElementById('dealSub').textContent = site.deal.sub;
@@ -2057,11 +2087,129 @@
   }
   function findProduct(id){ return products.find(p => p.id === Number(id)); }
 
-  function handleHeroBannerClick(){
-    const pid = site.hero && site.hero.productId;
+  // ---------------------------------------------------------------------
+  // Hero banner carousel — up to 3 auto-scrolling slides, each with its
+  // own desktop/mobile image and its own "shop this product" link.
+  // Works on both desktop (arrow buttons + hover-to-pause) and mobile
+  // (swipe gestures), and autoplay pauses while the user is interacting.
+  // ---------------------------------------------------------------------
+  let heroBannersData = [];
+  let heroSlideIndex = 0;
+  let heroAutoplayTimer = null;
+  const HERO_AUTOPLAY_MS = 4500;
+
+  function renderHeroCarousel(){
+    const heroBannerEl = document.getElementById('heroBanner');
+    const track = document.getElementById('heroCarouselTrack');
+    const dotsEl = document.getElementById('heroCarouselDots');
+
+    heroBannersData = (site.heroBanners || []).filter(b => b && (b.imageUrl || b.imageMobileUrl));
+
+    if(!heroBannersData.length){
+      heroBannerEl.style.display = 'none';
+      clearInterval(heroAutoplayTimer);
+      return;
+    }
+    heroBannerEl.style.display = '';
+
+    track.innerHTML = heroBannersData.map((b, i) => {
+      const desktopSrc = b.imageUrl || b.imageMobileUrl || '';
+      const mobileSrc = b.imageMobileUrl || b.imageUrl || '';
+      const cta = (b.ctaPrimary || 'Shop Now').replace(/</g,'&lt;');
+      return `<a href="#" class="hero-slide" onclick="handleHeroBannerClick(${i});return false;" aria-label="${cta}">
+        <div class="hero-banner-frame">
+          <img class="hero-banner-img hb-desktop" src="${desktopSrc}" alt="${cta}">
+          <img class="hero-banner-img hb-mobile" src="${mobileSrc}" alt="${cta}">
+        </div>
+        <span class="hero-shop-btn">
+          <span>${cta}</span>
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>`;
+    }).join('');
+
+    const multi = heroBannersData.length > 1;
+    dotsEl.innerHTML = multi
+      ? heroBannersData.map((_, i) => `<button class="hero-dot" onclick="goToHeroSlide(${i})" aria-label="Go to banner ${i+1}"></button>`).join('')
+      : '';
+    document.getElementById('heroPrevBtn').style.display = multi ? '' : 'none';
+    document.getElementById('heroNextBtn').style.display = multi ? '' : 'none';
+
+    heroSlideIndex = 0;
+    updateHeroCarousel(false);
+    startHeroAutoplay();
+    initHeroSwipe();
+  }
+
+  function updateHeroCarousel(animate){
+    const track = document.getElementById('heroCarouselTrack');
+    track.style.transition = animate === false ? 'none' : 'transform .5s ease';
+    track.style.transform = `translateX(-${heroSlideIndex * 100}%)`;
+    document.querySelectorAll('#heroCarouselDots .hero-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === heroSlideIndex);
+    });
+  }
+
+  function goToHeroSlide(i){
+    if(!heroBannersData.length) return;
+    heroSlideIndex = ((i % heroBannersData.length) + heroBannersData.length) % heroBannersData.length;
+    updateHeroCarousel(true);
+    startHeroAutoplay();
+  }
+
+  function startHeroAutoplay(){
+    clearInterval(heroAutoplayTimer);
+    if(heroBannersData.length <= 1) return;
+    heroAutoplayTimer = setInterval(() => goToHeroSlide(heroSlideIndex + 1), HERO_AUTOPLAY_MS);
+  }
+
+  function handleHeroBannerClick(i){
+    const b = heroBannersData[i];
+    const pid = b && b.productId;
     const p = pid ? findProduct(pid) : null;
     if(p){ openProduct(p.id); }
     else { document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'}); }
+  }
+
+  let heroSwipeInit = false;
+  function initHeroSwipe(){
+    if(heroSwipeInit) return; // listeners attached once; track content is re-rendered, not the track itself
+    heroSwipeInit = true;
+    const carousel = document.getElementById('heroCarousel');
+    const track = document.getElementById('heroCarouselTrack');
+    let startX = 0, dragX = 0, dragging = false;
+
+    track.addEventListener('pointerdown', (e) => {
+      if(!heroBannersData.length) return;
+      dragging = true; startX = e.clientX; dragX = 0;
+      track.style.transition = 'none';
+      clearInterval(heroAutoplayTimer);
+      try{ track.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    track.addEventListener('pointermove', (e) => {
+      if(!dragging) return;
+      dragX = e.clientX - startX;
+      track.style.transform = `translateX(calc(-${heroSlideIndex * 100}% + ${dragX}px))`;
+    });
+    function endHeroDrag(){
+      if(!dragging) return;
+      dragging = false;
+      track.style.transition = 'transform .5s ease';
+      const width = track.clientWidth || 1;
+      const threshold = width * 0.15;
+      if(dragX < -threshold) goToHeroSlide(heroSlideIndex + 1);
+      else if(dragX > threshold) goToHeroSlide(heroSlideIndex - 1);
+      else updateHeroCarousel(true);
+      dragX = 0;
+      startHeroAutoplay();
+    }
+    track.addEventListener('pointerup', endHeroDrag);
+    track.addEventListener('pointercancel', endHeroDrag);
+    track.addEventListener('pointerleave', () => { if(dragging) endHeroDrag(); });
+
+    // Pause autoplay while the pointer hovers the carousel on desktop.
+    carousel.addEventListener('mouseenter', () => clearInterval(heroAutoplayTimer));
+    carousel.addEventListener('mouseleave', () => startHeroAutoplay());
   }
 
   function renderCart(){
