@@ -486,6 +486,22 @@
         <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="f_dealTitle"></div>
         <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="f_dealSub"></div>
         <div class="form-group"><label class="form-label">Button text</label><input class="form-input" id="f_dealBtn"></div>
+        <div class="form-group">
+          <label class="form-label">Button links to</label>
+          <select class="form-select" id="f_dealLinkType" onchange="toggleDealLinkFields()">
+            <option value="none">— Nothing specific (scrolls to Bestsellers) —</option>
+            <option value="category">A category</option>
+            <option value="product">A specific product</option>
+          </select>
+        </div>
+        <div class="form-group" id="dealCategoryFieldWrap" style="display:none;">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="f_dealCategory"></select>
+        </div>
+        <div class="form-group" id="dealProductFieldWrap" style="display:none;">
+          <label class="form-label">Product</label>
+          <select class="form-select" id="f_dealProduct"></select>
+        </div>
         <button class="btn-accent btn-block" onclick="saveDeal()">Save Deal Banner</button>
       </div>
     </div>
@@ -954,7 +970,7 @@
   const HERO_BANNER_SLOTS = 3;
   function emptyHeroBanner(){ return { ctaPrimary:'Shop Now', productId:null, imageUrl:null, imageMobileUrl:null }; }
   const defaultHeroAd = { tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal" };
-  const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale" };
+  const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale", linkType:"none", category:null, productId:null };
   const defaultStore = { name:"Shyam Auto", supportEmail:"", supportPhone:"", currency:"₹", taxPercent:18 };
 
   let orders = []; // loaded from Supabase `orders` table
@@ -1605,6 +1621,23 @@
     document.getElementById('f_dealTitle').value = site.deal.title;
     document.getElementById('f_dealSub').value = site.deal.sub;
     document.getElementById('f_dealBtn').value = site.deal.btn;
+
+    const dealCatSel = document.getElementById('f_dealCategory');
+    dealCatSel.innerHTML = site.categories.map(c => `<option value="${c.label}">${c.label}</option>`).join('');
+    const dealProdSel = document.getElementById('f_dealProduct');
+    dealProdSel.innerHTML = site.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+    const dealLinkType = site.deal.linkType || 'none';
+    document.getElementById('f_dealLinkType').value = dealLinkType;
+    if(site.deal.category) dealCatSel.value = site.deal.category;
+    if(site.deal.productId) dealProdSel.value = site.deal.productId;
+    toggleDealLinkFields();
+  }
+
+  function toggleDealLinkFields(){
+    const type = document.getElementById('f_dealLinkType').value;
+    document.getElementById('dealCategoryFieldWrap').style.display = type === 'category' ? 'block' : 'none';
+    document.getElementById('dealProductFieldWrap').style.display = type === 'product' ? 'block' : 'none';
   }
   // ---- Settings ----
   async function renderSettings(){
@@ -1871,11 +1904,17 @@
     showToast(`Banner ${n} mobile image removed`);
   }
   async function saveDeal(){
+    const linkType = document.getElementById('f_dealLinkType').value;
+    const categoryVal = document.getElementById('f_dealCategory').value;
+    const productVal = document.getElementById('f_dealProduct').value;
     site.deal = {
       tag: document.getElementById('f_dealTag').value,
       title: document.getElementById('f_dealTitle').value,
       sub: document.getElementById('f_dealSub').value,
-      btn: document.getElementById('f_dealBtn').value
+      btn: document.getElementById('f_dealBtn').value,
+      linkType,
+      category: linkType === 'category' ? (categoryVal || null) : null,
+      productId: linkType === 'product' ? (productVal ? Number(productVal) : null) : null
     };
     const { error } = await sb.from('site_content').update({ deal: site.deal }).eq('id', 1);
     if(error){ showToast(error.message); return; }
