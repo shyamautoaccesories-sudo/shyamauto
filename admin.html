@@ -92,6 +92,31 @@
   .badge{font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:5px;}
   .badge.on{background:rgba(30,158,92,0.12);color:var(--green);}
   .badge.off{background:var(--surface-2);color:var(--muted);}
+  .badge.low{background:rgba(178,103,10,0.12);color:var(--amber);}
+
+  /* ---------- Inventory ---------- */
+  .inv-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+  .inv-search-wrap{position:relative;}
+  .inv-search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:2;pointer-events:none;}
+  .inv-search-wrap .form-input{padding-left:36px;}
+  .inv-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .inv-count{font-size:11.5px;color:var(--muted);margin:10px 0 10px;}
+  .inv-row{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .inv-row-top{display:flex;gap:10px;align-items:center;}
+  .inv-row-media{width:44px;height:44px;border-radius:9px;background:var(--surface-2);flex:0 0 auto;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted);font-weight:700;}
+  .inv-row-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .inv-row-info{flex:1;min-width:0;}
+  .inv-row-info .title{font-size:13px;font-weight:600;line-height:1.3;}
+  .inv-row-info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .inv-row-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap;}
+  .inv-stepper{display:flex;align-items:center;gap:6px;}
+  .inv-stepper button{width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:var(--text);flex:0 0 auto;}
+  .inv-stepper button:active{background:var(--line);}
+  .inv-stepper input{width:56px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:6px 4px;font-family:var(--font-mono);font-size:13px;background:var(--surface);}
+  .inv-oos-toggle{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);font-weight:600;}
+  .inv-variant-list{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px;}
+  .inv-variant-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;}
+  .inv-variant-row .vname{flex:1;min-width:0;color:var(--text);font-weight:500;}
   .badge.warn{background:rgba(184,41,26,0.12);color:var(--accent,#B8291A);}
 
   /* ---- Orders (redesigned) ---- */
@@ -329,6 +354,10 @@
     .stat-grid{grid-template-columns:repeat(4,1fr);}
     .order-stat-strip{grid-template-columns:repeat(4,1fr);}
     .sheet{max-width:520px;border-radius:18px;margin-bottom:5vh;}
+    .inv-toolbar{flex-direction:row;align-items:center;}
+    .inv-search-wrap{flex:0 0 260px;}
+    .inv-filters{grid-template-columns:repeat(4,1fr);flex:1;}
+    .inv-row-controls{flex-wrap:nowrap;}
   }
   @media (min-width:860px) and (max-width:1023px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
@@ -389,7 +418,6 @@
           <button class="side-subitem" data-view="products" onclick="goView('products')">All products<span class="side-badge" id="badgeProducts">0</span></button>
           <button class="side-subitem" data-view="bikemodels" onclick="goView('bikemodels')">Bike Models<span class="side-badge" id="badgeBikeModels">0</span></button>
           <button class="side-subitem" data-view="catbrand" onclick="goView('catbrand')">Categories<span class="side-badge" id="badgeCategories">0</span></button>
-          <button class="side-subitem" data-view="inventory" onclick="goView('inventory')">Inventory</button>
         </div>
       </div>
 
@@ -413,8 +441,8 @@
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="8" y1="16" x2="16" y2="8"/><circle cx="9.3" cy="9.3" r="1"/><circle cx="14.7" cy="14.7" r="1"/></svg>Discounts</span>
       </button>
 
-      <button class="side-item" data-view="audience" onclick="goView('audience')">
-        <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 13.2c2.3.4 4 2.4 4 4.8"/></svg>Audience</span>
+      <button class="side-item" data-view="inventory" onclick="goView('inventory')">
+        <span class="side-item-inner"><svg viewBox="0 0 24 24"><path d="M21 8L12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>Inventory</span>
       </button>
 
       <button class="side-item" data-view="banners" onclick="goView('banners')">
@@ -600,13 +628,33 @@
       <div id="deliveryList"></div>
     </div>
 
-    <!-- Inventory (placeholder) -->
+    <!-- Inventory -->
     <div class="view" id="view-inventory">
       <p class="view-title">Inventory</p>
-      <div class="coming-soon-card">
-        <p>Stock tracking coming soon</p>
-        <p>Har product ka live stock count aur low-stock alerts yahan dikhenge — abhi products mein sirf price/details manage hoti hai, stock quantity nahi.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+        Add or remove stock per product, and mark items Out of Stock — customers won't be able to add out-of-stock items to their cart on the storefront.
+      </p>
+
+      <div class="inv-toolbar">
+        <div class="inv-search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" id="inv_search" placeholder="Search products…" oninput="renderInventory()">
+        </div>
+        <div class="inv-filters">
+          <select class="form-select" id="inv_filterCat" onchange="renderInventory()"><option value="">All Categories</option></select>
+          <select class="form-select" id="inv_filterBrand" onchange="renderInventory()"><option value="">All Brands</option></select>
+          <select class="form-select" id="inv_filterModel" onchange="renderInventory()"><option value="">All Bike Models</option></select>
+          <select class="form-select" id="inv_filterStock" onchange="renderInventory()">
+            <option value="">All Stock Status</option>
+            <option value="in">In Stock</option>
+            <option value="low">Low Stock (≤5)</option>
+            <option value="out">Out of Stock</option>
+          </select>
+        </div>
       </div>
+
+      <p class="inv-count" id="inv_count"></p>
+      <div id="inventoryList"></div>
     </div>
 
     <!-- Analytics: Traffic (placeholder) -->
@@ -644,15 +692,6 @@
       </p>
       <button class="btn-accent btn-block" style="margin-bottom:16px;" onclick="openDiscountSheet()">+ Add Discount Code</button>
       <div id="discountList"></div>
-    </div>
-
-    <!-- Audience (placeholder) -->
-    <div class="view" id="view-audience">
-      <p class="view-title">Audience</p>
-      <div class="coming-soon-card">
-        <p>Customer list coming soon</p>
-        <p>Registered customers, unka order history aur contact details yahan dikhenge jab user accounts backend se judenge.</p>
-      </div>
     </div>
 
     <!-- Settings -->
@@ -789,6 +828,9 @@
           <div class="form-group"><label class="form-label">Selling Price (₹)</label><input class="form-input" id="p_price" type="number"></div>
           <div class="form-group"><label class="form-label">MRP (₹) — optional</label><input class="form-input" id="p_mrp" type="number"></div>
         </div>
+        <div class="form-group"><label class="form-label">Stock Quantity — optional</label><input class="form-input" id="p_stock" type="number" min="0" placeholder="Leave blank to not track stock">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">You can also add/remove stock anytime from the <strong>Inventory</strong> tab.</p>
+        </div>
       </div>
 
       <div id="p_variantsBlock" style="display:none;">
@@ -801,6 +843,10 @@
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Mark as SALE</span>
         <label class="switch"><input type="checkbox" id="p_sale"><span class="switch-track"></span></label>
+      </div>
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Mark as Out of Stock</span>
+        <label class="switch"><input type="checkbox" id="p_outOfStock"><span class="switch-track"></span></label>
       </div>
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
@@ -1053,7 +1099,10 @@
       weight_kg: p.weight_kg != null ? Number(p.weight_kg) : null,
       length_cm: p.length_cm != null ? Number(p.length_cm) : null,
       breadth_cm: p.breadth_cm != null ? Number(p.breadth_cm) : null,
-      height_cm: p.height_cm != null ? Number(p.height_cm) : null
+      height_cm: p.height_cm != null ? Number(p.height_cm) : null,
+      variants: Array.isArray(p.variants) ? p.variants : [],
+      stock: p.stock != null ? Number(p.stock) : null,
+      in_stock: p.in_stock != null ? !!p.in_stock : true
     }));
     const siteRow = siteRes.data || {};
 
@@ -1208,7 +1257,7 @@
   // Maps a view name to the sidebar group (if any) that contains it
   const viewGroupMap = {
     'orders':'grp-orders', 'orders-abandoned':'grp-orders',
-    'products':'grp-products', 'bikemodels':'grp-products', 'catbrand':'grp-products', 'inventory':'grp-products',
+    'products':'grp-products', 'bikemodels':'grp-products', 'catbrand':'grp-products',
     'analytics-sales':'grp-analytics', 'analytics-traffic':'grp-analytics', 'analytics-products':'grp-analytics'
   };
 
@@ -1229,6 +1278,7 @@
     if(name === 'analytics-sales') renderReports();
     if(name === 'delivery'){ renderDelivery(); startDeliveryAutoPoll(); } else { stopDeliveryAutoPoll(); }
     if(name === 'settings') renderSettings();
+    if(name === 'inventory') renderInventory();
   }
 
   // ---- Render everything ----
@@ -1245,6 +1295,7 @@
     renderGearBrandList();
     renderProductBrandOptions();
     renderBikeModelList();
+    renderInventory();
     renderOrders();
     renderTickets();
     renderReports();
@@ -1299,7 +1350,176 @@
     site.products = site.products.filter(p => p.id !== id);
     renderProductList();
     renderDashboard();
+    renderInventory();
     showToast('Product deleted');
+  }
+
+  // ---- Inventory ----
+  function populateInventoryFilters(){
+    const catSel = document.getElementById('inv_filterCat');
+    if(!catSel) return;
+    const curCat = catSel.value;
+    catSel.innerHTML = '<option value="">All Categories</option>' + site.categories.map(c => `<option value="${c.label}">${c.label}</option>`).join('');
+    catSel.value = curCat;
+
+    const brandSel = document.getElementById('inv_filterBrand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = '<option value="">All Brands</option>' + site.productBrands.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+    brandSel.value = curBrand;
+
+    const modelSel = document.getElementById('inv_filterModel');
+    const curModel = modelSel.value;
+    modelSel.innerHTML = '<option value="">All Bike Models</option>' + site.bikeModels.map(m => `<option value="${m.id}">${m.brand} ${m.name}</option>`).join('');
+    modelSel.value = curModel;
+  }
+
+  function getProductStockInfo(p){
+    const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+    let totalStock = null;
+    if(hasVariants){
+      const known = p.variants.filter(v => v.stock != null);
+      if(known.length) totalStock = known.reduce((s,v) => s + v.stock, 0);
+    } else {
+      totalStock = p.stock;
+    }
+    const forcedOut = p.in_stock === false;
+    let status;
+    if(forcedOut) status = 'out';
+    else if(totalStock == null) status = 'unlimited';
+    else if(totalStock <= 0) status = 'out';
+    else if(totalStock <= 5) status = 'low';
+    else status = 'in';
+    return { hasVariants, totalStock, forcedOut, status };
+  }
+
+  function renderInventory(){
+    const wrap = document.getElementById('inventoryList');
+    if(!wrap) return;
+    populateInventoryFilters();
+
+    const q = (document.getElementById('inv_search').value || '').trim().toLowerCase();
+    const fCat = document.getElementById('inv_filterCat').value;
+    const fBrand = document.getElementById('inv_filterBrand').value;
+    const fModel = document.getElementById('inv_filterModel').value;
+    const fStock = document.getElementById('inv_filterStock').value;
+
+    let list = site.products.slice();
+    if(q) list = list.filter(p => p.name.toLowerCase().includes(q));
+    if(fCat) list = list.filter(p => p.cat === fCat);
+    if(fBrand) list = list.filter(p => p.brand === fBrand);
+    if(fModel) list = list.filter(p => Array.isArray(p.bike_model_ids) && p.bike_model_ids.includes(Number(fModel)));
+    if(fStock){
+      list = list.filter(p => {
+        const info = getProductStockInfo(p);
+        if(fStock === 'out') return info.status === 'out';
+        if(fStock === 'low') return info.status === 'low';
+        if(fStock === 'in') return info.status === 'in' || info.status === 'unlimited';
+        return true;
+      });
+    }
+
+    document.getElementById('inv_count').textContent = `${list.length} product${list.length === 1 ? '' : 's'}`;
+
+    if(site.products.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No products yet. Add some under Products first.</p>';
+      return;
+    }
+    if(list.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No products match these filters.</p>';
+      return;
+    }
+
+    wrap.innerHTML = list.map(p => {
+      const info = getProductStockInfo(p);
+      const thumb = p.images && p.images[0];
+      const statusBadge = info.status === 'out' ? '<span class="badge warn">OUT OF STOCK</span>'
+        : info.status === 'low' ? '<span class="badge low">LOW STOCK</span>'
+        : info.status === 'unlimited' ? '<span class="badge off">NOT TRACKED</span>'
+        : '<span class="badge on">IN STOCK</span>';
+
+      const variantRows = info.hasVariants ? `
+        <div class="inv-variant-list">
+          ${p.variants.map((v,i) => `
+            <div class="inv-variant-row">
+              <span class="vname">${v.name}</span>
+              <div class="inv-stepper">
+                <button type="button" onclick="adjustVariantStock(${p.id}, ${i}, -1)">−</button>
+                <input type="number" min="0" value="${v.stock != null ? v.stock : ''}" placeholder="∞" onchange="setVariantStock(${p.id}, ${i}, this.value)">
+                <button type="button" onclick="adjustVariantStock(${p.id}, ${i}, 1)">+</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '';
+
+      return `
+        <div class="inv-row">
+          <div class="inv-row-top">
+            <div class="inv-row-media">${thumb ? `<img src="${thumb}">` : 'IMG'}</div>
+            <div class="inv-row-info">
+              <div class="title">${p.name}</div>
+              <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ₹${p.price.toLocaleString('en-IN')}</div>
+            </div>
+            ${statusBadge}
+          </div>
+          <div class="inv-row-controls">
+            ${info.hasVariants
+              ? `<span style="font-size:11px;color:var(--muted);">Total stock: ${info.totalStock != null ? info.totalStock : '—'} (set per option below)</span>`
+              : `<div class="inv-stepper">
+                  <button type="button" onclick="adjustProductStock(${p.id}, -1)">−</button>
+                  <input type="number" min="0" value="${p.stock != null ? p.stock : ''}" placeholder="∞" onchange="setProductStock(${p.id}, this.value)">
+                  <button type="button" onclick="adjustProductStock(${p.id}, 1)">+</button>
+                </div>`
+            }
+            <div class="inv-oos-toggle">
+              <label class="switch"><input type="checkbox" ${p.in_stock === false ? 'checked' : ''} onchange="toggleProductOutOfStock(${p.id}, this.checked)"><span class="switch-track"></span></label>
+              <span>Force Out of Stock</span>
+            </div>
+          </div>
+          ${variantRows}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function setProductStock(id, val){
+    const p = site.products.find(x => x.id === id);
+    if(!p) return;
+    const n = val === '' ? null : Math.max(0, Math.round(Number(val)) || 0);
+    p.stock = n;
+    const { error } = await sb.from('products').update({ stock: n }).eq('id', id);
+    if(error) showToast(error.message);
+    renderInventory();
+  }
+  async function adjustProductStock(id, delta){
+    const p = site.products.find(x => x.id === id);
+    if(!p) return;
+    const current = p.stock != null ? p.stock : 0;
+    await setProductStock(id, String(Math.max(0, current + delta)));
+  }
+  async function toggleProductOutOfStock(id, checked){
+    const p = site.products.find(x => x.id === id);
+    if(!p) return;
+    p.in_stock = !checked;
+    const { error } = await sb.from('products').update({ in_stock: !checked }).eq('id', id);
+    if(error) showToast(error.message);
+    renderInventory();
+    renderProductList();
+  }
+  async function setVariantStock(id, idx, val){
+    const p = site.products.find(x => x.id === id);
+    if(!p || !Array.isArray(p.variants) || !p.variants[idx]) return;
+    const n = val === '' ? null : Math.max(0, Math.round(Number(val)) || 0);
+    p.variants[idx].stock = n;
+    const { error } = await sb.from('products').update({ variants: p.variants }).eq('id', id);
+    if(error) showToast(error.message);
+    renderInventory();
+  }
+  async function adjustVariantStock(id, idx, delta){
+    const p = site.products.find(x => x.id === id);
+    if(!p || !Array.isArray(p.variants) || !p.variants[idx]) return;
+    const current = p.variants[idx].stock != null ? p.variants[idx].stock : 0;
+    await setVariantStock(id, idx, String(Math.max(0, current + delta)));
   }
 
   // ---- Product sheet ----
@@ -1360,7 +1580,9 @@
       document.getElementById('p_height').value = p.height_cm != null ? p.height_cm : '';
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
+      document.getElementById('p_stock').value = p.stock != null ? p.stock : '';
       document.getElementById('p_sale').checked = !!p.sale;
+      document.getElementById('p_outOfStock').checked = p.in_stock === false;
       document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
       document.getElementById('p_desc').value = p.desc || '';
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
@@ -1380,7 +1602,9 @@
       document.getElementById('p_height').value = '';
       document.getElementById('p_price').value = '';
       document.getElementById('p_mrp').value = '';
+      document.getElementById('p_stock').value = '';
       document.getElementById('p_sale').checked = false;
+      document.getElementById('p_outOfStock').checked = false;
       document.getElementById('p_heroBanner').checked = false;
       document.getElementById('p_desc').value = '';
       addSpecRow('', '');
@@ -1541,6 +1765,8 @@
       height_cm: Number(document.getElementById('p_height').value) || null,
       price,
       mrp,
+      stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
+      in_stock: !document.getElementById('p_outOfStock').checked,
       sale: document.getElementById('p_sale').checked,
       description: document.getElementById('p_desc').value.trim(),
       specs,
@@ -1582,6 +1808,7 @@
     renderProductList();
     renderDashboard();
     renderBannerForm();
+    renderInventory();
     closeProductSheet();
     showToast('Product saved');
   }
