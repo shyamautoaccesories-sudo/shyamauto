@@ -1074,7 +1074,7 @@
         </div>
       </div>
       <div class="testi-stars">★★★★☆</div>
-      <p class="testi-text">Good LED indicator set, easy install. COD option made it easy to trust first order.</p>
+      <p class="testi-text">Good LED indicator set, easy install. Checkout was quick and secure.</p>
       <div class="testi-google-tag">
         <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.5l-6.5-5.4C29.5 34.9 26.9 36 24 36c-5.3 0-9.7-3.1-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.5 5.4C41.9 35.8 44 30.3 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
         Posted on Google
@@ -1451,20 +1451,8 @@
 
       <label class="auth-label" style="margin-top:18px;">Payment Method</label>
       <div class="pay-options">
-        <!-- TEST MODE — COD temporarily enabled to test Shiprocket without real payments.
-             To go back live: add `disabled` back to the input below, restore the
-             "Currently Unavailable" badge/sub-text, and remove the `checked` on the
-             Online option below isn't needed to change back since it was never touched. -->
-        <label class="pay-option active" id="payCODOption">
-          <input type="radio" name="coPayment" value="Cash on Delivery" checked>
-          <div>
-            <div class="pay-option-label">Cash on Delivery</div>
-            <div class="pay-option-sub">Pay when your order arrives</div>
-          </div>
-        </label>
-        <!-- END TEST MODE -->
-        <label class="pay-option" id="payOnlineOption">
-          <input type="radio" name="coPayment" value="Online (UPI/Card)">
+        <label class="pay-option active" id="payOnlineOption">
+          <input type="radio" name="coPayment" value="Online (UPI/Card)" checked>
           <div>
             <div class="pay-option-label">Online Payment (UPI / Card)</div>
             <div class="pay-option-sub">We'll share a secure payment link on your phone</div>
@@ -1639,13 +1627,6 @@
   const SUPABASE_URL = 'https://imbkegyydoltttfkfndu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_CNo_dLrIRcK5iwrBT_-MUA_vmw3L7v_';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // TEST MODE — when true, "Online Payment" skips Razorpay entirely (no
-  // create-razorpay-order / verify-razorpay-payment calls) and inserts the
-  // order straight into Supabase marked as paid, so the Shiprocket flow can
-  // be tested without real payments or a working Razorpay function.
-  // To go back live: set this to false.
-  const TEST_MODE_SKIP_RAZORPAY = true;
 
   // Fallback/reference data — used only if Supabase has no rows yet (e.g. fresh project)
   const defaultProducts = [
@@ -2608,7 +2589,7 @@
         <h3>Why ride with us</h3>
         <ul>
           <li>100% genuine, brand-sourced products only</li>
-          <li>Cash on Delivery available on all orders</li>
+          <li>Secure online payments (UPI / Card)</li>
           <li>Free delivery on orders above ₹499</li>
           <li>7-day easy returns on eligible items</li>
         </ul>
@@ -2650,7 +2631,7 @@
           <li>Product images are for reference; minor variation in colour/packaging from the brand is possible</li>
         </ul>
         <h3>Payments</h3>
-        <p>We accept Cash on Delivery and standard online payment methods shown at checkout. Orders are confirmed only once payment (or COD order) is successfully placed.</p>
+        <p>We accept online payments (UPI / Card) shown at checkout. Orders are confirmed only once payment is successfully completed.</p>
         <h3>Product availability</h3>
         <p>Stock is updated regularly, but in rare cases an item may go out of stock after ordering — in that case we will inform you and offer a refund or alternative.</p>
         <h3>Limitation of liability</h3>
@@ -2690,7 +2671,7 @@
         <h3>How to request a return</h3>
         <p>Contact us via the Contact/Support page or WhatsApp with your order number and reason for return. Our team will arrange a pickup or share return instructions.</p>
         <h3>Refunds</h3>
-        <p>Once the returned item is received and inspected, refunds are processed to the original payment method (or via bank transfer for COD orders) within 5–7 business days. Exchanges are also available for size/fit issues on eligible items like helmets and jackets.</p>
+        <p>Once the returned item is received and inspected, refunds are processed to the original payment method within 5–7 business days. Exchanges are also available for size/fit issues on eligible items like helmets and jackets.</p>
       `
     },
     contact: {
@@ -3346,8 +3327,6 @@
 
   document.querySelectorAll('input[name="coPayment"]').forEach(radio => {
     radio.addEventListener('change', () => {
-      document.getElementById('payCODOption').classList.toggle('active', radio.value === 'Cash on Delivery' && radio.checked);
-      document.getElementById('payOnlineOption').classList.toggle('active', radio.value !== 'Cash on Delivery' && radio.checked);
       document.querySelectorAll('input[name="coPayment"]').forEach(r => {
         r.closest('.pay-option').classList.toggle('active', r.checked);
       });
@@ -3374,12 +3353,8 @@
     document.getElementById('coState').classList.remove('co-input-auto');
     document.getElementById('coPincode').value = '';
     document.getElementById('coError').classList.remove('show');
-    // TEST MODE — defaults to COD so shipping can be tested without real payments.
-    // To go back live: change the line below to select 'Online (UPI/Card)' again
-    // (see the matching TEST MODE block in the Payment Method HTML above).
-    document.querySelector('input[name="coPayment"][value="Cash on Delivery"]').checked = true;
-    document.getElementById('payCODOption').classList.add('active');
-    document.getElementById('payOnlineOption').classList.remove('active');
+    document.querySelector('input[name="coPayment"][value="Online (UPI/Card)"]').checked = true;
+    document.getElementById('payOnlineOption').classList.add('active');
     resetCouponUI();
     updateCheckoutTotals();
     closeCartFn();
@@ -3395,7 +3370,6 @@
     const city = document.getElementById('coCity').value.trim();
     const state = document.getElementById('coState').value.trim();
     const pincode = document.getElementById('coPincode').value.trim();
-    const paymentMethod = document.querySelector('input[name="coPayment"]:checked').value;
     if(!name || !/^\d{10}$/.test(phone) || !addressLine || !city || !state || !/^\d{6}$/.test(pincode)){
       document.getElementById('coError').classList.add('show');
       return;
@@ -3422,80 +3396,6 @@
       if(!appliedCoupon) return;
       try{ await sb.rpc('increment_discount_usage', { discount_id: appliedCoupon.id }); }
       catch(e){ /* non-fatal — order already placed */ }
-    }
-
-    if(paymentMethod === 'Cash on Delivery'){
-      btn.textContent = 'Placing order...';
-      const { error } = await sb.from('orders').insert({
-        user_id: user.id,
-        customer_name: name,
-        phone: phoneWithCode,
-        address,
-        city,
-        state,
-        pincode,
-        payment_method: paymentMethod,
-        items,
-        total,
-        coupon_code: couponCode,
-        discount_amount: discountAmount,
-        status: 'Pending',
-        payment_status: 'cod'
-      });
-      btn.disabled = false;
-      btn.textContent = 'Place Order';
-      if(error){
-        closeCheckoutFn();
-        showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
-        return;
-      }
-      await markCouponUsed();
-      cart = {};
-      saveCartToStorage();
-      renderCart();
-      resetCouponUI();
-      closeCheckoutFn();
-      showOrderResult('success', 'Order Placed!', 'Your order has been placed successfully.');
-      return;
-    }
-
-    // ---- Online Payment ----
-    if(TEST_MODE_SKIP_RAZORPAY){
-      // TEST MODE — bypasses Razorpay completely, order seedhe 'paid' maan
-      // ke Supabase mein daal diya jaata hai. Revert karne ke liye upar
-      // TEST_MODE_SKIP_RAZORPAY ko false karein.
-      btn.textContent = 'Placing order...';
-      const { error } = await sb.from('orders').insert({
-        user_id: user.id,
-        customer_name: name,
-        phone: phoneWithCode,
-        address,
-        city,
-        state,
-        pincode,
-        payment_method: paymentMethod,
-        items,
-        total,
-        coupon_code: couponCode,
-        discount_amount: discountAmount,
-        status: 'Pending',
-        payment_status: 'paid'
-      });
-      btn.disabled = false;
-      btn.textContent = 'Place Order';
-      if(error){
-        closeCheckoutFn();
-        showOrderResult('fail', 'Order Failed', error.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
-        return;
-      }
-      await markCouponUsed();
-      cart = {};
-      saveCartToStorage();
-      renderCart();
-      resetCouponUI();
-      closeCheckoutFn();
-      showOrderResult('success', 'Order Placed!', 'Order placed successfully. (test mode — payment bypassed)');
-      return;
     }
 
     // ---- Online Payment (Razorpay) ----
