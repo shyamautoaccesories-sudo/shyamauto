@@ -94,6 +94,21 @@
   .badge.off{background:var(--surface-2);color:var(--muted);}
   .badge.low{background:rgba(178,103,10,0.12);color:var(--amber);}
 
+  /* ---------- New order alert (Dashboard) ---------- */
+  .new-orders-card{background:#fff7ed;border:1px solid #fdba74;border-radius:14px;padding:16px;margin-bottom:20px;}
+  .new-orders-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .new-orders-badge{background:var(--accent);color:#fff;font-family:var(--font-mono);font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px;flex:0 0 auto;min-width:22px;text-align:center;}
+  .new-orders-title{font-size:13.5px;font-weight:700;color:#9a3412;flex:1;}
+  .new-orders-dismiss{font-size:11.5px;font-weight:600;color:#9a3412;text-decoration:underline;flex:0 0 auto;}
+  .new-order-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;}
+  .new-order-row:last-child{margin-bottom:0;}
+  .new-order-row .title{font-size:13px;font-weight:600;}
+  .new-order-row .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .new-order-row .amt{font-family:var(--font-mono);font-weight:700;font-size:13.5px;color:var(--accent);flex:0 0 auto;white-space:nowrap;}
+
+  /* ---------- Staff notification emails (Settings) ---------- */
+  .staff-email-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;align-items:center;}
+
   /* ---------- Inventory ---------- */
   .inv-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
   .inv-search-wrap{position:relative;}
@@ -316,6 +331,7 @@
   .side-item svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex:0 0 auto;}
   .side-item.active,.side-subitem.active{background:var(--side-active);color:#fff;}
   .side-item:hover,.side-subitem:hover{background:rgba(255,255,255,0.05);}
+  .side-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
   .chevron{width:14px!important;height:14px!important;stroke:var(--side-dim);transition:transform 0.2s ease;flex:0 0 auto;}
   .side-group.open > .side-item .chevron{transform:rotate(90deg);}
   .side-children{max-height:0;overflow:hidden;transition:max-height 0.25s ease;display:flex;flex-direction:column;padding-left:27px;}
@@ -386,6 +402,7 @@
     <nav class="side-nav">
       <button class="side-item active" data-view="dashboard" onclick="goView('dashboard')">
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Dashboard</span>
+        <span class="side-dot" id="sideDashboardDot" style="display:none;"></span>
       </button>
 
       <div class="side-group" id="grp-orders">
@@ -473,6 +490,16 @@
     <!-- Dashboard -->
     <div class="view active" id="view-dashboard">
       <p class="view-title">Dashboard</p>
+
+      <div class="new-orders-card" id="newOrdersCard" style="display:none;">
+        <div class="new-orders-head">
+          <span class="new-orders-badge" id="newOrdersCount">0</span>
+          <span class="new-orders-title">New orders — action needed</span>
+          <button class="new-orders-dismiss" onclick="markOrdersSeen()">Mark all seen</button>
+        </div>
+        <div id="newOrdersList"></div>
+      </div>
+
       <div class="stat-grid">
         <div class="stat-card"><div class="num" id="statProducts">0</div><div class="lbl">Total Products</div></div>
         <div class="stat-card"><div class="num" id="statCategories">0</div><div class="lbl">Categories</div></div>
@@ -739,6 +766,18 @@
           <div class="form-group"><label class="form-label">Tax / GST (%)</label><input class="form-input" id="s_taxPercent" type="number" step="0.01" min="0"></div>
         </div>
         <button class="btn-accent btn-block" onclick="saveStoreSettings()">Save Store Details</button>
+      </div>
+
+      <div class="section-block">
+        <h3>Order Notifications</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+          Whenever a new order comes in, an email with the order details is sent automatically to your <strong>Support Email</strong> above, plus every staff email you add here. You'll also get an in-app alert (sound + popup) while this admin panel is open.
+        </p>
+        <label class="form-label">Staff Emails</label>
+        <div id="staffEmailRows"></div>
+        <button class="add-spec-btn" onclick="addStaffEmailRow('')">+ Add Staff Email</button>
+        <button class="btn-accent btn-block" style="margin-top:14px;" onclick="saveNotificationSettings()">Save Notification Emails</button>
+        <button class="btn-outline btn-block" style="margin-top:10px;" onclick="enableDesktopNotifications()">Enable Desktop Notifications</button>
       </div>
 
       <div class="section-block">
@@ -1074,7 +1113,7 @@
   function emptyHeroBanner(){ return { ctaPrimary:'Shop Now', productId:null, imageUrl:null, imageMobileUrl:null }; }
   const defaultHeroAd = { tag:"LIMITED TIME", title:"Flat 20% Off<br>on Riding Gear", code:"RIDE20", btn:"Grab the Deal" };
   const defaultDeal = { tag:"MONSOON READY", title:"Rain Gear — Up to 40% Off", sub:"Waterproof jackets, boot covers & visors, in stock now.", btn:"Shop the Sale", linkType:"none", category:null, productId:null };
-  const defaultStore = { name:"Shyam Auto", supportEmail:"", supportPhone:"", currency:"₹", taxPercent:18 };
+  const defaultStore = { name:"Shyam Auto", supportEmail:"", supportPhone:"", currency:"₹", taxPercent:18, staffEmails:[] };
 
   let orders = []; // loaded from Supabase `orders` table
   let tickets = []; // loaded from Supabase `tickets` table
@@ -1224,6 +1263,7 @@
     .on('postgres_changes', { event: '*', schema: 'public', table: 'product_brands' }, () => renderAll())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'site_content' }, () => renderAll())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => renderAll())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => handleNewOrderInsert(payload.new))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'bike_models' }, () => renderAll())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => renderAll())
     .subscribe();
@@ -1279,6 +1319,7 @@
     if(name === 'delivery'){ renderDelivery(); startDeliveryAutoPoll(); } else { stopDeliveryAutoPoll(); }
     if(name === 'settings') renderSettings();
     if(name === 'inventory') renderInventory();
+    if(name === 'orders') markOrdersSeen();
   }
 
   // ---- Render everything ----
@@ -1313,6 +1354,72 @@
     document.getElementById('badgeCategories').textContent = site.categories.length;
     document.getElementById('badgeBikeModels').textContent = site.bikeModels.length;
     document.getElementById('badgeTickets').textContent = tickets.filter(t => t.status !== 'Closed').length;
+
+    const newOrders = getNewOrders();
+    document.getElementById('sideDashboardDot').style.display = newOrders.length ? 'block' : 'none';
+    document.title = newOrders.length ? `(${newOrders.length}) Shyam Auto — Admin Panel` : 'Shyam Auto — Admin Panel';
+    const card = document.getElementById('newOrdersCard');
+    if(newOrders.length){
+      card.style.display = 'block';
+      document.getElementById('newOrdersCount').textContent = newOrders.length;
+      document.getElementById('newOrdersList').innerHTML = newOrders.map(o => `
+        <div class="new-order-row" onclick="goView('orders')">
+          <div>
+            <div class="title">${o.customer}</div>
+            <div class="sub">${o.phone || ''} · ${o.items} item${o.items === 1 ? '' : 's'} · ${o.paymentMethod}</div>
+          </div>
+          <div class="amt">₹${o.total.toLocaleString('en-IN')}</div>
+        </div>
+      `).join('');
+    } else {
+      card.style.display = 'none';
+    }
+  }
+
+  // ---- New order alerts ----
+  let lastSeenOrderAt = localStorage.getItem('sa_admin_last_seen_order_at');
+  if(!lastSeenOrderAt){
+    lastSeenOrderAt = new Date().toISOString();
+    localStorage.setItem('sa_admin_last_seen_order_at', lastSeenOrderAt);
+  }
+  function getNewOrders(){
+    return orders.filter(o => o.createdAt && new Date(o.createdAt) > new Date(lastSeenOrderAt));
+  }
+  function markOrdersSeen(){
+    lastSeenOrderAt = new Date().toISOString();
+    localStorage.setItem('sa_admin_last_seen_order_at', lastSeenOrderAt);
+    renderDashboard();
+  }
+  function playOrderChime(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o1 = ctx.createOscillator();
+      const g = ctx.createGain();
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(880, ctx.currentTime);
+      o1.frequency.setValueAtTime(1175, ctx.currentTime + 0.12);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+      o1.connect(g); g.connect(ctx.destination);
+      o1.start();
+      o1.stop(ctx.currentTime + 0.4);
+    }catch(e){}
+  }
+  function notifyNewOrderDesktop(o){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    try{
+      new Notification('New order received!', {
+        body: `${o.customer_name || 'Customer'} · ₹${Number(o.total).toLocaleString('en-IN')}`,
+        icon: site.faviconUrl || undefined
+      });
+    }catch(e){}
+  }
+  function handleNewOrderInsert(o){
+    if(!o) return;
+    playOrderChime();
+    showToast(`🔔 New order — ${o.customer_name || 'Customer'} · ₹${Number(o.total).toLocaleString('en-IN')}`);
+    notifyNewOrderDesktop(o);
   }
 
   // ---- Products list ----
@@ -1934,6 +2041,8 @@
     document.getElementById('s_supportPhone').value = site.store.supportPhone || '';
     document.getElementById('s_currency').value = site.store.currency || '₹';
     document.getElementById('s_taxPercent').value = site.store.taxPercent != null ? site.store.taxPercent : 18;
+    document.getElementById('staffEmailRows').innerHTML = '';
+    (site.store.staffEmails || []).forEach(e => addStaffEmailRow(e));
     document.getElementById('s_newPassword').value = '';
     document.getElementById('s_confirmPassword').value = '';
     const { data } = await sb.auth.getUser();
@@ -2056,16 +2165,44 @@
   }
 
   async function saveStoreSettings(){
-    site.store = {
+    site.store = Object.assign({}, site.store, {
       name: document.getElementById('s_storeName').value.trim() || 'Shyam Auto',
       supportEmail: document.getElementById('s_supportEmail').value.trim(),
       supportPhone: document.getElementById('s_supportPhone').value.trim(),
       currency: document.getElementById('s_currency').value.trim() || '₹',
       taxPercent: Number(document.getElementById('s_taxPercent').value) || 0
-    };
+    });
     const { error } = await sb.from('site_content').update({ store: site.store }).eq('id', 1);
     if(error){ showToast(error.message); return; }
     showToast('Store details saved');
+  }
+
+  function addStaffEmailRow(email){
+    const wrap = document.getElementById('staffEmailRows');
+    const row = document.createElement('div');
+    row.className = 'staff-email-row';
+    row.innerHTML = `
+      <input class="form-input staff-email-input" type="email" placeholder="staff@example.com" value="${email || ''}">
+      <button class="spec-remove" onclick="this.closest('.staff-email-row').remove()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+    wrap.appendChild(row);
+  }
+
+  async function saveNotificationSettings(){
+    const emails = Array.from(document.querySelectorAll('#staffEmailRows .staff-email-input'))
+      .map(inp => inp.value.trim()).filter(Boolean);
+    site.store = Object.assign({}, site.store, { staffEmails: emails });
+    const { error } = await sb.from('site_content').update({ store: site.store }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    showToast('Notification emails saved');
+  }
+
+  function enableDesktopNotifications(){
+    if(!('Notification' in window)){ showToast('Your browser does not support desktop notifications'); return; }
+    Notification.requestPermission().then(p => {
+      showToast(p === 'granted' ? 'Desktop notifications enabled' : 'Permission not granted');
+    });
   }
 
   async function changeAdminPassword(){
