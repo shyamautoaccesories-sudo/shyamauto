@@ -1628,6 +1628,57 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_CNo_dLrIRcK5iwrBT_-MUA_vmw3L7v_';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // ---- Segment-based back navigation ----
+  // The site is a single-page app: product page, cart, menu, checkout,
+  // login, my orders, chat, wishlist etc. are all just overlays toggled by
+  // JS, not real page navigations. Without this, pressing the browser /
+  // hardware back button while any of them is open exits the whole
+  // site/app instead of just closing that overlay.
+  //
+  // How it works: every open*() call registers one history entry via
+  // pushOverlayHistory(). Every close*() call (whether from an X button,
+  // tapping the backdrop, or code) calls consumeOverlayHistory(), which
+  // removes that entry via history.back(). Pressing the actual back button
+  // fires the same history.back() from the browser itself, which our
+  // popstate listener catches and uses to close the topmost open overlay —
+  // so both paths always stay in sync.
+  let openOverlayCount = 0;
+  let closingFromPopstate = false;
+
+  function pushOverlayHistory(){
+    openOverlayCount++;
+    history.pushState({ ov: openOverlayCount }, '');
+  }
+  function consumeOverlayHistory(){
+    if(openOverlayCount > 0 && !closingFromPopstate){
+      openOverlayCount--;
+      history.back();
+    }
+  }
+  window.addEventListener('popstate', () => {
+    if(openOverlayCount <= 0) return; // nothing of ours was open — let the browser navigate normally
+    openOverlayCount--;
+    closingFromPopstate = true;
+    closeTopmostOverlaySegment();
+    closingFromPopstate = false;
+  });
+  function closeTopmostOverlaySegment(){
+    // Checked in rough "most likely to be on top" order. Whichever is
+    // actually open gets closed; the rest are no-ops.
+    if(document.getElementById('checkoutOverlay')?.classList.contains('open')){ closeCheckoutFn(); return; }
+    if(document.getElementById('authOverlay')?.classList.contains('open')){ closeAuth(); return; }
+    if(document.getElementById('chatThreadView')?.style.display === 'block'){ closeTicketThread(); return; }
+    if(document.getElementById('chatOverlay')?.classList.contains('open')){ closeChat(); return; }
+    if(document.getElementById('orderDetailView')?.style.display === 'block'){ closeOrderDetail(); return; }
+    if(document.getElementById('ordersOverlay')?.classList.contains('open')){ document.getElementById('ordersOverlay').classList.remove('open'); unsubscribeOrdersRealtime(); return; }
+    if(document.getElementById('wishlistOverlay')?.classList.contains('open')){ document.getElementById('wishlistOverlay').classList.remove('open'); return; }
+    if(document.getElementById('infoOverlay')?.classList.contains('open')){ closeInfo(); return; }
+    if(document.getElementById('cartDrawer')?.classList.contains('open')){ closeCartFn(); return; }
+    if(document.getElementById('menuDrawer')?.classList.contains('open')){ closeMenu(); return; }
+    if(document.getElementById('pdpOverlay')?.classList.contains('open')){ closeProduct(); return; }
+  }
+
+
   // Fallback/reference data — used only if Supabase has no rows yet (e.g. fresh project)
   const defaultProducts = [
     {id:1,name:"Steelbird SBA-1 Full Face Helmet",cat:"Helmets",brand:"Steelbird",price:1899,mrp:2499,rating:"4.5",sale:true,
@@ -2043,9 +2094,15 @@
     closeAuth();
     renderWishlistGrid();
     wishlistOverlay.classList.add('open');
+    pushOverlayHistory();
   }
-  document.getElementById('wishlistClose').addEventListener('click', () => wishlistOverlay.classList.remove('open'));
-  wishlistOverlay.addEventListener('click', () => wishlistOverlay.classList.remove('open'));
+  function closeWishlistFn(){
+    const wasOpen = wishlistOverlay.classList.contains('open');
+    wishlistOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
+  document.getElementById('wishlistClose').addEventListener('click', closeWishlistFn);
+  wishlistOverlay.addEventListener('click', closeWishlistFn);
 
   function renderWishlistGrid(){
     const list = products.filter(p => isWished(p.id));
@@ -2468,6 +2525,7 @@
     ).join('');
     renderPdpVariants(p);
     pdpOverlay.classList.add('open');
+    pushOverlayHistory();
   }
 
   function renderPdpVariants(p){
@@ -2533,7 +2591,9 @@
     renderPdpThumbs();
   }
   function closeProduct(){
+    const wasOpen = pdpOverlay.classList.contains('open');
     pdpOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
   }
   function pdpChangeQty(delta){
     pdpQty = Math.max(1, pdpQty + delta);
@@ -2574,8 +2634,13 @@
   function openAuth(){
     if(currentUser) showAccountPanel(); else showLoginPanel();
     authOverlay.classList.add('open');
+    pushOverlayHistory();
   }
-  function closeAuth(){ authOverlay.classList.remove('open'); }
+  function closeAuth(){
+    const wasOpen = authOverlay.classList.contains('open');
+    authOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('authClose').addEventListener('click', closeAuth);
   authOverlay.addEventListener('click', closeAuth);
 
@@ -2696,8 +2761,13 @@
     document.getElementById('infoTitle').innerHTML = c.title;
     document.getElementById('infoBody').innerHTML = c.body;
     infoOverlay.classList.add('open');
+    pushOverlayHistory();
   }
-  function closeInfo(){ infoOverlay.classList.remove('open'); }
+  function closeInfo(){
+    const wasOpen = infoOverlay.classList.contains('open');
+    infoOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('infoClose').addEventListener('click', closeInfo);
   infoOverlay.addEventListener('click', closeInfo);
 
@@ -2719,9 +2789,14 @@
     document.getElementById('chatLoginGate').style.display = 'none';
     document.getElementById('chatLoggedInContent').style.display = 'block';
     chatOverlay.classList.add('open');
+    pushOverlayHistory();
     switchChatTab('new');
   }
-  function closeChat(){ chatOverlay.classList.remove('open'); }
+  function closeChat(){
+    const wasOpen = chatOverlay.classList.contains('open');
+    chatOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('chatFabBtn').addEventListener('click', openChat);
   document.getElementById('chatClose').addEventListener('click', closeChat);
   chatOverlay.addEventListener('click', closeChat);
@@ -2849,6 +2924,7 @@
     if(!activeTicket) return;
     document.getElementById('chatMineList').style.display = 'none';
     document.getElementById('chatThreadView').style.display = 'block';
+    pushOverlayHistory();
     document.getElementById('chatThreadHead').innerHTML = `
       <div class="chat-ticket-row-top" style="margin-bottom:10px;">
         <span class="chat-ticket-id">#${activeTicket.id} · ${activeTicket.issue_type}${activeTicket.order_ref ? ' · Order #' + activeTicket.order_ref : ''}</span>
@@ -2872,9 +2948,11 @@
   }
 
   function closeTicketThread(){
+    const wasOpen = document.getElementById('chatThreadView').style.display === 'block';
     document.getElementById('chatThreadView').style.display = 'none';
     document.getElementById('chatMineList').style.display = 'block';
     activeTicket = null;
+    if(wasOpen) consumeOverlayHistory();
   }
 
   async function sendTicketReply(){
@@ -3010,12 +3088,19 @@
     document.getElementById('orderDetailView').style.display = 'none';
     document.getElementById('ordersList').innerHTML = '<p class="empty-hint">Loading...</p>';
     ordersOverlay.classList.add('open');
+    pushOverlayHistory();
     myOrders = await loadMyOrders();
     renderMyOrdersList();
     subscribeOrdersRealtime();
   }
-  document.getElementById('ordersClose').addEventListener('click', () => { ordersOverlay.classList.remove('open'); unsubscribeOrdersRealtime(); });
-  ordersOverlay.addEventListener('click', () => { ordersOverlay.classList.remove('open'); unsubscribeOrdersRealtime(); });
+  function closeMyOrdersFn(){
+    const wasOpen = ordersOverlay.classList.contains('open');
+    ordersOverlay.classList.remove('open');
+    unsubscribeOrdersRealtime();
+    if(wasOpen) consumeOverlayHistory();
+  }
+  document.getElementById('ordersClose').addEventListener('click', closeMyOrdersFn);
+  ordersOverlay.addEventListener('click', closeMyOrdersFn);
 
   function renderMyOrdersList(){
     const wrap = document.getElementById('ordersList');
@@ -3044,6 +3129,7 @@
     if(!activeOrder) return;
     document.getElementById('ordersListView').style.display = 'none';
     document.getElementById('orderDetailView').style.display = 'block';
+    pushOverlayHistory();
     const date = new Date(activeOrder.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     const isDelivered = activeOrder.status === 'Delivered';
 
@@ -3131,9 +3217,11 @@
     openOrderDetail(id);
   }
   function closeOrderDetail(){
+    const wasOpen = document.getElementById('orderDetailView').style.display === 'block';
     document.getElementById('orderDetailView').style.display = 'none';
     document.getElementById('ordersListView').style.display = 'block';
     activeOrder = null;
+    if(wasOpen) consumeOverlayHistory();
   }
 
   function helpWithOrder(orderId){
@@ -3147,10 +3235,11 @@
     document.getElementById('chatConfirm').style.display = 'none';
     document.getElementById('chatStepChip').style.display = 'block';
     chatOrderContext = { id: o.id, itemsSummary: names };
-    ordersOverlay.classList.remove('open');
+    closeMyOrdersFn();
     document.getElementById('chatLoginGate').style.display = 'none';
     document.getElementById('chatLoggedInContent').style.display = 'block';
     chatOverlay.classList.add('open');
+    pushOverlayHistory();
     switchChatTab('new');
   }
 
@@ -3225,8 +3314,8 @@
     showToast('Logged out');
     closeAuth();
     closeChat();
-    ordersOverlay.classList.remove('open');
-    wishlistOverlay.classList.remove('open');
+    closeMyOrdersFn();
+    closeWishlistFn();
   });
 
   // Keep currentUser in sync with the real Supabase session at all times
@@ -3254,8 +3343,12 @@
   // ---- Drawer open/close ----
   const overlay = document.getElementById('cartOverlay');
   const drawer = document.getElementById('cartDrawer');
-  function openCart(){ overlay.classList.add('open'); drawer.classList.add('open'); }
-  function closeCartFn(){ overlay.classList.remove('open'); drawer.classList.remove('open'); }
+  function openCart(){ overlay.classList.add('open'); drawer.classList.add('open'); pushOverlayHistory(); }
+  function closeCartFn(){
+    const wasOpen = drawer.classList.contains('open');
+    overlay.classList.remove('open'); drawer.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('cartBtnTop').addEventListener('click', openCart);
   document.getElementById('cartBtnNav').addEventListener('click', (e)=>{ e.preventDefault(); openCart(); });
   document.getElementById('closeCart').addEventListener('click', closeCartFn);
@@ -3264,8 +3357,12 @@
   // ---- Side menu open/close ----
   const menuOverlay = document.getElementById('menuOverlay');
   const menuDrawer = document.getElementById('menuDrawer');
-  function openMenu(){ menuOverlay.classList.add('open'); menuDrawer.classList.add('open'); }
-  function closeMenu(){ menuOverlay.classList.remove('open'); menuDrawer.classList.remove('open'); }
+  function openMenu(){ menuOverlay.classList.add('open'); menuDrawer.classList.add('open'); pushOverlayHistory(); }
+  function closeMenu(){
+    const wasOpen = menuDrawer.classList.contains('open');
+    menuOverlay.classList.remove('open'); menuDrawer.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('menuBtn').addEventListener('click', openMenu);
   document.getElementById('closeMenuBtn').addEventListener('click', closeMenu);
   menuOverlay.addEventListener('click', closeMenu);
@@ -3291,7 +3388,11 @@
 
   // ---- Checkout — step 1: open delivery-details sheet instead of placing order instantly ----
   const checkoutOverlay = document.getElementById('checkoutOverlay');
-  function closeCheckoutFn(){ checkoutOverlay.classList.remove('open'); }
+  function closeCheckoutFn(){
+    const wasOpen = checkoutOverlay.classList.contains('open');
+    checkoutOverlay.classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
   document.getElementById('checkoutClose').addEventListener('click', closeCheckoutFn);
   checkoutOverlay.addEventListener('click', closeCheckoutFn);
 
@@ -3359,6 +3460,7 @@
     updateCheckoutTotals();
     closeCartFn();
     checkoutOverlay.classList.add('open');
+    pushOverlayHistory();
   });
 
   // ---- Checkout — step 2: place order in Supabase with the confirmed details ----
