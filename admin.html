@@ -132,6 +132,31 @@
   .inv-variant-list{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px;}
   .inv-variant-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;}
   .inv-variant-row .vname{flex:1;min-width:0;color:var(--text);font-weight:500;}
+
+  /* ---------- Analytics (unified) ---------- */
+  .an-range-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .an-range-tab{flex:1;padding:9px 0;border-radius:9px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--muted);text-align:center;}
+  .an-range-tab.active{background:var(--accent);color:#fff;}
+  .an-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px;}
+  .an-chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .an-chart-bar{width:100%;max-width:22px;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height .2s ease;}
+  .an-chart-label{font-size:8.5px;color:var(--muted);margin-top:4px;white-space:nowrap;}
+  .an-bar-row{margin-bottom:10px;}
+  .an-bar-row:last-child{margin-bottom:0;}
+  .an-bar-row .an-bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;gap:8px;}
+  .an-bar-row .an-bar-top .lbl{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .an-bar-row .an-bar-top .val{font-family:var(--font-mono);color:var(--muted);flex:0 0 auto;}
+  .an-bar-track{height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
+  .an-bar-fill{height:100%;border-radius:5px;background:var(--accent);}
+  .an-product-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .an-product-row:last-child{border-bottom:none;}
+  .an-product-rank{width:22px;height:22px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex:0 0 auto;}
+  .an-product-media{width:36px;height:36px;border-radius:8px;background:var(--surface-2);overflow:hidden;flex:0 0 auto;}
+  .an-product-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .an-product-info{flex:1;min-width:0;}
+  .an-product-info .name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .an-product-info .sub{font-size:11px;color:var(--muted);}
+  .an-product-revenue{font-family:var(--font-mono);font-weight:700;font-size:12.5px;color:var(--accent);flex:0 0 auto;white-space:nowrap;}
   .badge.warn{background:rgba(184,41,26,0.12);color:var(--accent,#B8291A);}
 
   /* ---- Orders (redesigned) ---- */
@@ -438,17 +463,9 @@
         </div>
       </div>
 
-      <div class="side-group" id="grp-analytics">
-        <button class="side-item" onclick="toggleSideGroup('grp-analytics')">
-          <span class="side-item-inner"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>Analytics</span>
-          <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
-        </button>
-        <div class="side-children">
-          <button class="side-subitem" data-view="analytics-sales" onclick="goView('analytics-sales')">Sales</button>
-          <button class="side-subitem" data-view="analytics-traffic" onclick="goView('analytics-traffic')">Traffic</button>
-          <button class="side-subitem" data-view="analytics-products" onclick="goView('analytics-products')">Products</button>
-        </div>
-      </div>
+      <button class="side-item" data-view="analytics" onclick="goView('analytics')">
+        <span class="side-item-inner"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>Analytics</span>
+      </button>
 
       <button class="side-item" data-view="payouts" onclick="goView('payouts')">
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/></svg>Payouts</span>
@@ -684,24 +701,6 @@
       <div id="inventoryList"></div>
     </div>
 
-    <!-- Analytics: Traffic (placeholder) -->
-    <div class="view" id="view-analytics-traffic">
-      <p class="view-title">Traffic</p>
-      <div class="coming-soon-card">
-        <p>Visitor analytics coming soon</p>
-        <p>Site visits, top pages aur traffic sources yahan dikhenge jab Google Analytics ya koi tracking tool connect hoga.</p>
-      </div>
-    </div>
-
-    <!-- Analytics: Products (placeholder) -->
-    <div class="view" id="view-analytics-products">
-      <p class="view-title">Product Performance</p>
-      <div class="coming-soon-card">
-        <p>Product-wise sales data coming soon</p>
-        <p>Kaunsa product sabse zyada bik raha hai, views vs purchases — ye real order data se aayega jab backend connect hoga.</p>
-      </div>
-    </div>
-
     <!-- Payouts (placeholder) -->
     <div class="view" id="view-payouts">
       <p class="view-title">Payouts</p>
@@ -794,20 +793,59 @@
       </div>
     </div>
 
-    <!-- Analytics: Sales (formerly Reports) -->
-    <div class="view" id="view-analytics-sales">
-      <p class="view-title">Sales Analytics</p>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Demo summary based on current catalogue — real sales data will come from Supabase once orders are live.</p>
-      <div class="section-block">
-        <h3>Products by category</h3>
-        <div id="reportBars"></div>
+    <!-- Analytics (unified: Sales + Products + Traffic) -->
+    <div class="view" id="view-analytics">
+      <p class="view-title">Analytics</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Real numbers from your actual orders and catalogue — updates automatically as new orders come in.</p>
+
+      <div class="an-range-tabs">
+        <button class="an-range-tab active" data-range="7" onclick="setAnalyticsRange(7)">7 Days</button>
+        <button class="an-range-tab" data-range="30" onclick="setAnalyticsRange(30)">30 Days</button>
+        <button class="an-range-tab" data-range="all" onclick="setAnalyticsRange('all')">All Time</button>
       </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="anRevenue">₹0</div><div class="lbl">Revenue</div></div>
+        <div class="stat-card"><div class="num" id="anOrders">0</div><div class="lbl">Orders</div></div>
+        <div class="stat-card"><div class="num" id="anAOV">₹0</div><div class="lbl">Avg. Order Value</div></div>
+        <div class="stat-card"><div class="num" id="anUnits">0</div><div class="lbl">Units Sold</div></div>
+      </div>
+
       <div class="section-block">
-        <h3>Products on sale</h3>
+        <h3>Revenue Trend</h3>
+        <div id="anRevenueChart" class="an-chart"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Order Status</h3>
+        <div id="anStatusBars"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Payment Methods</h3>
+        <div id="anPaymentBars"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Top Selling Products</h3>
+        <div id="anTopProducts"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Sales by Category</h3>
+        <div id="anCategoryBars"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Store Traffic</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Visits tracked directly on your storefront — no third-party tool needed.</p>
         <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
-          <div class="stat-card"><div class="num" id="statOnSale">0</div><div class="lbl">On Sale</div></div>
-          <div class="stat-card"><div class="num" id="statAvgPrice">₹0</div><div class="lbl">Avg. Price</div></div>
+          <div class="stat-card"><div class="num" id="anVisits">0</div><div class="lbl">Visits</div></div>
+          <div class="stat-card"><div class="num" id="anConvRate">0%</div><div class="lbl">Visit → Order Rate</div></div>
         </div>
+        <div id="anTrafficChart" class="an-chart" style="margin-top:16px;"></div>
+        <h4 style="font-size:12.5px;margin:16px 0 8px;color:var(--muted);font-weight:700;">Top Sources</h4>
+        <div id="anReferrerBars"></div>
       </div>
     </div>
   </main>
@@ -1117,6 +1155,9 @@
 
   let orders = []; // loaded from Supabase `orders` table
   let tickets = []; // loaded from Supabase `tickets` table
+  let pageViews = []; // loaded from Supabase `page_views` table (storefront visit tracking)
+  let pageViewsAvailable = true; // false if the page_views table hasn't been created yet
+  let analyticsRange = 7; // 7 | 30 | 'all' — active Analytics date filter
   let ticketFilter = 'all';
   let activeTicketId = null;
 
@@ -1210,6 +1251,16 @@
     return data || [];
   }
 
+  async function loadPageViews(){
+    // This table is optional — if it hasn't been created yet (see the
+    // Analytics setup note), we just show the storefront traffic section
+    // as unavailable instead of throwing an error.
+    const { data, error } = await sb.from('page_views').select('created_at, session_id, referrer').order('created_at', { ascending: false }).limit(5000);
+    if(error){ pageViewsAvailable = false; return []; }
+    pageViewsAvailable = true;
+    return data || [];
+  }
+
   function showToast(msg){
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1297,8 +1348,7 @@
   // Maps a view name to the sidebar group (if any) that contains it
   const viewGroupMap = {
     'orders':'grp-orders', 'orders-abandoned':'grp-orders',
-    'products':'grp-products', 'bikemodels':'grp-products', 'catbrand':'grp-products',
-    'analytics-sales':'grp-analytics', 'analytics-traffic':'grp-analytics', 'analytics-products':'grp-analytics'
+    'products':'grp-products', 'bikemodels':'grp-products', 'catbrand':'grp-products'
   };
 
   // ---- Nav ----
@@ -1315,7 +1365,7 @@
 
     closeSidebar();
     window.scrollTo(0,0);
-    if(name === 'analytics-sales') renderReports();
+    if(name === 'analytics') renderAnalytics();
     if(name === 'delivery'){ renderDelivery(); startDeliveryAutoPoll(); } else { stopDeliveryAutoPoll(); }
     if(name === 'settings') renderSettings();
     if(name === 'inventory') renderInventory();
@@ -1328,6 +1378,7 @@
     orders = await loadOrders();
     tickets = await loadTickets();
     discounts = await loadDiscounts();
+    pageViews = await loadPageViews();
     renderDashboard();
     renderProductList();
     renderBannerForm();
@@ -1339,7 +1390,7 @@
     renderInventory();
     renderOrders();
     renderTickets();
-    renderReports();
+    renderAnalytics();
     renderDiscountList();
   }
 
@@ -3197,24 +3248,181 @@
   }
 
   // ---- Reports ----
-  function renderReports(){
-    const counts = {};
-    site.products.forEach(p => { counts[p.cat] = (counts[p.cat]||0) + 1; });
-    const max = Math.max(...Object.values(counts), 1);
-    document.getElementById('reportBars').innerHTML = Object.entries(counts).map(([cat,n]) => `
-      <div style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-          <span>${cat}</span><span style="font-family:var(--font-mono);color:var(--muted);">${n}</span>
-        </div>
-        <div style="height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;">
-          <div style="height:100%;width:${(n/max*100)}%;background:var(--accent);border-radius:5px;"></div>
-        </div>
+  // ---- Analytics (unified: real order + catalogue + traffic data) ----
+  function setAnalyticsRange(r){
+    analyticsRange = r;
+    document.querySelectorAll('.an-range-tab').forEach(b => b.classList.toggle('active', String(b.dataset.range) === String(r)));
+    renderAnalytics();
+  }
+
+  function filterOrdersByRange(){
+    if(analyticsRange === 'all') return orders.slice();
+    const days = Number(analyticsRange);
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    return orders.filter(o => o.createdAt && new Date(o.createdAt).getTime() >= cutoff);
+  }
+
+  function renderAnalytics(){
+    const el = document.getElementById('anRevenue');
+    if(!el) return;
+
+    const filtered = filterOrdersByRange();
+    const revenue = filtered.reduce((s,o) => s + o.total, 0);
+    const totalOrders = filtered.length;
+    const aov = totalOrders ? Math.round(revenue / totalOrders) : 0;
+    const units = filtered.reduce((s,o) => s + o.items, 0);
+
+    document.getElementById('anRevenue').textContent = '₹' + revenue.toLocaleString('en-IN');
+    document.getElementById('anOrders').textContent = totalOrders;
+    document.getElementById('anAOV').textContent = '₹' + aov.toLocaleString('en-IN');
+    document.getElementById('anUnits').textContent = units;
+
+    // ---- Revenue trend (daily buckets) ----
+    const days = analyticsRange === 'all' ? 30 : Number(analyticsRange);
+    const dayBuckets = [];
+    for(let i = days - 1; i >= 0; i--){
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() - i);
+      dayBuckets.push({ date: d, revenue: 0 });
+    }
+    orders.forEach(o => {
+      if(!o.createdAt) return;
+      const od = new Date(o.createdAt);
+      od.setHours(0,0,0,0);
+      const bucket = dayBuckets.find(b => b.date.getTime() === od.getTime());
+      if(bucket) bucket.revenue += o.total;
+    });
+    const maxRev = Math.max(...dayBuckets.map(b => b.revenue), 1);
+    document.getElementById('anRevenueChart').innerHTML = dayBuckets.map(b => `
+      <div class="an-chart-bar-wrap" title="₹${b.revenue.toLocaleString('en-IN')} on ${b.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}">
+        <div class="an-chart-bar" style="height:${Math.max(2, b.revenue / maxRev * 100)}%;"></div>
+        <div class="an-chart-label">${b.date.getDate()}/${b.date.getMonth()+1}</div>
       </div>
     `).join('');
-    const onSale = site.products.filter(p => p.sale).length;
-    const avg = site.products.length ? Math.round(site.products.reduce((s,p)=>s+p.price,0) / site.products.length) : 0;
-    document.getElementById('statOnSale').textContent = onSale;
-    document.getElementById('statAvgPrice').textContent = '₹' + avg.toLocaleString('en-IN');
+
+    // ---- Order status breakdown ----
+    const statusCounts = {};
+    filtered.forEach(o => { statusCounts[o.status] = (statusCounts[o.status]||0) + 1; });
+    const maxStatus = Math.max(...Object.values(statusCounts), 1);
+    document.getElementById('anStatusBars').innerHTML = Object.keys(statusCounts).length ? Object.entries(statusCounts).sort((a,b) => b[1]-a[1]).map(([st,n]) => `
+      <div class="an-bar-row">
+        <div class="an-bar-top"><span class="lbl">${st}</span><span class="val">${n} (${Math.round(n/totalOrders*100)}%)</span></div>
+        <div class="an-bar-track"><div class="an-bar-fill" style="width:${n/maxStatus*100}%;"></div></div>
+      </div>
+    `).join('') : '<p class="empty-hint">No orders in this period.</p>';
+
+    // ---- Payment methods ----
+    const pmCounts = {};
+    filtered.forEach(o => { pmCounts[o.paymentMethod] = (pmCounts[o.paymentMethod]||0) + 1; });
+    const maxPm = Math.max(...Object.values(pmCounts), 1);
+    document.getElementById('anPaymentBars').innerHTML = Object.keys(pmCounts).length ? Object.entries(pmCounts).sort((a,b) => b[1]-a[1]).map(([pm,n]) => `
+      <div class="an-bar-row">
+        <div class="an-bar-top"><span class="lbl">${pm}</span><span class="val">${n} (${Math.round(n/totalOrders*100)}%)</span></div>
+        <div class="an-bar-track"><div class="an-bar-fill" style="width:${n/maxPm*100}%;"></div></div>
+      </div>
+    `).join('') : '<p class="empty-hint">No orders in this period.</p>';
+
+    // ---- Top selling products (from real order line items) ----
+    const productStats = {};
+    filtered.forEach(o => {
+      (o.itemList || []).forEach(it => {
+        const key = it.product_id != null ? it.product_id : it.name;
+        if(!productStats[key]) productStats[key] = { name: it.name, qty: 0, revenue: 0, productId: it.product_id };
+        productStats[key].qty += (it.qty || 1);
+        productStats[key].revenue += (it.price || 0) * (it.qty || 1);
+      });
+    });
+    const topProducts = Object.values(productStats).sort((a,b) => b.qty - a.qty).slice(0, 8);
+    document.getElementById('anTopProducts').innerHTML = topProducts.length ? topProducts.map((p,i) => {
+      const catalogProduct = site.products.find(x => x.id === p.productId);
+      const thumb = catalogProduct && catalogProduct.images && catalogProduct.images[0];
+      return `
+      <div class="an-product-row">
+        <div class="an-product-rank">${i+1}</div>
+        <div class="an-product-media">${thumb ? `<img src="${thumb}">` : ''}</div>
+        <div class="an-product-info">
+          <div class="name">${p.name}</div>
+          <div class="sub">${p.qty} sold</div>
+        </div>
+        <div class="an-product-revenue">₹${p.revenue.toLocaleString('en-IN')}</div>
+      </div>`;
+    }).join('') : '<p class="empty-hint">No sales in this period.</p>';
+
+    // ---- Sales by category (real revenue, mapped via current catalogue) ----
+    const catStats = {};
+    filtered.forEach(o => {
+      (o.itemList || []).forEach(it => {
+        const catalogProduct = site.products.find(x => x.id === it.product_id);
+        const cat = catalogProduct ? catalogProduct.cat : 'Other';
+        catStats[cat] = (catStats[cat]||0) + (it.price||0) * (it.qty||1);
+      });
+    });
+    const maxCat = Math.max(...Object.values(catStats), 1);
+    document.getElementById('anCategoryBars').innerHTML = Object.keys(catStats).length ? Object.entries(catStats).sort((a,b) => b[1]-a[1]).map(([cat,rev]) => `
+      <div class="an-bar-row">
+        <div class="an-bar-top"><span class="lbl">${cat}</span><span class="val">₹${rev.toLocaleString('en-IN')}</span></div>
+        <div class="an-bar-track"><div class="an-bar-fill" style="width:${rev/maxCat*100}%;"></div></div>
+      </div>
+    `).join('') : '<p class="empty-hint">No sales in this period.</p>';
+
+    renderTrafficAnalytics(totalOrders, days);
+  }
+
+  function renderTrafficAnalytics(totalOrdersInRange, days){
+    if(!pageViewsAvailable){
+      document.getElementById('anVisits').textContent = '—';
+      document.getElementById('anConvRate').textContent = '—';
+      document.getElementById('anTrafficChart').innerHTML = '';
+      document.getElementById('anReferrerBars').innerHTML = '<p class="empty-hint">Traffic tracking table not set up yet — see the setup note for a one-time, one-file addition that enables real visit tracking (no third-party tool needed).</p>';
+      return;
+    }
+
+    const cutoff = analyticsRange === 'all' ? 0 : Date.now() - Number(analyticsRange) * 24 * 60 * 60 * 1000;
+    const filteredViews = pageViews.filter(v => v.created_at && new Date(v.created_at).getTime() >= cutoff);
+    const uniqueSessions = new Set(filteredViews.map(v => v.session_id)).size;
+
+    document.getElementById('anVisits').textContent = uniqueSessions;
+    document.getElementById('anConvRate').textContent = (uniqueSessions ? (totalOrdersInRange / uniqueSessions * 100).toFixed(1) : '0') + '%';
+
+    const dayBuckets = [];
+    for(let i = days - 1; i >= 0; i--){
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() - i);
+      dayBuckets.push({ date: d, sessions: new Set() });
+    }
+    pageViews.forEach(v => {
+      if(!v.created_at) return;
+      const vd = new Date(v.created_at);
+      vd.setHours(0,0,0,0);
+      const bucket = dayBuckets.find(b => b.date.getTime() === vd.getTime());
+      if(bucket) bucket.sessions.add(v.session_id);
+    });
+    const maxV = Math.max(...dayBuckets.map(b => b.sessions.size), 1);
+    document.getElementById('anTrafficChart').innerHTML = dayBuckets.map(b => `
+      <div class="an-chart-bar-wrap" title="${b.sessions.size} visit${b.sessions.size===1?'':'s'} on ${b.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}">
+        <div class="an-chart-bar" style="height:${Math.max(2, b.sessions.size / maxV * 100)}%;background:var(--blue);"></div>
+        <div class="an-chart-label">${b.date.getDate()}/${b.date.getMonth()+1}</div>
+      </div>
+    `).join('');
+
+    const refCounts = {};
+    filteredViews.forEach(v => {
+      let ref = 'Direct';
+      if(v.referrer){
+        try{ ref = new URL(v.referrer).hostname.replace('www.',''); }
+        catch(e){ ref = v.referrer; }
+      }
+      refCounts[ref] = (refCounts[ref]||0) + 1;
+    });
+    const maxRef = Math.max(...Object.values(refCounts), 1);
+    document.getElementById('anReferrerBars').innerHTML = Object.keys(refCounts).length ? Object.entries(refCounts).sort((a,b) => b[1]-a[1]).slice(0,6).map(([ref,n]) => `
+      <div class="an-bar-row">
+        <div class="an-bar-top"><span class="lbl">${ref}</span><span class="val">${n}</span></div>
+        <div class="an-bar-track"><div class="an-bar-fill" style="width:${n/maxRef*100}%;background:var(--blue);"></div></div>
+      </div>
+    `).join('') : '<p class="empty-hint">No visit data yet.</p>';
   }
 
 </script>
