@@ -437,6 +437,7 @@
         </button>
         <div class="side-children">
           <button class="side-subitem" data-view="orders" onclick="goView('orders')">All orders<span class="side-badge" id="badgeOrders">0</span></button>
+          <button class="side-subitem" data-view="orders-history" onclick="goView('orders-history')">History<span class="side-badge" id="badgeOrdersHistory">0</span></button>
           <button class="side-subitem" data-view="orders-abandoned" onclick="goView('orders-abandoned')">Abandoned</button>
         </div>
       </div>
@@ -616,7 +617,7 @@
     <!-- Orders -->
     <div class="view" id="view-orders">
       <p class="view-title">Orders</p>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Live orders placed from the storefront, newest first.</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Current orders — last 3 days. Older orders have moved to <a href="#" onclick="goView('orders-history');return false;" style="color:var(--accent);font-weight:600;">History</a>.</p>
 
       <div class="order-stat-strip">
         <div class="stat-card"><div class="num" id="ordStatTotal">0</div><div class="lbl">Total Orders</div></div>
@@ -638,10 +639,42 @@
           <button class="order-filter-chip" data-status="Delivered" onclick="filterOrdersByStatus('Delivered')">Delivered <span class="count" id="fcDelivered">0</span></button>
           <button class="order-filter-chip" data-status="Cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled <span class="count" id="fcCancelled">0</span></button>
         </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-outline" onclick="exportOrdersJSON(getFilteredOrders(), 'current-orders')" style="font-size:12px;padding:8px 14px;">⬇ Export JSON</button>
+          <button class="btn-outline" onclick="exportOrdersExcel(getFilteredOrders(), 'current-orders')" style="font-size:12px;padding:8px 14px;">⬇ Export Excel</button>
+        </div>
       </div>
 
       <div id="orderList"></div>
     </div>
+
+    <!-- Orders: History (older than 3 days) -->
+    <div class="view" id="view-orders-history">
+      <p class="view-title">Order History</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Orders older than 3 days. Delete karne se pehle backup zaroor le lein — delete permanent hai.</p>
+
+      <div class="order-toolbar">
+        <div class="order-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="orderHistorySearchInput" placeholder="Search by customer, phone, email or order #" oninput="filterHistorySearch(this.value)">
+        </div>
+        <div class="order-filter-row" id="orderHistoryFilterRow">
+          <button class="order-filter-chip active" data-status="all" onclick="filterHistoryByStatus('all')">All</button>
+          <button class="order-filter-chip" data-status="Pending" onclick="filterHistoryByStatus('Pending')">Pending</button>
+          <button class="order-filter-chip" data-status="Shipped" onclick="filterHistoryByStatus('Shipped')">Shipped</button>
+          <button class="order-filter-chip" data-status="Out for Delivery" onclick="filterHistoryByStatus('Out for Delivery')">Out for Delivery</button>
+          <button class="order-filter-chip" data-status="Delivered" onclick="filterHistoryByStatus('Delivered')">Delivered</button>
+          <button class="order-filter-chip" data-status="Cancelled" onclick="filterHistoryByStatus('Cancelled')">Cancelled</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-outline" onclick="exportOrdersJSON(getFilteredHistoryOrders(), 'order-history')" style="font-size:12px;padding:8px 14px;">⬇ Export JSON</button>
+          <button class="btn-outline" onclick="exportOrdersExcel(getFilteredHistoryOrders(), 'order-history')" style="font-size:12px;padding:8px 14px;">⬇ Export Excel</button>
+        </div>
+      </div>
+
+      <div id="orderHistoryList"></div>
+    </div>
+
 
     <!-- Support Tickets -->
     <div class="view" id="view-tickets">
@@ -1093,6 +1126,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   // ---- Supabase setup ----
   const SUPABASE_URL = 'https://imbkegyydoltttfkfndu.supabase.co';
@@ -1353,7 +1387,7 @@
 
   // Maps a view name to the sidebar group (if any) that contains it
   const viewGroupMap = {
-    'orders':'grp-orders', 'orders-abandoned':'grp-orders',
+    'orders':'grp-orders', 'orders-abandoned':'grp-orders', 'orders-history':'grp-orders',
     'products':'grp-products', 'bikemodels':'grp-products', 'catbrand':'grp-products'
   };
 
@@ -1376,6 +1410,7 @@
     if(name === 'settings') renderSettings();
     if(name === 'inventory') renderInventory();
     if(name === 'orders') markOrdersSeen();
+    if(name === 'orders-history') renderOrdersHistory();
     if(name === 'payouts') renderPayouts();
   }
 
@@ -1396,6 +1431,7 @@
     renderBikeModelList();
     renderInventory();
     renderOrders();
+    renderOrdersHistory();
     renderTickets();
     renderAnalytics();
     renderDiscountList();
@@ -2893,8 +2929,19 @@
   }
 
   // ---- Orders ----
+  const RECENT_ORDER_DAYS = 3;
   let orderStatusFilter = 'all';
   let orderSearchTerm = '';
+  let orderHistoryStatusFilter = 'all';
+  let orderHistorySearchTerm = '';
+
+  function isRecentOrder(o){
+    if(!o.createdAt) return true; // no date on file — keep visible in Current rather than hide it
+    const cutoff = Date.now() - RECENT_ORDER_DAYS * 24 * 60 * 60 * 1000;
+    return new Date(o.createdAt).getTime() >= cutoff;
+  }
+  function getCurrentOrders(){ return orders.filter(isRecentOrder); }
+  function getHistoryOrders(){ return orders.filter(o => !isRecentOrder(o)); }
 
   function filterOrdersByStatus(status){
     orderStatusFilter = status;
@@ -2906,7 +2953,7 @@
     renderOrders();
   }
   function getFilteredOrders(){
-    return orders.filter(o => {
+    return getCurrentOrders().filter(o => {
       if(orderStatusFilter !== 'all' && o.status !== orderStatusFilter) return false;
       if(orderSearchTerm){
         const hay = [o.customer, o.phone, String(o.id)].join(' ').toLowerCase();
@@ -2915,6 +2962,27 @@
       return true;
     });
   }
+
+  function filterHistoryByStatus(status){
+    orderHistoryStatusFilter = status;
+    document.querySelectorAll('#orderHistoryFilterRow .order-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.status === status));
+    renderOrdersHistory();
+  }
+  function filterHistorySearch(val){
+    orderHistorySearchTerm = val.trim().toLowerCase();
+    renderOrdersHistory();
+  }
+  function getFilteredHistoryOrders(){
+    return getHistoryOrders().filter(o => {
+      if(orderHistoryStatusFilter !== 'all' && o.status !== orderHistoryStatusFilter) return false;
+      if(orderHistorySearchTerm){
+        const hay = [o.customer, o.phone, String(o.id)].join(' ').toLowerCase();
+        if(!hay.includes(orderHistorySearchTerm)) return false;
+      }
+      return true;
+    });
+  }
+
   function formatOrderDate(iso){
     if(!iso) return '';
     return new Date(iso).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -2924,31 +2992,23 @@
   }
 
   function renderOrderStats(){
-    document.getElementById('ordStatTotal').textContent = orders.length;
-    document.getElementById('ordStatPending').textContent = orders.filter(o => o.status === 'Pending').length;
-    document.getElementById('ordStatShipped').textContent = orders.filter(o => o.status === 'Shipped').length;
-    document.getElementById('ordStatRevenue').textContent = '₹' + orders.reduce((s,o) => s + (o.total || 0), 0).toLocaleString('en-IN');
-    document.getElementById('fcAll').textContent = orders.length;
-    document.getElementById('fcPending').textContent = orders.filter(o => o.status === 'Pending').length;
-    document.getElementById('fcShipped').textContent = orders.filter(o => o.status === 'Shipped').length;
-    document.getElementById('fcOutForDelivery').textContent = orders.filter(o => o.status === 'Out for Delivery').length;
-    document.getElementById('fcDelivered').textContent = orders.filter(o => o.status === 'Delivered').length;
-    document.getElementById('fcCancelled').textContent = orders.filter(o => o.status === 'Cancelled').length;
+    const cur = getCurrentOrders();
+    document.getElementById('ordStatTotal').textContent = cur.length;
+    document.getElementById('ordStatPending').textContent = cur.filter(o => o.status === 'Pending').length;
+    document.getElementById('ordStatShipped').textContent = cur.filter(o => o.status === 'Shipped').length;
+    document.getElementById('ordStatRevenue').textContent = '₹' + cur.reduce((s,o) => s + (o.total || 0), 0).toLocaleString('en-IN');
+    document.getElementById('fcAll').textContent = cur.length;
+    document.getElementById('fcPending').textContent = cur.filter(o => o.status === 'Pending').length;
+    document.getElementById('fcShipped').textContent = cur.filter(o => o.status === 'Shipped').length;
+    document.getElementById('fcOutForDelivery').textContent = cur.filter(o => o.status === 'Out for Delivery').length;
+    document.getElementById('fcDelivered').textContent = cur.filter(o => o.status === 'Delivered').length;
+    document.getElementById('fcCancelled').textContent = cur.filter(o => o.status === 'Cancelled').length;
+    const badge = document.getElementById('badgeOrders');
+    if(badge) badge.textContent = cur.length;
   }
 
-  function renderOrders(){
-    renderOrderStats();
-    const wrap = document.getElementById('orderList');
-    const list = getFilteredOrders();
-    if(orders.length === 0){
-      wrap.innerHTML = '<p class="empty-hint">No orders yet.</p>';
-      return;
-    }
-    if(list.length === 0){
-      wrap.innerHTML = '<p class="empty-hint">No orders match this filter.</p>';
-      return;
-    }
-    wrap.innerHTML = list.map(o => `
+  function orderCardHtml(o){
+    return `
       <div class="order-card">
         <div class="order-card-head">
           <div>
@@ -2998,16 +3058,131 @@
               ${['Pending','Shipped','Out for Delivery','Delivered','Cancelled'].map(s => `<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
             </select>
           </div>
+
+          <div style="text-align:right;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+            <button onclick="deleteOrder('${o.id}')" style="background:none;border:none;color:#dc2626;font-size:11.5px;font-weight:700;cursor:pointer;letter-spacing:0.2px;">🗑 Delete Order</button>
+          </div>
         </div>
       </div>
-    `).join('');
+    `;
   }
+
+  function renderOrders(){
+    renderOrderStats();
+    const wrap = document.getElementById('orderList');
+    const list = getFilteredOrders();
+    if(getCurrentOrders().length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No current orders. Orders from the last 3 days show up here.</p>';
+      return;
+    }
+    if(list.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No orders match this filter.</p>';
+      return;
+    }
+    wrap.innerHTML = list.map(orderCardHtml).join('');
+  }
+
+  function renderOrdersHistory(){
+    const badge = document.getElementById('badgeOrdersHistory');
+    const histAll = getHistoryOrders();
+    if(badge) badge.textContent = histAll.length;
+
+    const wrap = document.getElementById('orderHistoryList');
+    if(!wrap) return; // view not yet in DOM on first load — badge above is still updated
+    const list = getFilteredHistoryOrders();
+    if(histAll.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">Abhi koi purana order nahi hai. 3 din se purane orders yahan aayenge.</p>';
+      return;
+    }
+    if(list.length === 0){
+      wrap.innerHTML = '<p class="empty-hint">No orders match this filter.</p>';
+      return;
+    }
+    wrap.innerHTML = list.map(orderCardHtml).join('');
+  }
+
+  // ---- Delete order (with mandatory warning + optional backup) ----
+  async function deleteOrder(id){
+    const o = orders.find(x => x.id == id);
+    if(!o) return;
+
+    const wantsBackup = confirm(
+      `Delete karne se pehle is order ka backup download kar lein?\n\n` +
+      `OK dabayein → Order #${id} ka JSON backup download hoga, uske baad delete confirm karna hoga.\n` +
+      `Cancel dabayein → Bina backup ke seedha delete confirmation par jaayein.`
+    );
+    if(wantsBackup){
+      exportOrdersJSON([o], `order-${id}-backup`);
+    }
+
+    const finalConfirm = confirm(
+      `⚠️ PERMANENT DELETE\n\n` +
+      `Order #${id} (${o.customer}, ₹${o.total.toLocaleString('en-IN')}) ko delete karna chahte hain?\n\n` +
+      `Ye action wapas nahi ho sakta — order data hamesha ke liye chala jaayega.`
+    );
+    if(!finalConfirm) return;
+
+    const { error } = await sb.from('orders').delete().eq('id', id);
+    if(error){ showToast(error.message); return; }
+
+    orders = orders.filter(x => x.id != id);
+    renderOrders();
+    renderOrdersHistory();
+    renderDashboard();
+    showToast(`Order #${id} deleted`);
+  }
+
+  // ---- Export orders (JSON / Excel) ----
+  function ordersToExportRows(list){
+    return list.map(o => ({
+      order_id: o.id,
+      date: o.createdAt || '',
+      customer: o.customer,
+      phone: o.phone,
+      address: o.address,
+      status: o.status,
+      payment_method: o.paymentMethod,
+      payment_status: o.paymentStatus,
+      items: o.itemList.map(it => `${it.name} x${it.qty}`).join('; '),
+      coupon_code: o.couponCode || '',
+      discount_amount: o.discountAmount || 0,
+      total: o.total
+    }));
+  }
+  function downloadBlob(content, filename, type){
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function exportOrdersJSON(list, filenamePrefix){
+    if(!list.length){ showToast('Export karne ke liye koi order nahi hai'); return; }
+    const rows = ordersToExportRows(list);
+    const filename = `${filenamePrefix || 'orders-backup'}-${new Date().toISOString().slice(0,10)}.json`;
+    downloadBlob(JSON.stringify(rows, null, 2), filename, 'application/json');
+    showToast('JSON backup downloaded');
+  }
+  function exportOrdersExcel(list, filenamePrefix){
+    if(!list.length){ showToast('Export karne ke liye koi order nahi hai'); return; }
+    if(typeof XLSX === 'undefined'){ showToast('Excel export library load nahi ho payi — page refresh karke try karein.'); return; }
+    const rows = ordersToExportRows(list);
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+    const filename = `${filenamePrefix || 'orders-backup'}-${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showToast('Excel backup downloaded');
+  }
+
   async function updateOrderStatus(id, status){
     const { error } = await sb.from('orders').update({ status }).eq('id', id);
     if(error){ showToast(error.message); return; }
     const o = orders.find(x => x.id == id);
     if(o) o.status = status;
     renderOrders();
+    renderOrdersHistory();
     showToast('Order ' + id + ' marked ' + status);
 
     // Auto-push to Shiprocket the moment an order is marked Shipped.
