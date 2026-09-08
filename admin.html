@@ -701,13 +701,19 @@
       <div id="inventoryList"></div>
     </div>
 
-    <!-- Payouts (placeholder) -->
+    <!-- Payouts -->
     <div class="view" id="view-payouts">
-      <p class="view-title">Payouts</p>
-      <div class="coming-soon-card">
-        <p>Payouts coming soon</p>
-        <p>Payment gateway (Razorpay/Cashfree) connect hone ke baad settlement aur payout history yahan dikhegi.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p class="view-title">Payouts</p>
+        <button class="btn-outline" onclick="renderPayouts(true)" style="font-size:12px;padding:8px 14px;">Refresh</button>
       </div>
+      <div class="stat-strip" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+        <div class="stat-card"><div class="num" id="poTotalSettled">₹0</div><div class="lbl">Total Settled</div></div>
+        <div class="stat-card"><div class="num" id="poLastAmount">₹0</div><div class="lbl">Last Settlement</div></div>
+        <div class="stat-card"><div class="num" id="poCount">0</div><div class="lbl">Settlements</div></div>
+      </div>
+      <div id="payoutsStatus" class="coming-soon-card" style="display:none;"></div>
+      <div id="payoutsList"></div>
     </div>
 
     <!-- Discounts -->
@@ -1370,6 +1376,7 @@
     if(name === 'settings') renderSettings();
     if(name === 'inventory') renderInventory();
     if(name === 'orders') markOrdersSeen();
+    if(name === 'payouts') renderPayouts();
   }
 
   // ---- Render everything ----
@@ -3367,6 +3374,61 @@
     `).join('') : '<p class="empty-hint">No sales in this period.</p>';
 
     renderTrafficAnalytics(totalOrders, days);
+  }
+
+  // ---- Payouts (Razorpay settlements) ----
+  let payoutsLoaded = false;
+  async function renderPayouts(force){
+    const statusEl = document.getElementById('payoutsStatus');
+    const listEl = document.getElementById('payoutsList');
+    if(payoutsLoaded && !force) return;
+
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<p>Loading settlements…</p><p>Fetching payout history from Razorpay.</p>';
+    listEl.innerHTML = '';
+
+    try{
+      const { data, error } = await sb.functions.invoke('razorpay-settlements');
+      if(error || !data || data.error){
+        statusEl.innerHTML = `<p>Could not load payouts</p><p>${(data && data.error) || error?.message || 'Something went wrong. Please try again.'}</p>`;
+        return;
+      }
+      payoutsLoaded = true;
+      statusEl.style.display = 'none';
+
+      const sorted = [...data.settlements].sort((a,b) => b.created_at - a.created_at);
+      document.getElementById('poTotalSettled').textContent = '₹' + Math.round(data.total_settled).toLocaleString('en-IN');
+      document.getElementById('poCount').textContent = data.count;
+      document.getElementById('poLastAmount').textContent = sorted.length ? '₹' + Math.round(sorted[0].amount).toLocaleString('en-IN') : '₹0';
+
+      if(!sorted.length){
+        listEl.innerHTML = '<p class="empty-hint">No settlements yet. Once Razorpay processes a payout to your bank account, it will show up here.</p>';
+        return;
+      }
+
+      listEl.innerHTML = sorted.map(s => `
+        <div class="order-card">
+          <div class="order-card-head">
+            <div>
+              <div class="order-card-id">SETTLEMENT ${s.id}</div>
+              <div class="order-card-date">${new Date(s.created_at * 1000).toLocaleString('en-IN', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}</div>
+            </div>
+            <span class="pay-pill ${s.status === 'processed' ? 'paid' : (s.status === 'failed' ? 'failed' : 'cod')}">${s.status.toUpperCase()}</span>
+          </div>
+          <div class="order-card-body">
+            <div style="display:flex;justify-content:space-between;font-size:13px;">
+              <span>Amount</span><strong>₹${Math.round(s.amount).toLocaleString('en-IN')}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);">
+              <span>Razorpay fees + tax</span><span>₹${Math.round(s.fees + s.tax).toLocaleString('en-IN')}</span>
+            </div>
+            ${s.utr ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);"><span>Bank UTR</span><span>${s.utr}</span></div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }catch(err){
+      statusEl.innerHTML = `<p>Could not load payouts</p><p>${err.message || 'Something went wrong. Please try again.'}</p>`;
+    }
   }
 
   function renderTrafficAnalytics(totalOrdersInRange, days){
