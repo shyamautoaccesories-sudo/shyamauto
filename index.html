@@ -3569,10 +3569,33 @@
     }
   });
 
+  // ---- Store traffic tracking (self-hosted, no third-party tool) ----
+  // Records one row per browser session so Admin → Analytics can show real
+  // visit counts and referrer sources. Fails silently if the `page_views`
+  // table hasn't been created yet — never blocks or slows down the storefront.
+  function trackPageView(){
+    try{
+      let sessionId = localStorage.getItem('sa_session_id');
+      if(!sessionId){
+        sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+        localStorage.setItem('sa_session_id', sessionId);
+      }
+      const seenKey = 'sa_session_view_logged';
+      if(sessionStorage.getItem(seenKey)) return; // only once per browser session
+      sessionStorage.setItem(seenKey, '1');
+      sb.from('page_views').insert({
+        session_id: sessionId,
+        path: window.location.pathname,
+        referrer: document.referrer || null
+      }).then(() => {}, () => {});
+    }catch(e){ /* tracking should never break the storefront */ }
+  }
+
   // ---- Kick everything off ----
   (async () => {
     site = await loadSiteContent();
     renderStorefront();
+    trackPageView();
   })();
 </script>
 </body>
