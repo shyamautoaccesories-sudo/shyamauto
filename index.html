@@ -1477,7 +1477,6 @@
 
       <div class="checkout-summary-row checkout-summary-sub"><span>Subtotal</span><span id="checkoutSubtotal">₹0</span></div>
       <div class="checkout-summary-row checkout-summary-discount" id="checkoutDiscountRow" style="display:none;"><span>Discount</span><span id="checkoutDiscountAmount">−₹0</span></div>
-      <div class="checkout-summary-row checkout-summary-sub" id="checkoutDeliveryRow" style="display:none;"><span>Delivery Charge</span><span id="checkoutDeliveryAmount">₹0</span></div>
       <div class="checkout-summary-row"><span>Order Total</span><span id="checkoutTotal">₹0</span></div>
     </div>
     <div class="pdp-foot">
@@ -2146,16 +2145,11 @@
     const variant = (line.variantIndex != null && Array.isArray(p.variants)) ? p.variants[line.variantIndex] : null;
     const unitPrice = variant ? variant.price : p.price;
     const unitMrp = variant ? variant.mrp : p.mrp;
-    const unitDeliveryCharge = Number(p.delivery_charge || 0);
-    return { product: p, variant, unitPrice, unitMrp, unitDeliveryCharge, qty: line.qty };
+    return { product: p, variant, unitPrice, unitMrp, qty: line.qty };
   }
 
   function keysTotal(){
     return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitPrice * info.qty : sum; }, 0);
-  }
-
-  function keysDeliveryCharge(){
-    return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitDeliveryCharge * info.qty : sum; }, 0);
   }
 
   // ---------------------------------------------------------------------
@@ -2186,19 +2180,8 @@
     }
 
     const total = Math.max(0, subtotal - discount);
-
-    const deliveryCharge = keysDeliveryCharge();
-    const deliveryRow = document.getElementById('checkoutDeliveryRow');
-    if(deliveryCharge > 0){
-      deliveryRow.style.display = 'flex';
-      document.getElementById('checkoutDeliveryAmount').textContent = '₹' + deliveryCharge.toLocaleString('en-IN');
-    } else {
-      deliveryRow.style.display = 'none';
-    }
-
-    const grandTotal = total + deliveryCharge;
-    document.getElementById('checkoutTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
-    return grandTotal;
+    document.getElementById('checkoutTotal').textContent = '₹' + total.toLocaleString('en-IN');
+    return total;
   }
 
   function resetCouponUI(){
@@ -3189,8 +3172,8 @@
       <div>${itemsHtml}</div>
 
       <div class="order-summary-card">
-        <div class="order-summary-row"><span>Item(s) Subtotal</span><span>₹${(Number(activeOrder.total) - Number(activeOrder.delivery_charge || 0)).toLocaleString('en-IN')}</span></div>
-        <div class="order-summary-row"><span>Delivery</span><span>${Number(activeOrder.delivery_charge || 0) > 0 ? '₹' + Number(activeOrder.delivery_charge).toLocaleString('en-IN') : 'FREE'}</span></div>
+        <div class="order-summary-row"><span>Item(s) Subtotal</span><span>₹${Number(activeOrder.total).toLocaleString('en-IN')}</span></div>
+        <div class="order-summary-row"><span>Delivery</span><span>FREE</span></div>
         <div class="order-summary-row total"><span>Order Total</span><span>₹${Number(activeOrder.total).toLocaleString('en-IN')}</span></div>
       </div>
 
@@ -3508,8 +3491,7 @@
     });
     const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-    const deliveryCharge = keysDeliveryCharge();
-    const total = Math.max(0, subtotal - discountAmount) + deliveryCharge;
+    const total = Math.max(0, subtotal - discountAmount);
     const couponCode = appliedCoupon ? appliedCoupon.code : null;
 
     async function markCouponUsed(){
@@ -3520,7 +3502,7 @@
 
     // ---- Online Payment (Razorpay) ----
     btn.textContent = 'Starting payment...';
-    const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total, coupon_code: couponCode, discount_amount: discountAmount, delivery_charge: deliveryCharge };
+    const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total, coupon_code: couponCode, discount_amount: discountAmount };
     try{
       const { data: createData, error: createErr } = await sb.functions.invoke('create-razorpay-order', {
         body: {
