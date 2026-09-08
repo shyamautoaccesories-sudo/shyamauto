@@ -3502,7 +3502,11 @@
     btn.textContent = 'Starting payment...';
     try{
       const { data: createData, error: createErr } = await sb.functions.invoke('create-razorpay-order', {
-        body: { amount: Math.round(total * 100), receipt: `sa_${Date.now()}` }
+        body: {
+          items: items.map(it => ({ product_id: it.product_id, variant: it.variant, qty: it.qty })),
+          coupon_code: couponCode,
+          receipt: `sa_${Date.now()}`
+        }
       });
       if(createErr || !createData || createData.error){
         throw new Error(createData?.error || createErr?.message || 'Could not start payment');
