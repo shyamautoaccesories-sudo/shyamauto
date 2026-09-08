@@ -3400,12 +3400,14 @@
 
     // ---- Online Payment (Razorpay) ----
     btn.textContent = 'Starting payment...';
+    const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total, coupon_code: couponCode, discount_amount: discountAmount };
     try{
       const { data: createData, error: createErr } = await sb.functions.invoke('create-razorpay-order', {
         body: {
           items: items.map(it => ({ product_id: it.product_id, variant: it.variant, qty: it.qty })),
           coupon_code: couponCode,
-          receipt: `sa_${Date.now()}`
+          receipt: `sa_${Date.now()}`,
+          customer: { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode }
         }
       });
       if(createErr || !createData || createData.error){
@@ -3413,7 +3415,6 @@
       }
 
       const rzpOrder = createData.order;
-      const orderPayload = { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode, items, total, coupon_code: couponCode, discount_amount: discountAmount };
 
       const rzp = new Razorpay({
         key: createData.key_id,
@@ -3438,7 +3439,7 @@
           btn.textContent = 'Place Order';
           if(verifyErr || !verifyData || !verifyData.verified || !verifyData.saved){
             closeCheckoutFn();
-            showOrderResult('fail', 'Order Failed', 'Payment done but order save failed. Contact support with Payment ID: ' + response.razorpay_payment_id, { showButton:true, buttonText:'OK' });
+            showOrderResult('fail', 'Confirming your order…', 'Payment received! Your order is being confirmed and will appear shortly. If it doesn\'t show up in a few minutes, contact support with Payment ID: ' + response.razorpay_payment_id, { showButton:true, buttonText:'OK' });
             return;
           }
           await markCouponUsed();
