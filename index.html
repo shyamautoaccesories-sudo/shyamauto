@@ -1759,7 +1759,8 @@
       id: p.id, name: p.name, cat: p.cat, brand: p.brand || null, price: Number(p.price), mrp: p.mrp != null ? Number(p.mrp) : null,
       rating: p.rating, sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
       bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : [],
-      stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true
+      stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true,
+      delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0
     }));
     const siteRow = siteRes.data || {};
 
