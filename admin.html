@@ -860,6 +860,12 @@
           <label class="form-label">Signed in as</label>
           <input class="form-input" id="s_adminEmail" disabled style="color:var(--muted);">
         </div>
+        <div class="form-group">
+          <label class="form-label">New Email</label>
+          <input class="form-input" id="s_newEmail" type="email" placeholder="new-email@example.com">
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">Supabase confirmation link bhejega naye email pe (aur agar "Secure email change" on hai toh purane email pe bhi) — link click karne ke baad hi email change hoga.</p>
+        </div>
+        <button class="btn-outline btn-block" onclick="changeAdminEmail()" style="margin-bottom:14px;">Update Email</button>
         <div class="form-row2">
           <div class="form-group"><label class="form-label">New Password</label><input class="form-input" id="s_newPassword" type="password" placeholder="At least 6 characters"></div>
           <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" id="s_confirmPassword" type="password"></div>
@@ -2257,6 +2263,7 @@
     (site.store.staffEmails || []).forEach(e => addStaffEmailRow(e));
     document.getElementById('s_newPassword').value = '';
     document.getElementById('s_confirmPassword').value = '';
+    document.getElementById('s_newEmail').value = '';
     const { data } = await sb.auth.getUser();
     document.getElementById('s_adminEmail').value = data?.user?.email || '';
 
@@ -2416,6 +2423,17 @@
     Notification.requestPermission().then(p => {
       showToast(p === 'granted' ? 'Desktop notifications enabled' : 'Permission not granted');
     });
+  }
+
+  async function changeAdminEmail(){
+    const newEmail = document.getElementById('s_newEmail').value.trim();
+    if(!newEmail || !newEmail.includes('@')){ showToast('Valid email daalein'); return; }
+    const { data: { user } } = await sb.auth.getUser();
+    if(user && newEmail.toLowerCase() === (user.email || '').toLowerCase()){ showToast('Ye toh already current email hai'); return; }
+    const { error } = await sb.auth.updateUser({ email: newEmail });
+    if(error){ showToast(error.message); return; }
+    document.getElementById('s_newEmail').value = '';
+    showToast('Confirmation link bhej diya — email check karke confirm karein');
   }
 
   async function changeAdminPassword(){
