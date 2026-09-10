@@ -3213,6 +3213,12 @@
       `<tr><td>${it.name}${it.variant ? ' — ' + it.variant : ''}</td><td style="text-align:center;">${it.qty}</td><td style="text-align:right;">₹${(it.price||0).toLocaleString('en-IN')}</td></tr>`
     ).join('');
 
+    // QR points to the store's own homepage (support/contact info lives
+    // there) — swap this for a WhatsApp link or a dedicated support page
+    // URL later if you'd rather the scan go straight there.
+    const qrTarget = location.origin;
+    const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data=${encodeURIComponent(qrTarget)}`;
+
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Label — Order #${o.id}</title>
 <style>
@@ -3242,6 +3248,15 @@
   td{ padding:4px 0; border-bottom:1px dashed #ddd; }
   .total-row td{ border-bottom:none; border-top:1.5px solid #111; font-weight:800; padding-top:6px; }
   .awb-strip{ margin-top:8px; font-size:11px; font-weight:700; text-align:center; letter-spacing:1px; }
+  .notice-box{ margin-top:12px; border:1.5px solid #B2670A; background:#FFFBF0; border-radius:6px; padding:9px 10px; display:flex; gap:10px; align-items:flex-start; }
+  .notice-icon{ flex:0 0 auto; margin-top:1px; }
+  .notice-text{ flex:1; min-width:0; }
+  .notice-text p{ margin:0 0 5px; font-size:9.5px; line-height:1.45; color:#5a3d0a; }
+  .notice-text p:last-child{ margin-bottom:0; }
+  .notice-text b{ color:#B2670A; }
+  .notice-qr{ flex:0 0 auto; text-align:center; }
+  .notice-qr img{ width:52px; height:52px; display:block; }
+  .notice-qr span{ display:block; font-size:7px; color:#888; margin-top:2px; max-width:60px; }
   .print-bar{ text-align:center; margin:16px 0; }
   .print-bar button{ font-family:inherit; font-size:14px; font-weight:700; padding:10px 22px; border-radius:8px; border:none; background:#B8291A; color:#fff; cursor:pointer; margin:0 6px; }
   @media print{ .print-bar{ display:none; } body{ margin:0; } }
@@ -3287,6 +3302,18 @@
         <tr class="total-row"><td colspan="2">Order Total</td><td style="text-align:right;">₹${o.total.toLocaleString('en-IN')}</td></tr>
       </tbody>
     </table>
+
+    <div class="notice-box">
+      <div class="notice-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#B2670A" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="notice-text">
+        <p><b>Please record an unboxing video before opening this package.</b> Any complaint / return / replacement request raised within 24 hours of delivery without a valid unboxing video will not be our responsibility.</p>
+        <p><b>कृपया पैकेज खोलने से पहले वीडियो बनाएं।</b> डिलीवरी के 24 घंटे के अंदर बिना अनबॉक्सिंग वीडियो के कोई भी शिकायत / रिटर्न / रिप्लेसमेंट अनुरोध हमारी जिम्मेदारी नहीं होगी।</p>
+      </div>
+      <div class="notice-qr">
+        <img src="${qrImg}" alt="QR">
+        <span>Scan for support</span>
+      </div>
+    </div>
   </div>
 </body></html>`;
 
