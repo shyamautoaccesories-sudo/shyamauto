@@ -297,6 +297,41 @@
   .variant-fields .form-label{margin-bottom:4px;font-size:10.5px;}
   .add-variant-btn{font-size:12.5px;color:var(--accent);font-weight:600;padding:8px 0;}
 
+  /* ---- Compatible Bike Models — searchable multi-select dropdown ---- */
+  .model-select{position:relative;}
+  .model-select-box{
+    width:100%;min-height:44px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;
+  }
+  .model-select-box.open{border-color:var(--accent);}
+  .model-select-chips{flex:1;display:flex;flex-wrap:wrap;gap:6px;min-width:0;}
+  .model-select-placeholder{font-size:13.5px;color:var(--muted);}
+  .model-select-chip{
+    display:flex;align-items:center;gap:5px;background:var(--surface-2);border-radius:6px;
+    padding:4px 6px 4px 9px;font-size:12.5px;font-weight:600;color:var(--text);
+  }
+  .model-select-chip button{
+    width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,0.08);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;border:none;padding:0;flex:0 0 auto;
+  }
+  .model-select-caret{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;flex:0 0 auto;transition:transform .15s ease;}
+  .model-select-box.open .model-select-caret{transform:rotate(180deg);}
+  .model-select-dropdown{
+    position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;background:var(--surface);
+    border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);
+    max-height:280px;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .model-select-search-wrap{padding:8px;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  .model-select-search{
+    width:100%;background:var(--surface-2);border:1px solid transparent;border-radius:8px;
+    padding:9px 10px;font-size:13.5px;color:var(--text);
+  }
+  .model-select-list{overflow-y:auto;padding:6px 12px 10px;}
+  .model-group-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px;}
+  .model-check-row{display:flex;align-items:center;gap:9px;padding:8px 2px;font-size:13.5px;cursor:pointer;}
+  .model-check-row.hidden{display:none;}
+  .model-select-empty{font-size:12.5px;color:var(--muted);padding:14px 4px;text-align:center;}
+
   .empty-hint{color:var(--muted);font-size:12.5px;text-align:center;padding:30px 0;}
 
   /* Support tickets */
@@ -982,7 +1017,18 @@
 
       <label class="form-label" style="margin-top:16px;display:block;">Compatible Bike Models</label>
       <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Tick the models this product fits. Leave all unticked if it fits every bike.</p>
-      <div id="modelCheckList"></div>
+      <div class="model-select" id="modelSelectWrap">
+        <div class="model-select-box" id="modelSelectBox" onclick="toggleModelDropdown(event)">
+          <div class="model-select-chips" id="modelSelectChips"><span class="model-select-placeholder">All bikes (none selected)</span></div>
+          <svg class="model-select-caret" viewBox="0 0 24 24" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="model-select-dropdown" id="modelSelectDropdown" style="display:none;" onclick="event.stopPropagation()">
+          <div class="model-select-search-wrap">
+            <input type="text" class="model-select-search" id="modelSearchInput" placeholder="Search bike models…" oninput="filterModelDropdown(this.value)">
+          </div>
+          <div class="model-select-list" id="modelCheckList"></div>
+        </div>
+      </div>
     </div>
     <div class="sheet-foot">
       <button class="btn-accent btn-block" onclick="saveProduct()">Save Product</button>
@@ -1750,21 +1796,76 @@
     const wrap = document.getElementById('modelCheckList');
     if(site.bikeModels.length === 0){
       wrap.innerHTML = '<p style="font-size:12px;color:var(--muted);">No bike models added yet — add some under Products → Bike Models.</p>';
+      updateModelSelectChips();
       return;
     }
     const byBrand = {};
     site.bikeModels.forEach(m => { (byBrand[m.brand] = byBrand[m.brand] || []).push(m); });
     wrap.innerHTML = Object.keys(byBrand).map(brand => `
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">${brand}</div>
-        ${byBrand[brand].map(m => `
-          <label style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13.5px;">
-            <input type="checkbox" class="model-check" value="${m.id}" ${selectedIds.includes(m.id) ? 'checked' : ''}>
-            ${m.name}
-          </label>
-        `).join('')}
-      </div>
+      <div class="model-group-label">${brand}</div>
+      ${byBrand[brand].map(m => `
+        <label class="model-check-row" data-name="${m.name.toLowerCase()} ${brand.toLowerCase()}">
+          <input type="checkbox" class="model-check" value="${m.id}" ${selectedIds.includes(m.id) ? 'checked' : ''} onchange="updateModelSelectChips()">
+          ${m.name}
+        </label>
+      `).join('')}
     `).join('');
+    updateModelSelectChips();
+  }
+
+  // ---- Compatible Bike Models — searchable multi-select dropdown ----
+  function toggleModelDropdown(e){
+    if(e) e.stopPropagation();
+    const dd = document.getElementById('modelSelectDropdown');
+    const isOpen = dd.style.display !== 'none';
+    if(isOpen) closeModelDropdown();
+    else{
+      dd.style.display = 'flex';
+      document.getElementById('modelSelectBox').classList.add('open');
+      const search = document.getElementById('modelSearchInput');
+      search.value = '';
+      filterModelDropdown('');
+      setTimeout(() => search.focus(), 0);
+    }
+  }
+  function closeModelDropdown(){
+    document.getElementById('modelSelectDropdown').style.display = 'none';
+    document.getElementById('modelSelectBox').classList.remove('open');
+  }
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('modelSelectWrap');
+    if(wrap && !wrap.contains(e.target)) closeModelDropdown();
+  });
+  function filterModelDropdown(query){
+    const q = query.trim().toLowerCase();
+    const rows = document.querySelectorAll('#modelCheckList .model-check-row');
+    rows.forEach(row => { row.classList.toggle('hidden', q && !row.dataset.name.includes(q)); });
+    document.querySelectorAll('#modelCheckList .model-group-label').forEach(label => {
+      // Hide a brand heading only if every row under it is hidden.
+      let sib = label.nextElementSibling, anyVisible = false;
+      while(sib && sib.classList.contains('model-check-row')){
+        if(!sib.classList.contains('hidden')) anyVisible = true;
+        sib = sib.nextElementSibling;
+      }
+      label.style.display = anyVisible ? '' : 'none';
+    });
+  }
+  function updateModelSelectChips(){
+    const chipsWrap = document.getElementById('modelSelectChips');
+    const checked = Array.from(document.querySelectorAll('#modelCheckList .model-check:checked'));
+    if(checked.length === 0){
+      chipsWrap.innerHTML = '<span class="model-select-placeholder">All bikes (none selected)</span>';
+      return;
+    }
+    chipsWrap.innerHTML = checked.map(cb => {
+      const row = cb.closest('.model-check-row');
+      const name = row ? row.textContent.trim() : cb.value;
+      return `<span class="model-select-chip">${name}<button type="button" onclick="event.stopPropagation();uncheckModel('${cb.value}')">✕</button></span>`;
+    }).join('');
+  }
+  function uncheckModel(id){
+    const cb = document.querySelector(`#modelCheckList .model-check[value="${id}"]`);
+    if(cb){ cb.checked = false; updateModelSelectChips(); }
   }
 
   function openProductSheet(id){
@@ -1827,7 +1928,7 @@
     renderProductImageGrid();
     productSheetOverlay.classList.add('open');
   }
-  function closeProductSheet(){ productSheetOverlay.classList.remove('open'); }
+  function closeProductSheet(){ productSheetOverlay.classList.remove('open'); closeModelDropdown(); }
   productSheetOverlay.addEventListener('click', closeProductSheet);
 
   // ---- Product images (multiple) ----
