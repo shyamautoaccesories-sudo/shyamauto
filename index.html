@@ -1267,7 +1267,7 @@
       <!-- Shown when not logged in -->
       <div class="chat-login-gate" id="chatLoginGate" style="display:none;">
         <p>Login to raise a support request or track your existing tickets.</p>
-        <button class="btn-primary" style="justify-content:center;" onclick="closeChat();openAuth();">Login to continue</button>
+        <button class="btn-primary" style="justify-content:center;" onclick="closeChat();setTimeout(openAuth,0);">Login to continue</button>
       </div>
 
       <div id="chatLoggedInContent" style="display:none;">
@@ -1319,7 +1319,7 @@
       <div id="chatPanelMine" style="display:none;">
         <div id="chatMineLoggedOut" style="display:none;text-align:center;padding:24px 0;">
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Login to view and track your support tickets.</p>
-          <button class="btn-primary" style="justify-content:center;" onclick="closeChat();openAuth();">Login</button>
+          <button class="btn-primary" style="justify-content:center;" onclick="closeChat();setTimeout(openAuth,0);">Login</button>
         </div>
         <div id="chatMineList"></div>
       </div>
@@ -3385,7 +3385,15 @@
   document.getElementById('closeMenuBtn').addEventListener('click', closeMenu);
   menuOverlay.addEventListener('click', closeMenu);
 
-  document.getElementById('menuAccountRow').addEventListener('click', () => { closeMenu(); openAuth(); });
+  document.getElementById('menuAccountRow').addEventListener('click', () => {
+    // closeMenu() consumes a history entry via history.back(), which is
+    // ASYNC. Calling openAuth() (which pushes a new history entry)
+    // immediately after used to race with that pending back() — the auth
+    // panel would open for an instant, then get closed by the delayed
+    // popstate. Deferring to the next tick lets the back() settle first.
+    closeMenu();
+    setTimeout(openAuth, 0);
+  });
   document.getElementById('menuLogoutBtn').addEventListener('click', async () => {
     closeMenu();
     await doLogout();
@@ -3402,7 +3410,7 @@
       if(el) el.scrollIntoView({ behavior: 'smooth' });
     }, 50);
   }
-  function menuOpenCart(){ closeMenu(); openCart(); }
+  function menuOpenCart(){ closeMenu(); setTimeout(openCart, 0); }
 
   // ---- Checkout — step 1: open delivery-details sheet instead of placing order instantly ----
   const checkoutOverlay = document.getElementById('checkoutOverlay');
