@@ -3219,23 +3219,6 @@
     const qrTarget = location.origin;
     const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data=${encodeURIComponent(qrTarget)}`;
 
-    // Second QR (placed opposite the "From" block) encodes the order's own
-    // details as plain text — scanning it with any QR app shows the order
-    // info directly on screen, no website/login needed.
-    const orderDetailsText = [
-      `Order #${o.id} — ${orderDate}`,
-      `Customer: ${o.customer}`,
-      o.phone ? `Phone: ${o.phone}` : '',
-      `Address: ${o.address}`,
-      `Items:`,
-      ...(o.itemList || []).map(it => ` - ${it.name}${it.variant ? ' (' + it.variant + ')' : ''} x${it.qty} — ₹${(it.price||0).toLocaleString('en-IN')}`),
-      o.deliveryCharge > 0 ? `Delivery Charge: ₹${o.deliveryCharge.toLocaleString('en-IN')}` : '',
-      o.discountAmount > 0 ? `Discount${o.couponCode ? ' (' + o.couponCode + ')' : ''}: −₹${o.discountAmount.toLocaleString('en-IN')}` : '',
-      `Total: ₹${o.total.toLocaleString('en-IN')}`,
-      `Payment: ${isCod ? 'COD — Collect ₹' + codAmount.toLocaleString('en-IN') : 'Prepaid (' + (o.paymentMethod || 'Paid Online') + ')'}`
-    ].filter(Boolean).join('\n');
-    const orderQrImg = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data=${encodeURIComponent(orderDetailsText)}`;
-
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Label — Order #${o.id}</title>
 <style>
@@ -3290,16 +3273,10 @@
     </div>
 
     <div class="section-label">From</div>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-      <div class="from-block">
-        <strong>${fromName}</strong><br>
-        ${fromAddress ? fromAddress.replace(/\n/g,'<br>') + '<br>' : ''}
-        ${fromPhone ? 'Ph: ' + fromPhone : ''}
-      </div>
-      <div class="notice-qr" style="flex:0 0 auto;">
-        <img src="${orderQrImg}" alt="Order details QR">
-        <span>Scan for order details</span>
-      </div>
+    <div class="from-block">
+      <strong>${fromName}</strong><br>
+      ${fromAddress ? fromAddress.replace(/\n/g,'<br>') + '<br>' : ''}
+      ${fromPhone ? 'Ph: ' + fromPhone : ''}
     </div>
 
     <div class="section-label">Ship To</div>
