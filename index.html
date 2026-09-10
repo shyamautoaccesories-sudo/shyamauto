@@ -2115,13 +2115,15 @@
     if(!currentUser){
       closeAuth();
       showToast('Login to view your wishlist');
-      openAuth();
+      setTimeout(openAuth, 0);
       return;
     }
     closeAuth();
-    renderWishlistGrid();
-    wishlistOverlay.classList.add('open');
-    pushOverlayHistory();
+    setTimeout(() => {
+      renderWishlistGrid();
+      wishlistOverlay.classList.add('open');
+      pushOverlayHistory();
+    }, 0);
   }
   function closeWishlistFn(){
     const wasOpen = wishlistOverlay.classList.contains('open');
@@ -2826,7 +2828,7 @@
     if(!currentUser){
       closeChat();
       showToast('Login to raise a support request');
-      openAuth();
+      setTimeout(openAuth, 0);
       return;
     }
     document.getElementById('chatLoginGate').style.display = 'none';
@@ -3123,18 +3125,23 @@
     if(!currentUser){
       closeAuth();
       showToast('Login to view your orders');
-      openAuth();
+      setTimeout(openAuth, 0);
       return;
     }
     closeAuth();
-    document.getElementById('ordersListView').style.display = 'block';
-    document.getElementById('orderDetailView').style.display = 'none';
-    document.getElementById('ordersList').innerHTML = '<p class="empty-hint">Loading...</p>';
-    ordersOverlay.classList.add('open');
-    pushOverlayHistory();
-    myOrders = await loadMyOrders();
-    renderMyOrdersList();
-    subscribeOrdersRealtime();
+    // closeAuth() consumes a history entry via an async history.back().
+    // Pushing a new one (for ordersOverlay) in the same tick used to race
+    // with it — deferring to the next tick lets the back() settle first.
+    setTimeout(async () => {
+      document.getElementById('ordersListView').style.display = 'block';
+      document.getElementById('orderDetailView').style.display = 'none';
+      document.getElementById('ordersList').innerHTML = '<p class="empty-hint">Loading...</p>';
+      ordersOverlay.classList.add('open');
+      pushOverlayHistory();
+      myOrders = await loadMyOrders();
+      renderMyOrdersList();
+      subscribeOrdersRealtime();
+    }, 0);
   }
   function closeMyOrdersFn(){
     const wasOpen = ordersOverlay.classList.contains('open');
@@ -3279,11 +3286,16 @@
     document.getElementById('chatStepChip').style.display = 'block';
     chatOrderContext = { id: o.id, itemsSummary: names };
     closeMyOrdersFn();
-    document.getElementById('chatLoginGate').style.display = 'none';
-    document.getElementById('chatLoggedInContent').style.display = 'block';
-    chatOverlay.classList.add('open');
-    pushOverlayHistory();
-    switchChatTab('new');
+    // Same async-history race as the other close-then-open flows above —
+    // defer opening the chat panel until closeMyOrdersFn()'s pending
+    // history.back() has settled.
+    setTimeout(() => {
+      document.getElementById('chatLoginGate').style.display = 'none';
+      document.getElementById('chatLoggedInContent').style.display = 'block';
+      chatOverlay.classList.add('open');
+      pushOverlayHistory();
+      switchChatTab('new');
+    }, 0);
   }
 
   function showLoginPanel(){
@@ -3425,15 +3437,17 @@
     showToast('Logged out');
   });
 
-  function menuGoHome(){ closeMenu(); showHome(); }
-  function menuGoAllProducts(){ closeMenu(); showProducts('all'); }
+  function menuGoHome(){ closeMenu(); setTimeout(showHome, 0); }
+  function menuGoAllProducts(){ closeMenu(); setTimeout(() => showProducts('all'), 0); }
   function menuGoSection(sectionId){
     closeMenu();
-    showHome();
     setTimeout(() => {
-      const el = document.getElementById(sectionId);
-      if(el) el.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+      showHome();
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if(el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }, 0);
   }
   function menuOpenCart(){ closeMenu(); setTimeout(openCart, 0); }
 
