@@ -3466,7 +3466,7 @@
     if(!currentUser){
       showToast('Please login to checkout');
       closeCartFn();
-      openAuth();
+      setTimeout(openAuth, 0);
       return;
     }
     // Prefill from the logged-in account, but let the user edit before placing the order
@@ -3485,8 +3485,15 @@
     resetCouponUI();
     updateCheckoutTotals();
     closeCartFn();
-    checkoutOverlay.classList.add('open');
-    pushOverlayHistory();
+    // See the menuAccountRow fix above: closeCartFn() consumes a history
+    // entry via an async history.back(). Opening checkoutOverlay (which
+    // pushes a new entry) in the same tick used to race with that pending
+    // back(), so the panel would open and then get closed again almost
+    // instantly. Deferring to the next tick lets the back() settle first.
+    setTimeout(() => {
+      checkoutOverlay.classList.add('open');
+      pushOverlayHistory();
+    }, 0);
   });
 
   // ---- Checkout — step 2: place order in Supabase with the confirmed details ----
