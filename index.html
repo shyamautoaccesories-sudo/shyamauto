@@ -1179,7 +1179,7 @@
 <div id="bikeModelsView" style="display:none;">
   <div class="filter-bar">
     <div class="filter-bar-top">
-      <button class="icon-btn" onclick="showHome()" aria-label="Back">
+      <button class="icon-btn" onclick="history.back()" aria-label="Back">
         <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       </button>
       <span class="page-title" id="modelPageTitle">Select Your Bike</span>
@@ -1645,6 +1645,12 @@
   // so both paths always stay in sync.
   let openOverlayCount = 0;
   let closingFromPopstate = false;
+  // Separate from the overlay stack above: tracks page-level view changes
+  // (home / category listing / bike-model picker) so the hardware/browser
+  // Back button steps through in-app pages instead of leaving the site.
+  // Suppressed while we're restoring a view FROM a popstate event, so that
+  // restoration doesn't itself push a new (duplicate) history entry.
+  let suppressViewHistory = false;
 
   function pushOverlayHistory(){
     openOverlayCount++;
@@ -1656,13 +1662,26 @@
       history.back();
     }
   }
-  window.addEventListener('popstate', () => {
-    if(openOverlayCount <= 0) return; // nothing of ours was open — let the browser navigate normally
-    openOverlayCount--;
-    closingFromPopstate = true;
-    closeTopmostOverlaySegment();
-    closingFromPopstate = false;
+  window.addEventListener('popstate', (e) => {
+    if(openOverlayCount > 0){
+      openOverlayCount--;
+      closingFromPopstate = true;
+      closeTopmostOverlaySegment();
+      closingFromPopstate = false;
+      return;
+    }
+    // No overlay was open, so this Back press is for a page-level view
+    // (home / products / bike-models) — restore whichever one the popped
+    // history entry represents instead of letting the browser leave the site.
+    restoreViewFromHistoryState(e.state);
   });
+  function restoreViewFromHistoryState(state){
+    suppressViewHistory = true;
+    if(state && state.view === 'products'){ showProducts(state.mode, state.value); }
+    else if(state && state.view === 'bikeModels'){ showBikeModels(state.brand); }
+    else { showHome(); }
+    suppressViewHistory = false;
+  }
   function closeTopmostOverlaySegment(){
     // Checked in rough "most likely to be on top" order. Whichever is
     // actually open gets closed; the rest are no-ops.
@@ -1869,7 +1888,11 @@
       renderProductGrid();
     }
     if(bikeModelsView && bikeModelsView.style.display !== 'none' && activeBrandForModels){
+      // Re-render only — this is a data refresh, not a navigation, so don't
+      // push another history entry for the view that's already active.
+      suppressViewHistory = true;
       showBikeModels(activeBrandForModels);
+      suppressViewHistory = false;
     }
     renderCart();
   }
@@ -1955,6 +1978,7 @@
       activeCat !== 'All' ? activeCat : 'All Products';
     renderChips();
     renderProductGrid();
+    if(!suppressViewHistory) history.pushState({ view: 'products', mode, value }, '');
   }
   function scrollCarousel(id, dir){
     const el = document.getElementById(id);
@@ -1968,10 +1992,10 @@
     bikeModelsView.style.display = 'none';
     homeView.style.display = 'block';
     window.scrollTo(0,0);
+    if(!suppressViewHistory) history.pushState({ view: 'home' }, '');
   }
   function backFromProducts(){
-    if(activeModel && activeBrandForModels){ showBikeModels(activeBrandForModels); }
-    else { showHome(); }
+    history.back();
   }
 
   // ---- Shop by Brand → bike model selection ----
@@ -1993,6 +2017,7 @@
           </button>
         `).join('')
       : '<p class="empty-state">No models added yet for ' + brandLabel + '.</p>';
+    if(!suppressViewHistory) history.pushState({ view: 'bikeModels', brand: brandLabel }, '');
   }
 
   const allCategoriesIcon = `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
