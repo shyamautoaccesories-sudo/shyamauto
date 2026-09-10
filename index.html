@@ -2462,6 +2462,16 @@
   }
 
   function renderCart(){
+    // Drop any cart entries whose product (or variant) no longer exists —
+    // e.g. the product was deleted from the admin panel. Without this,
+    // such an entry silently skips rendering below (its row comes back as
+    // '') but its qty still counts toward the cart badge, so the badge
+    // shows a count with an empty panel behind it.
+    Object.keys(cart).forEach(key => {
+      if(!cartLineInfo(key)) delete cart[key];
+    });
+    saveCartToStorage();
+
     const keys = Object.keys(cart);
     const totalCount = keys.reduce((sum,key) => sum + cart[key].qty, 0);
     document.getElementById('cartCountTop').textContent = totalCount;
