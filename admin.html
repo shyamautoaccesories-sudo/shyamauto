@@ -1600,8 +1600,12 @@
 
   async function deleteProduct(id){
     if(!confirm('Delete this product?')) return;
-    const { error } = await sb.from('products').delete().eq('id', id);
+    const { data: deletedRows, error } = await sb.from('products').delete().eq('id', id).select();
     if(error){ showToast(error.message); return; }
+    if(!deletedRows || deletedRows.length === 0){
+      showToast('Delete fail ho gaya — permission issue (Supabase RLS DELETE policy check karein).');
+      return;
+    }
     site.products = site.products.filter(p => p.id !== id);
     renderProductList();
     renderDashboard();
@@ -2879,8 +2883,12 @@
 
   async function deleteBikeModel(id){
     if(!confirm('Delete this bike model? Products tagged to it will keep their other tags.')) return;
-    const { error } = await sb.from('bike_models').delete().eq('id', id);
+    const { data: deletedRows, error } = await sb.from('bike_models').delete().eq('id', id).select();
     if(error){ showToast(error.message); return; }
+    if(!deletedRows || deletedRows.length === 0){
+      showToast('Delete fail ho gaya — permission issue (Supabase RLS DELETE policy check karein).');
+      return;
+    }
     site.bikeModels = site.bikeModels.filter(m => m.id !== id);
     renderBikeModelList();
     renderDashboard();
@@ -3033,8 +3041,12 @@
 
   async function deleteDiscount(id){
     if(!confirm('Delete this discount code? It will stop working at checkout immediately.')) return;
-    const { error } = await sb.from('discounts').delete().eq('id', id);
+    const { data: deletedRows, error } = await sb.from('discounts').delete().eq('id', id).select();
     if(error){ showToast(error.message); return; }
+    if(!deletedRows || deletedRows.length === 0){
+      showToast('Delete fail ho gaya — permission issue (Supabase RLS DELETE policy check karein).');
+      return;
+    }
     discounts = discounts.filter(d => d.id !== id);
     renderDiscountList();
     showToast('Discount code deleted');
@@ -3235,8 +3247,17 @@
     );
     if(!finalConfirm) return;
 
-    const { error } = await sb.from('orders').delete().eq('id', id);
+    const { data: deletedRows, error } = await sb.from('orders').delete().eq('id', id).select();
     if(error){ showToast(error.message); return; }
+    if(!deletedRows || deletedRows.length === 0){
+      // Delete request succeeded with no error but removed 0 rows — this
+      // means Supabase's Row Level Security silently blocked it (no DELETE
+      // policy matching this role on the `orders` table). Don't touch the
+      // local list in this case, or the order will "vanish" here and
+      // reappear on the next refresh even though it was never deleted.
+      showToast('Delete fail ho gaya — permission issue (Supabase RLS DELETE policy check karein).');
+      return;
+    }
 
     orders = orders.filter(x => x.id != id);
     renderOrders();
