@@ -2460,7 +2460,7 @@
     const maxQty = p.stock != null ? p.stock : Infinity;
     const existingQty = cart[key] ? cart[key].qty : 0;
     if(existingQty >= maxQty){
-      showToast(`Sirf ${maxQty} stock available hai is product ka — pura already cart mein hai`);
+      showToast(`Only ${maxQty} in stock for this product — you already have all of it in your cart`);
       return;
     }
     cart[key] = { id: Number(id), variantIndex: null, qty: existingQty + 1 };
@@ -2479,7 +2479,7 @@
       if(info){
         const maxQty = info.variant ? (info.variant.stock != null ? info.variant.stock : Infinity) : (info.product.stock != null ? info.product.stock : Infinity);
         if(cart[key].qty + delta > maxQty){
-          showToast(`Sirf ${maxQty} stock available hai is product ka`);
+          showToast(`Only ${maxQty} in stock for this product`);
           return;
         }
       }
@@ -2879,7 +2879,7 @@
     const maxQty = v ? (v.stock != null ? v.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
     const newQty = pdpQty + delta;
     if(delta > 0 && newQty > maxQty){
-      showToast(`Sirf ${maxQty} stock available hai is product ka`);
+      showToast(`Only ${maxQty} in stock for this product`);
       return;
     }
     pdpQty = Math.max(1, newQty);
@@ -2902,11 +2902,11 @@
     const existingQty = cart[key] ? cart[key].qty : 0;
     if(existingQty + pdpQty > maxQty){
       const canAdd = Math.max(0, maxQty - existingQty);
-      if(canAdd <= 0){ showToast(`Sirf ${maxQty} stock available hai — pura already cart mein hai`); return; }
+      if(canAdd <= 0){ showToast(`Only ${maxQty} in stock — you already have all of it in your cart`); return; }
       cart[key] = { id: Number(pdpCurrentId), variantIndex: pdpSelectedVariantIndex, qty: existingQty + canAdd };
       saveCartToStorage();
       renderCart();
-      showToast(`Sirf ${maxQty} stock available hai — ${canAdd} cart mein add kiya`);
+      showToast(`Only ${maxQty} in stock — added ${canAdd} to your cart`);
       closeProduct();
       return;
     }
