@@ -2491,6 +2491,61 @@
   }
   function findProduct(id){ return products.find(p => p.id === Number(id)); }
 
+  // -----------------------------------------------------------------------
+  // Live inventory guard — the `products` array is only fetched once on
+  // page load, so a customer's browser can hold a stale stock number while
+  // other customers (or the admin) are buying/editing stock in parallel.
+  // Before we let anyone open checkout or actually place an order, we
+  // re-fetch the current stock straight from Supabase for just the items
+  // in their cart and reconcile the cart against it. This is what stops
+  // "5 in stock but 8 got added across different customers" style overselling
+  // on the read side; the actual atomic decrement happens server-side in
+  // decrement_stock() (see the RPC call in the payment handler below).
+  // -----------------------------------------------------------------------
+  async function refreshLiveStock(ids){
+    if(!ids.length) return;
+    const { data, error } = await sb.from('products').select('id,stock,in_stock,variants').in('id', ids);
+    if(error || !data) return; // fail open on read — the RPC decrement is still the real guard
+    data.forEach(row => {
+      const p = findProduct(row.id);
+      if(!p) return;
+      p.stock = row.stock != null ? Number(row.stock) : null;
+      p.in_stock = row.in_stock != null ? !!row.in_stock : true;
+      if(Array.isArray(row.variants)) p.variants = row.variants;
+    });
+  }
+
+  // Reconciles the current cart against live stock. Trims/removes any line
+  // that now exceeds what's actually available and returns a human-readable
+  // list of what changed (empty array = cart was already fine).
+  function reconcileCartWithStock(){
+    const changes = [];
+    Object.keys(cart).forEach(key => {
+      const info = cartLineInfo(key);
+      if(!info){ delete cart[key]; return; }
+      const { product: p, variant: v, qty } = info;
+      const outOfStock = v ? (p.in_stock === false || (v.stock != null && v.stock <= 0)) : isProductOutOfStock(p);
+      const available = v ? (v.stock != null ? v.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
+      const label = v ? `${p.name} — ${v.name}` : p.name;
+      if(outOfStock){
+        changes.push(`${label} is now out of stock and was removed from your cart`);
+        delete cart[key];
+      } else if(qty > available){
+        changes.push(available > 0
+          ? `${label} — only ${available} left, quantity updated`
+          : `${label} is now out of stock and was removed from your cart`);
+        if(available > 0) cart[key].qty = available; else delete cart[key];
+      }
+    });
+    if(changes.length){ saveCartToStorage(); renderCart(); }
+    return changes;
+  }
+
+  // Product ids currently sitting in the cart (for the live-stock fetch).
+  function cartProductIds(){
+    return [...new Set(Object.values(cart).map(line => line.id))];
+  }
+
   // ---------------------------------------------------------------------
   // Hero banner carousel — up to 3 auto-scrolling slides, each with its
   // own desktop/mobile image and its own "shop this product" link.
@@ -3697,7 +3752,7 @@
     });
   });
 
-  document.getElementById('checkoutBtn').addEventListener('click', () => {
+  document.getElementById('checkoutBtn').addEventListener('click', async () => {
     const ids = Object.keys(cart);
     if(ids.length === 0){ showToast('Your cart is empty'); return; }
     if(!currentUser){
@@ -3706,6 +3761,19 @@
       setTimeout(openAuth, 0);
       return;
     }
+    // Re-check real stock right before checkout — other customers may have
+    // bought the same item, or the admin may have edited stock, since this
+    // cart was built from the page-load snapshot.
+    const checkoutBtnEl = document.getElementById('checkoutBtn');
+    checkoutBtnEl.disabled = true;
+    await refreshLiveStock(cartProductIds());
+    const changes = reconcileCartWithStock();
+    checkoutBtnEl.disabled = false;
+    if(changes.length){
+      showToast(changes[0] + (changes.length > 1 ? ` (+${changes.length - 1} more update${changes.length > 2 ? 's' : ''})` : ''));
+      return; // let them review the updated cart before trying checkout again
+    }
+    if(Object.keys(cart).length === 0){ showToast('Your cart is empty'); return; }
     // Prefill from the logged-in account, but let the user edit before placing the order
     document.getElementById('coName').value = currentUser.name || '';
     document.getElementById('coPhone').value = '';
@@ -3748,16 +3816,39 @@
     }
     const phoneWithCode = '+91' + phone;
     const address = `${addressLine}${landmark ? ', Near ' + landmark : ''}, ${city}, ${state} - ${pincode}`;
-    const keys = Object.keys(cart);
+    let keys = Object.keys(cart);
     if(keys.length === 0){ showToast('Your cart is empty'); closeCheckoutFn(); return; }
 
     const btn = document.getElementById('placeOrderBtn');
     btn.disabled = true;
 
+    // Final live-stock guard right before we start payment — closes the gap
+    // between opening checkout and actually paying (someone else may have
+    // just bought the last unit).
+    btn.textContent = 'Checking stock...';
+    await refreshLiveStock(cartProductIds());
+    const stockChanges = reconcileCartWithStock();
+    btn.textContent = 'Place Order';
+    keys = Object.keys(cart);
+    if(stockChanges.length){
+      btn.disabled = false;
+      document.getElementById('coError').classList.remove('show');
+      showToast(stockChanges[0] + (stockChanges.length > 1 ? ` (+${stockChanges.length - 1} more update${stockChanges.length > 2 ? 's' : ''})` : ''));
+      if(keys.length === 0) closeCheckoutFn();
+      return;
+    }
+
     const { data: { user } } = await sb.auth.getUser();
     const items = keys.map(key => {
       const info = cartLineInfo(key);
       return { product_id: info.product.id, name: info.variant ? `${info.product.name} — ${info.variant.name}` : info.product.name, variant: info.variant ? info.variant.name : null, qty: info.qty, price: info.unitPrice };
+    });
+    // Same line items, but with the raw variant index instead of the display
+    // name — this is what the atomic decrement_stock() RPC needs to find
+    // the right row/variant in the DB after payment succeeds.
+    const stockItems = keys.map(key => {
+      const line = cart[key];
+      return { product_id: line.id, variant_index: line.variantIndex, qty: line.qty };
     });
     const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
@@ -3816,12 +3907,46 @@
             return;
           }
           await markCouponUsed();
+          // Order is confirmed & paid — now atomically decrement real stock
+          // in the DB. This runs as a single-transaction Postgres function
+          // (decrement_stock) so concurrent orders on the same product can
+          // never oversell it, even if two customers both got this far at
+          // the same time. See the SQL provided alongside this file.
+          let oversoldNotice = false;
+          try{
+            const { error: stockErr } = await sb.rpc('decrement_stock', { p_items: stockItems });
+            if(stockErr){
+              // Extremely rare: stock ran out in the split second between
+              // our pre-payment check and this call. Order + payment are
+              // already valid, so we don't roll anything back — we just
+              // flag it so support can follow up (same policy already
+              // promised on the FAQ page).
+              oversoldNotice = true;
+              console.error('decrement_stock failed after payment:', stockErr);
+            } else {
+              // Reflect the new stock locally immediately, so the storefront
+              // shows "Out of stock" without needing a page reload.
+              stockItems.forEach(it => {
+                const p = findProduct(it.product_id);
+                if(!p) return;
+                if(it.variant_index != null && Array.isArray(p.variants) && p.variants[it.variant_index]){
+                  const v = p.variants[it.variant_index];
+                  if(v.stock != null) v.stock = Math.max(0, v.stock - it.qty);
+                } else if(p.stock != null){
+                  p.stock = Math.max(0, p.stock - it.qty);
+                }
+              });
+              renderStorefront();
+            }
+          }catch(e){ oversoldNotice = true; console.error(e); }
           cart = {};
           saveCartToStorage();
           renderCart();
           resetCouponUI();
           closeCheckoutFn();
-          showOrderResult('success', 'Order Placed!', 'Payment successful! Your order has been placed.');
+          showOrderResult('success', 'Order Placed!', oversoldNotice
+            ? 'Payment successful! Your order has been placed. One item had very limited stock — we will confirm availability and contact you if anything needs to change.'
+            : 'Payment successful! Your order has been placed.');
         },
         modal: {
           ondismiss: function(){
