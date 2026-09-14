@@ -2457,7 +2457,13 @@
       return;
     }
     const key = cartKeyFor(id, null);
-    cart[key] = { id: Number(id), variantIndex: null, qty: (cart[key] ? cart[key].qty : 0) + 1 };
+    const maxQty = p.stock != null ? p.stock : Infinity;
+    const existingQty = cart[key] ? cart[key].qty : 0;
+    if(existingQty >= maxQty){
+      showToast(`Sirf ${maxQty} stock available hai is product ka — pura already cart mein hai`);
+      return;
+    }
+    cart[key] = { id: Number(id), variantIndex: null, qty: existingQty + 1 };
     saveCartToStorage();
     renderCart();
     showToast('Added to cart');
@@ -2468,6 +2474,16 @@
   }
   function changeQty(key, delta){
     if(!cart[key]) return;
+    if(delta > 0){
+      const info = cartLineInfo(key);
+      if(info){
+        const maxQty = info.variant ? (info.variant.stock != null ? info.variant.stock : Infinity) : (info.product.stock != null ? info.product.stock : Infinity);
+        if(cart[key].qty + delta > maxQty){
+          showToast(`Sirf ${maxQty} stock available hai is product ka`);
+          return;
+        }
+      }
+    }
     cart[key].qty += delta;
     if(cart[key].qty <= 0) delete cart[key];
     saveCartToStorage();
@@ -2802,7 +2818,16 @@
     if(wasOpen) consumeOverlayHistory();
   }
   function pdpChangeQty(delta){
-    pdpQty = Math.max(1, pdpQty + delta);
+    const p = findProduct(pdpCurrentId);
+    if(!p) return;
+    const v = (pdpSelectedVariantIndex != null && Array.isArray(p.variants)) ? p.variants[pdpSelectedVariantIndex] : null;
+    const maxQty = v ? (v.stock != null ? v.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
+    const newQty = pdpQty + delta;
+    if(delta > 0 && newQty > maxQty){
+      showToast(`Sirf ${maxQty} stock available hai is product ka`);
+      return;
+    }
+    pdpQty = Math.max(1, newQty);
     document.getElementById('pdpQty').textContent = pdpQty;
   }
   document.getElementById('pdpClose').addEventListener('click', closeProduct);
@@ -2817,8 +2842,20 @@
     }
     const v = (pdpSelectedVariantIndex != null && p.variants) ? p.variants[pdpSelectedVariantIndex] : null;
     if(v && v.stock != null && v.stock <= 0){ showToast('This option is out of stock'); return; }
+    const maxQty = v ? (v.stock != null ? v.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
     const key = cartKeyFor(pdpCurrentId, pdpSelectedVariantIndex);
-    cart[key] = { id: Number(pdpCurrentId), variantIndex: pdpSelectedVariantIndex, qty: (cart[key] ? cart[key].qty : 0) + pdpQty };
+    const existingQty = cart[key] ? cart[key].qty : 0;
+    if(existingQty + pdpQty > maxQty){
+      const canAdd = Math.max(0, maxQty - existingQty);
+      if(canAdd <= 0){ showToast(`Sirf ${maxQty} stock available hai — pura already cart mein hai`); return; }
+      cart[key] = { id: Number(pdpCurrentId), variantIndex: pdpSelectedVariantIndex, qty: existingQty + canAdd };
+      saveCartToStorage();
+      renderCart();
+      showToast(`Sirf ${maxQty} stock available hai — ${canAdd} cart mein add kiya`);
+      closeProduct();
+      return;
+    }
+    cart[key] = { id: Number(pdpCurrentId), variantIndex: pdpSelectedVariantIndex, qty: existingQty + pdpQty };
     saveCartToStorage();
     renderCart();
     showToast('Added to cart');
