@@ -292,8 +292,45 @@
   .chip img{width:56px;height:56px;object-fit:contain;}
   .chip.active{color:var(--yellow);}
   .chip.active::after{content:'';position:absolute;left:12px;right:12px;bottom:-2px;height:3px;border-radius:2px;background:var(--yellow);}
-  .filter-row2{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-  .result-count{font-size:12px;color:var(--muted);font-family:var(--font-mono);}
+  .filter-row2{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;}
+  .result-count{font-size:12px;color:var(--muted);font-family:var(--font-mono);flex:1;min-width:0;}
+  .filter-row2-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .filter-open-btn{
+    position:relative;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+    border:1px solid var(--line);background:var(--surface);color:var(--text);padding:8px 12px;border-radius:8px;
+  }
+  .filter-open-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+  .filter-open-btn .filter-count-dot{
+    position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;
+    background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- Filters drawer (right side sheet, Flipkart/Amazon style) ---------- */
+  .filter-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:70;
+    opacity:0;pointer-events:none;transition:opacity 0.25s ease;
+  }
+  .filter-overlay.open{opacity:1;pointer-events:auto;}
+  .filter-drawer{
+    position:fixed;top:0;right:0;bottom:0;width:88%;max-width:360px;background:var(--surface);
+    z-index:71;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;border-left:1px solid var(--line);
+  }
+  .filter-drawer.open{transform:translateX(0);}
+  .filter-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--line);}
+  .filter-head h3{font-size:17px;}
+  .filter-body{flex:1;overflow-y:auto;padding:4px 16px 16px;}
+  .filter-section{padding:16px 0;border-bottom:1px solid var(--line);}
+  .filter-section:last-child{border-bottom:none;}
+  .filter-section-title{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:var(--muted);margin-bottom:10px;}
+  .filter-option{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13.5px;cursor:pointer;}
+  .filter-option input{width:17px;height:17px;accent-color:var(--yellow);flex:0 0 auto;}
+  .filter-option .opt-count{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--font-mono);}
+  .filter-empty-hint{font-size:12px;color:var(--muted);padding:20px 0;text-align:center;}
+  .filter-foot{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--line);}
+  .filter-foot button{flex:1;padding:13px;border-radius:10px;font-weight:700;font-size:13.5px;}
+  .filter-clear-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);}
+  .filter-apply-btn{background:var(--yellow);color:#fff;}
   .sort-select{
     background:var(--surface);border:1px solid var(--line);color:var(--text);
     font-size:12px;font-family:var(--font-mono);font-weight:600;padding:8px 10px;border-radius:8px;
@@ -1241,16 +1278,39 @@
     <div class="chip-scroll" id="catChips"></div>
     <div class="filter-row2">
       <span class="result-count" id="resultCount">0 products</span>
-      <select class="sort-select" id="sortSelect">
-        <option value="popularity">Popularity</option>
-        <option value="price-low">Price: Low to High</option>
-        <option value="price-high">Price: High to Low</option>
-        <option value="rating">Rating</option>
-      </select>
+      <div class="filter-row2-right">
+        <button type="button" class="filter-open-btn" onclick="openFilters()">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filters
+          <span class="filter-count-dot" id="filterCountDot" style="display:none;">0</span>
+        </button>
+        <select class="sort-select" id="sortSelect">
+          <option value="popularity">Popularity</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rating">Rating</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="grid-wrap">
     <div class="product-grid" id="productGrid"></div>
+  </div>
+</div>
+
+<!-- Filters drawer (Brand / Bike Model / Price / Rating / Availability — Flipkart/Amazon style) -->
+<div class="filter-overlay" id="filterOverlay" onclick="closeFiltersFn()"></div>
+<div class="filter-drawer" id="filterDrawer" onclick="event.stopPropagation()">
+  <div class="filter-head">
+    <h3>Filters</h3>
+    <button class="icon-btn" onclick="closeFiltersFn()" aria-label="Close">
+      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="filter-body" id="filterBody"></div>
+  <div class="filter-foot">
+    <button type="button" class="filter-clear-btn" onclick="clearFilters()">Clear All</button>
+    <button type="button" class="filter-apply-btn" onclick="applyFiltersAndClose()">Apply</button>
   </div>
 </div>
 
@@ -1774,6 +1834,7 @@
     if(document.getElementById('topbar')?.classList.contains('search-active')){ closeSearchFn(); return; }
     if(document.getElementById('infoOverlay')?.classList.contains('open')){ closeInfo(); return; }
     if(document.getElementById('cartDrawer')?.classList.contains('open')){ closeCartFn(); return; }
+    if(document.getElementById('filterDrawer')?.classList.contains('open')){ closeFiltersFn(); return; }
     if(document.getElementById('menuDrawer')?.classList.contains('open')){ closeMenu(); return; }
     if(document.getElementById('pdpOverlay')?.classList.contains('open')){ closeProduct(); return; }
   }
@@ -2116,6 +2177,7 @@
     else if(mode === 'section') activeSection = value;
     else if(mode === 'model') activeModel = value;
     else if(mode === 'brand') activeGearBrand = value;
+    resetProductFilters(); // fresh page context — old filter picks (brand/model/price etc.) no longer apply
     homeView.style.display = 'none';
     bikeModelsView.style.display = 'none';
     productsView.style.display = 'block';
@@ -2187,6 +2249,7 @@
         activeSection = null;
         activeGearBrand = null;
         activeCat = btn.dataset.cat;
+        resetProductFilters();
         const model = activeModel ? site.bikeModels.find(m => m.id === activeModel) : null;
         document.getElementById('pageTitle').textContent = model ? model.name : (activeCat === 'All' ? 'All Products' : activeCat);
         renderChips();
@@ -2195,13 +2258,205 @@
     });
   }
 
-  function renderProductGrid(){
+  // ---------------------------------------------------------------------
+  // Filters drawer — Brand / Bike Model / Price / Rating / Availability.
+  // Which sections appear depends on where the customer already is: a
+  // Brand filter is pointless (and hidden) on a page that's already
+  // scoped to one brand, and same for Bike Model on a model page — this
+  // mirrors how Flipkart/Amazon drop the axis you already navigated by.
+  // ---------------------------------------------------------------------
+  const priceBuckets = [
+    { key: 'u500', label: 'Under ₹500', min: 0, max: 500 },
+    { key: '500-1000', label: '₹500 – ₹1,000', min: 500, max: 1000 },
+    { key: '1000-2500', label: '₹1,000 – ₹2,500', min: 1000, max: 2500 },
+    { key: '2500-5000', label: '₹2,500 – ₹5,000', min: 2500, max: 5000 },
+    { key: 'above5000', label: 'Above ₹5,000', min: 5000, max: Infinity },
+  ];
+  let productFilters = { brands: new Set(), models: new Set(), priceBuckets: new Set(), minRating: null, inStockOnly: false };
+
+  function resetProductFilters(){
+    productFilters = { brands: new Set(), models: new Set(), priceBuckets: new Set(), minRating: null, inStockOnly: false };
+    updateFilterCountDot();
+  }
+  function activeFilterCount(){
+    return productFilters.brands.size + productFilters.models.size + productFilters.priceBuckets.size
+      + (productFilters.minRating ? 1 : 0) + (productFilters.inStockOnly ? 1 : 0);
+  }
+  function updateFilterCountDot(){
+    const dot = document.getElementById('filterCountDot');
+    if(!dot) return;
+    const n = activeFilterCount();
+    dot.style.display = n > 0 ? 'flex' : 'none';
+    dot.textContent = n;
+  }
+
+  // The product set for the current page context (category chip / model /
+  // brand / section already chosen) — this is what filter options and
+  // their counts are computed from, and what the drawer's checkboxes
+  // further narrow down.
+  function contextProductList(){
     let list = products.slice();
     if(activeSection === 'bestsellers') list = list.slice(0,5);
     else if(activeSection === 'new') list = list.slice(5,10);
     if(activeCat !== 'All') list = list.filter(p => p.cat === activeCat);
     if(activeModel) list = list.filter(p => (p.bike_model_ids || []).includes(activeModel));
     if(activeGearBrand) list = list.filter(p => p.brand === activeGearBrand);
+    return list;
+  }
+
+  function applyProductFilters(list){
+    let out = list;
+    if(productFilters.brands.size) out = out.filter(p => p.brand && productFilters.brands.has(p.brand));
+    if(productFilters.models.size) out = out.filter(p => (p.bike_model_ids || []).some(id => productFilters.models.has(id)));
+    if(productFilters.priceBuckets.size){
+      out = out.filter(p => {
+        const price = Number(p.price);
+        return [...productFilters.priceBuckets].some(key => {
+          const b = priceBuckets.find(pb => pb.key === key);
+          return b && price >= b.min && price < b.max;
+        });
+      });
+    }
+    if(productFilters.minRating) out = out.filter(p => Number(p.rating) >= productFilters.minRating);
+    if(productFilters.inStockOnly) out = out.filter(p => !isProductOutOfStock(p));
+    return out;
+  }
+
+  function toggleBrandFilter(brand){
+    if(productFilters.brands.has(brand)) productFilters.brands.delete(brand); else productFilters.brands.add(brand);
+    renderProductGrid();
+  }
+  function toggleModelFilter(id){
+    if(productFilters.models.has(id)) productFilters.models.delete(id); else productFilters.models.add(id);
+    renderProductGrid();
+  }
+  function togglePriceFilter(key){
+    if(productFilters.priceBuckets.has(key)) productFilters.priceBuckets.delete(key); else productFilters.priceBuckets.add(key);
+    renderProductGrid();
+  }
+  function setRatingFilter(val){
+    productFilters.minRating = productFilters.minRating === val ? null : val;
+    renderProductGrid();
+  }
+  function toggleInStockFilter(){
+    productFilters.inStockOnly = !productFilters.inStockOnly;
+    renderProductGrid();
+  }
+
+  function renderFilterPanel(contextList){
+    const body = document.getElementById('filterBody');
+    if(!body) return;
+    const sections = [];
+
+    // Brand — hidden on a page already scoped to one brand.
+    if(!activeGearBrand){
+      const brandCounts = {};
+      contextList.forEach(p => { if(p.brand){ brandCounts[p.brand] = (brandCounts[p.brand]||0)+1; } });
+      const brands = Object.keys(brandCounts).sort();
+      if(brands.length >= 2){
+        sections.push(`
+          <div class="filter-section">
+            <div class="filter-section-title">Brand</div>
+            ${brands.map(b => `
+              <label class="filter-option">
+                <input type="checkbox" ${productFilters.brands.has(b) ? 'checked' : ''} onchange="toggleBrandFilter('${b.replace(/'/g,"\\'")}')">
+                ${b}
+                <span class="opt-count">${brandCounts[b]}</span>
+              </label>
+            `).join('')}
+          </div>
+        `);
+      }
+    }
+
+    // Bike Model — hidden on a page already scoped to one model.
+    if(!activeModel){
+      const modelCounts = {};
+      contextList.forEach(p => (p.bike_model_ids || []).forEach(id => { modelCounts[id] = (modelCounts[id]||0)+1; }));
+      const modelIds = Object.keys(modelCounts).map(Number).filter(id => site.bikeModels.some(m => m.id === id));
+      if(modelIds.length >= 1){
+        sections.push(`
+          <div class="filter-section">
+            <div class="filter-section-title">Bike Model</div>
+            ${modelIds.map(id => {
+              const m = site.bikeModels.find(mm => mm.id === id);
+              return `
+                <label class="filter-option">
+                  <input type="checkbox" ${productFilters.models.has(id) ? 'checked' : ''} onchange="toggleModelFilter(${id})">
+                  ${m.brand} ${m.name}
+                  <span class="opt-count">${modelCounts[id]}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        `);
+      }
+    }
+
+    // Price — always shown.
+    const priceCounts = priceBuckets.map(b => ({ ...b, count: contextList.filter(p => Number(p.price) >= b.min && Number(p.price) < b.max).length }));
+    sections.push(`
+      <div class="filter-section">
+        <div class="filter-section-title">Price</div>
+        ${priceCounts.map(b => `
+          <label class="filter-option">
+            <input type="checkbox" ${productFilters.priceBuckets.has(b.key) ? 'checked' : ''} onchange="togglePriceFilter('${b.key}')">
+            ${b.label}
+            <span class="opt-count">${b.count}</span>
+          </label>
+        `).join('')}
+      </div>
+    `);
+
+    // Rating — always shown.
+    sections.push(`
+      <div class="filter-section">
+        <div class="filter-section-title">Rating</div>
+        ${[4,3,2].map(r => `
+          <label class="filter-option">
+            <input type="checkbox" ${productFilters.minRating === r ? 'checked' : ''} onchange="setRatingFilter(${r})">
+            ${r}★ &amp; above
+          </label>
+        `).join('')}
+      </div>
+    `);
+
+    // Availability — always shown.
+    sections.push(`
+      <div class="filter-section">
+        <div class="filter-section-title">Availability</div>
+        <label class="filter-option">
+          <input type="checkbox" ${productFilters.inStockOnly ? 'checked' : ''} onchange="toggleInStockFilter()">
+          In Stock Only
+        </label>
+      </div>
+    `);
+
+    body.innerHTML = sections.join('') || '<p class="filter-empty-hint">No filters available for this page.</p>';
+  }
+
+  function openFilters(){
+    document.getElementById('filterOverlay').classList.add('open');
+    document.getElementById('filterDrawer').classList.add('open');
+    pushOverlayHistory();
+  }
+  function closeFiltersFn(){
+    const wasOpen = document.getElementById('filterDrawer').classList.contains('open');
+    document.getElementById('filterOverlay').classList.remove('open');
+    document.getElementById('filterDrawer').classList.remove('open');
+    if(wasOpen) consumeOverlayHistory();
+  }
+  function applyFiltersAndClose(){
+    closeFiltersFn();
+  }
+  function clearFilters(){
+    resetProductFilters();
+    renderProductGrid();
+  }
+
+  function renderProductGrid(){
+    const contextList = contextProductList();
+    let list = applyProductFilters(contextList);
 
     const sortVal = document.getElementById('sortSelect').value;
     if(sortVal === 'price-low') list.sort((a,b) => a.price - b.price);
@@ -2213,6 +2468,9 @@
     grid.innerHTML = list.length
       ? list.map(cardHtml).join('')
       : '<p class="empty-state">No products found in this filter.</p>';
+
+    renderFilterPanel(contextList);
+    updateFilterCountDot();
   }
   document.getElementById('sortSelect').addEventListener('change', renderProductGrid);
 
