@@ -2664,7 +2664,13 @@
   // ---- Categories & Brands ----
   function renderCategoryList(){
     const wrap = document.getElementById('categoryList');
-    wrap.innerHTML = site.categories.map((c, i) => `
+    const sorted = site.categories.map((c, i) => ({ c, i })).sort((a, b) => a.c.label.localeCompare(b.c.label));
+    let lastLetter = '';
+    wrap.innerHTML = sorted.map(({ c, i }) => {
+      const letter = (c.label.trim()[0] || '#').toUpperCase();
+      const heading = letter !== lastLetter ? `<div class="model-group-label">${letter}</div>` : '';
+      lastLetter = letter;
+      return heading + `
       <div class="row-card">
         <div class="row-media" style="${c.icon_url ? 'padding:6px;background:var(--surface-2);' : (c.image_url ? 'padding:0;overflow:hidden;' : '')}">
           ${c.icon_url ? `<img src="${c.icon_url}" style="width:100%;height:100%;object-fit:contain;">` : (c.image_url ? `<img src="${c.image_url}" style="width:100%;height:100%;object-fit:cover;">` : c.label.slice(0,2).toUpperCase())}
@@ -2682,7 +2688,8 @@
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   async function addCategory(){
     const input = document.getElementById('newCategoryInput');
@@ -2708,7 +2715,13 @@
 
   function renderBrandList(){
     const wrap = document.getElementById('brandList');
-    wrap.innerHTML = site.brands.map((b, i) => `
+    const sorted = site.brands.map((b, i) => ({ b, i })).sort((a, b) => a.b.label.localeCompare(b.b.label));
+    let lastLetter = '';
+    wrap.innerHTML = sorted.map(({ b, i }) => {
+      const letter = (b.label.trim()[0] || '#').toUpperCase();
+      const heading = letter !== lastLetter ? `<div class="model-group-label">${letter}</div>` : '';
+      lastLetter = letter;
+      return heading + `
       <div class="row-card">
         <div class="row-media" style="${b.image_url ? 'padding:0;overflow:hidden;' : ''}">
           ${b.image_url ? `<img src="${b.image_url}" style="width:100%;height:100%;object-fit:cover;">` : b.code}
@@ -2723,7 +2736,8 @@
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   async function addBrand(){
     const code = document.getElementById('newBrandCode').value.trim();
@@ -2753,7 +2767,13 @@
       wrap.innerHTML = '<p class="empty-hint">No brands yet. Add one below.</p>';
       return;
     }
-    wrap.innerHTML = site.productBrands.map((gb, i) => `
+    const sorted = site.productBrands.map((gb, i) => ({ gb, i })).sort((a, b) => a.gb.name.localeCompare(b.gb.name));
+    let lastLetter = '';
+    wrap.innerHTML = sorted.map(({ gb, i }) => {
+      const letter = (gb.name.trim()[0] || '#').toUpperCase();
+      const heading = letter !== lastLetter ? `<div class="model-group-label">${letter}</div>` : '';
+      lastLetter = letter;
+      return heading + `
       <div class="row-card">
         <div class="row-media" style="${gb.image_url ? 'padding:0;overflow:hidden;border-radius:50%;' : 'border-radius:50%;'}">
           ${gb.image_url ? `<img src="${gb.image_url}" style="width:100%;height:100%;object-fit:cover;">` : gb.name.slice(0,2).toUpperCase()}
@@ -2768,7 +2788,8 @@
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   async function addGearBrand(){
     const input = document.getElementById('newGearBrandName');
@@ -2883,7 +2904,13 @@
       wrap.innerHTML = '<p class="empty-hint">No bike models yet. Tap "+ Add Bike Model" to create one.</p>';
       return;
     }
-    wrap.innerHTML = site.bikeModels.map(m => `
+    const sorted = [...site.bikeModels].sort((a, b) => a.name.localeCompare(b.name));
+    let lastLetter = '';
+    wrap.innerHTML = sorted.map(m => {
+      const letter = (m.name.trim()[0] || '#').toUpperCase();
+      const heading = letter !== lastLetter ? `<div class="model-group-label">${letter}</div>` : '';
+      lastLetter = letter;
+      return heading + `
       <div class="row-card">
         <div class="row-media" style="padding:0;overflow:hidden;">
           ${m.image_url ? `<img src="${m.image_url}" style="width:100%;height:100%;object-fit:cover;">` : 'IMG'}
@@ -2901,7 +2928,8 @@
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function openBikeModelSheet(id){
