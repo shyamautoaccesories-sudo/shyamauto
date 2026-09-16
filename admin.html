@@ -2449,11 +2449,12 @@
             <button class="btn-outline" onclick="removeHeroImageMobile(${n})" style="color:#dc2626;border-color:#fca5a5;">Remove</button>
           </div>
         </div>
-        <div class="form-group" style="margin-top:16px;"><label class="form-label">Button text</label><input class="form-input" id="f_heroCtaPrimary_${n}" placeholder="Shop Now"></div>
+        <div class="form-group" style="margin-top:16px;"><label class="form-label">Button text</label><input class="form-input" id="f_heroCtaPrimary_${n}" placeholder="Shop Now" onchange="saveHero()"></div>
         <div class="form-group">
           <label class="form-label">Links to product</label>
-          <select class="form-select" id="f_heroProduct_${n}"><option value="">— None (scrolls to Bestsellers) —</option></select>
+          <select class="form-select" id="f_heroProduct_${n}" onchange="saveHero()"><option value="">— None (scrolls to Bestsellers) —</option></select>
         </div>
+        <p style="font-size:11px;color:var(--accent-green,#16a34a);margin-top:4px;" id="hero_saveHint_${n}"></p>
       </div>
     `;
   }
@@ -2747,6 +2748,13 @@
     const { error } = await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
     if(error){ showToast(error.message); return; }
     showToast('Hero section saved');
+    for(let i = 0; i < HERO_BANNER_SLOTS; i++){
+      const hint = document.getElementById(`hero_saveHint_${i + 1}`);
+      if(!hint) continue;
+      hint.textContent = '✓ Saved';
+      clearTimeout(hint._clearTimer);
+      hint._clearTimer = setTimeout(() => { hint.textContent = ''; }, 2000);
+    }
   }
 
   async function saveHeroImage(n){
