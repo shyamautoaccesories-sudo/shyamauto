@@ -3484,6 +3484,10 @@
             </div>
             ${o.couponCode ? `<div class="order-item-row" style="color:var(--green);font-weight:600;"><span class="oi-name">Coupon: ${o.couponCode}</span><span class="oi-qtyprice">−₹${o.discountAmount.toLocaleString('en-IN')}</span></div>` : ''}
             ${o.deliveryCharge > 0 ? `<div class="order-item-row"><span class="oi-name">Delivery Charge</span><span class="oi-qtyprice">₹${o.deliveryCharge.toLocaleString('en-IN')}</span></div>` : ''}
+            ${o.paymentStatus === 'partial_cod' ? `
+              <div class="order-item-row" style="color:var(--green);font-weight:600;"><span class="oi-name">Paid Online</span><span class="oi-qtyprice">₹${(o.advancePaid || 0).toLocaleString('en-IN')}</span></div>
+              <div class="order-item-row" style="color:#B2670A;font-weight:600;"><span class="oi-name">To Collect (COD)</span><span class="oi-qtyprice">₹${(o.codRemaining != null ? o.codRemaining : o.total).toLocaleString('en-IN')}</span></div>
+            ` : ''}
           </div>
 
           ${o.shiprocketAwb ? `
