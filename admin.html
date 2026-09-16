@@ -139,6 +139,9 @@
   .inv-search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:2;pointer-events:none;}
   .inv-search-wrap .form-input{padding-left:36px;}
   .inv-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .inv-export-row{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;}
+  .inv-export-row button{font-size:12.5px;padding:9px 16px;white-space:nowrap;align-self:flex-start;}
+  .inv-export-row p{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0;}
   .inv-count{font-size:11.5px;color:var(--muted);margin:10px 0 10px;}
   .inv-row{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
   .inv-row-top{display:flex;gap:10px;align-items:center;}
@@ -457,6 +460,8 @@
     .inv-toolbar{flex-direction:row;align-items:center;}
     .inv-search-wrap{flex:0 0 260px;}
     .inv-filters{grid-template-columns:repeat(4,1fr);flex:1;}
+    .inv-export-row{flex-direction:row;align-items:center;}
+    .inv-export-row button{align-self:auto;}
     .inv-row-controls{flex-wrap:nowrap;}
   }
   @media (min-width:860px) and (max-width:1023px){
@@ -823,10 +828,11 @@
             <option value="out">Out of Stock</option>
           </select>
         </div>
-        <div style="display:flex;gap:8px;margin-top:2px;">
-          <button class="btn-outline" onclick="exportInventoryPDF()" style="font-size:12px;padding:8px 14px;">⬇ Export PDF</button>
-        </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:-2px;">Exports whatever the filters above are currently showing — pick "Low Stock (≤5)" from Stock Status first to get a low-stock-only PDF.</p>
+      </div>
+
+      <div class="inv-export-row">
+        <button class="btn-outline" onclick="exportInventoryPDF()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Export PDF</button>
+        <p>Exports whatever the filters above are currently showing — pick "Low Stock (≤5)" from Stock Status first to get a low-stock-only PDF.</p>
       </div>
 
       <p class="inv-count" id="inv_count"></p>
@@ -2044,6 +2050,11 @@
     if(status === 'unlimited') return 'Not Tracked';
     return 'In Stock';
   }
+  // jsPDF's built-in fonts (Helvetica/Times/Courier) can't render ₹ or ∞ —
+  // they print as a garbled quote mark. Use plain-text equivalents in PDFs only;
+  // on-screen HTML keeps using ₹/∞ since the page's own fonts support them.
+  function pdfRs(n){ return 'Rs. ' + Number(n || 0).toLocaleString('en-IN'); }
+
   function exportInventoryPDF(){
     const { list, fStock } = getFilteredInventoryList();
     if(!list.length){ showToast('Export karne ke liye koi product nahi hai'); return; }
@@ -2057,8 +2068,8 @@
     doc.text(`Generated: ${new Date().toLocaleString('en-IN')}  ·  ${list.length} product${list.length===1?'':'s'}`, 14, 21);
     const rows = list.map(p => {
       const info = getProductStockInfo(p);
-      const stockLabel = info.status === 'unlimited' ? '∞' : (info.totalStock != null ? info.totalStock : '—');
-      return [p.name, p.cat || '', p.brand || '', '₹' + (p.price||0).toLocaleString('en-IN'), String(stockLabel), stockStatusLabel(info.status)];
+      const stockLabel = info.status === 'unlimited' ? 'Unlimited' : (info.totalStock != null ? info.totalStock : '—');
+      return [p.name, p.cat || '', p.brand || '', pdfRs(p.price), String(stockLabel), stockStatusLabel(info.status)];
     });
     doc.autoTable({
       startY: 26,
@@ -4012,8 +4023,8 @@
     doc.setFontSize(9);
     doc.text(`Range: ${bounds.label}`, 14, 21);
     const revenue = list.reduce((s,o) => s + (o.total || 0), 0);
-    doc.text(`Total Orders: ${list.length}   ·   Total Revenue: ₹${revenue.toLocaleString('en-IN')}`, 14, 26);
-    const rows = list.map(o => [String(o.id), o.createdAt ? formatOrderDate(o.createdAt) : '', o.customer, o.phone || '', o.status, o.paymentMethod, '₹' + (o.total||0).toLocaleString('en-IN')]);
+    doc.text(`Total Orders: ${list.length}   ·   Total Revenue: ${pdfRs(revenue)}`, 14, 26);
+    const rows = list.map(o => [String(o.id), o.createdAt ? formatOrderDate(o.createdAt) : '', o.customer, o.phone || '', o.status, o.paymentMethod, pdfRs(o.total)]);
     doc.autoTable({
       startY: 32,
       head: [['Order #','Date','Customer','Phone','Status','Payment','Total']],
@@ -4034,8 +4045,8 @@
     doc.text(`Generated: ${new Date().toLocaleString('en-IN')}  ·  ${site.products.length} products`, 14, 21);
     const rows = site.products.map(p => {
       const info = getProductStockInfo(p);
-      const stockLabel = info.status === 'unlimited' ? '∞' : (info.totalStock != null ? info.totalStock : '—');
-      return [p.name, p.cat || '', p.brand || '', '₹' + (p.price||0).toLocaleString('en-IN'), String(stockLabel), stockStatusLabel(info.status)];
+      const stockLabel = info.status === 'unlimited' ? 'Unlimited' : (info.totalStock != null ? info.totalStock : '—');
+      return [p.name, p.cat || '', p.brand || '', pdfRs(p.price), String(stockLabel), stockStatusLabel(info.status)];
     });
     doc.autoTable({
       startY: 26,
