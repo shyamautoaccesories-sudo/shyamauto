@@ -1199,6 +1199,10 @@
     </div>
     <div class="sheet-body">
       <div class="form-group">
+        <label class="form-label" id="img_nameLabel">Name</label>
+        <input class="form-input" id="img_nameInput" placeholder="Name">
+      </div>
+      <div class="form-group">
         <div id="img_previewWrap" style="display:none;margin-bottom:10px;">
           <img id="img_preview" style="width:100%;max-width:220px;border-radius:12px;border:1px solid var(--line);display:block;">
         </div>
@@ -1208,7 +1212,7 @@
       </div>
     </div>
     <div class="sheet-foot">
-      <button class="btn-accent btn-block" id="img_saveBtn" onclick="saveImageSheet()">Save Photo</button>
+      <button class="btn-accent btn-block" id="img_saveBtn" onclick="saveImageSheet()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -2815,9 +2819,10 @@
 
   // ---- Category / Brand photo sheet (shared) ----
   const imageSheetOverlay = document.getElementById('imageSheetOverlay');
-  let imageSheetType = null;   // 'category' | 'brand'
+  let imageSheetType = null;   // 'category' | 'categoryIcon' | 'brand' | 'gearBrand'
   let imageSheetId = null;
   let imageSheetFile = null;
+  let imageSheetOriginalName = '';
 
   function openImageSheet(type, id){
     imageSheetType = type;
@@ -2829,6 +2834,9 @@
     const label = type === 'gearBrand' ? row.name : row.label;
     const suffix = type === 'categoryIcon' ? 'Filter Icon' : 'Photo';
     document.getElementById('imageSheetTitle').textContent = `${label} — ${suffix}`;
+    imageSheetOriginalName = label;
+    document.getElementById('img_nameLabel').textContent = (type === 'brand' || type === 'gearBrand') ? 'Brand Name' : 'Category Name';
+    document.getElementById('img_nameInput').value = label;
     const existing = type === 'categoryIcon' ? row.icon_url : row.image_url;
     if(existing){
       document.getElementById('img_preview').src = existing;
@@ -2859,29 +2867,39 @@
   });
 
   async function saveImageSheet(){
-    if(!imageSheetFile){ showToast('Choose a photo first'); return; }
+    const newName = document.getElementById('img_nameInput').value.trim();
+    if(!newName){ showToast('Name is required'); return; }
+    if(!imageSheetFile && newName === imageSheetOriginalName){ showToast('Nothing changed'); return; }
+
     const btn = document.getElementById('img_saveBtn');
-    btn.textContent = 'Uploading...';
+    const originalBtnText = btn.textContent;
+    btn.textContent = imageSheetFile ? 'Uploading...' : 'Saving...';
     btn.disabled = true;
 
     const isIcon = imageSheetType === 'categoryIcon';
-    const bucket = (imageSheetType === 'category' || isIcon) ? 'category-images' : imageSheetType === 'brand' ? 'brand-images' : 'product-brand-images';
     const table = (imageSheetType === 'category' || isIcon) ? 'categories' : imageSheetType === 'brand' ? 'brands' : 'product_brands';
-    const column = isIcon ? 'icon_url' : 'image_url';
-    const ext = imageSheetFile.name.split('.').pop();
-    const path = `${isIcon ? 'icon-' : ''}${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const nameColumn = imageSheetType === 'gearBrand' ? 'name' : 'label';
+    const updateData = { [nameColumn]: newName };
 
-    const { error: uploadError } = await sb.storage.from(bucket).upload(path, imageSheetFile);
-    if(uploadError){
-      showToast(uploadError.message);
-      btn.textContent = 'Save Photo';
-      btn.disabled = false;
-      return;
+    if(imageSheetFile){
+      const bucket = (imageSheetType === 'category' || isIcon) ? 'category-images' : imageSheetType === 'brand' ? 'brand-images' : 'product-brand-images';
+      const column = isIcon ? 'icon_url' : 'image_url';
+      const ext = imageSheetFile.name.split('.').pop();
+      const path = `${isIcon ? 'icon-' : ''}${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+
+      const { error: uploadError } = await sb.storage.from(bucket).upload(path, imageSheetFile);
+      if(uploadError){
+        showToast(uploadError.message);
+        btn.textContent = originalBtnText;
+        btn.disabled = false;
+        return;
+      }
+      updateData[column] = sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     }
-    const imageUrl = sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-    const { error } = await sb.from(table).update({ [column]: imageUrl }).eq('id', imageSheetId);
 
-    btn.textContent = 'Save Photo';
+    const { error } = await sb.from(table).update(updateData).eq('id', imageSheetId);
+
+    btn.textContent = originalBtnText;
     btn.disabled = false;
     if(error){ showToast(error.message); return; }
 
@@ -2890,7 +2908,7 @@
     renderBrandList();
     renderGearBrandList();
     closeImageSheet();
-    showToast(isIcon ? 'Filter icon saved' : 'Photo saved');
+    showToast('Saved');
   }
 
   // ---- Bike Models ----
