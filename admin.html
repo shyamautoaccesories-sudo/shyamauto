@@ -1330,7 +1330,7 @@
     const prodRows = prodRes.data && prodRes.data.length ? prodRes.data : defaultProducts.slice();
     const products = prodRows.map(p => ({
       id: p.id, name: p.name, cat: p.cat, brand: p.brand || null, price: Number(p.price), mrp: p.mrp != null ? Number(p.mrp) : null,
-      rating: p.rating, sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
+      rating: p.rating, sale: !!p.sale, sale_discount: p.sale_discount != null ? Number(p.sale_discount) : null, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
       bike_model_ids: p.bike_model_ids || [], images: p.images || [],
       weight_kg: p.weight_kg != null ? Number(p.weight_kg) : null,
       length_cm: p.length_cm != null ? Number(p.length_cm) : null,
