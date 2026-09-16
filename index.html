@@ -1971,14 +1971,20 @@
     // ---- Hero banners: supports up to 3 auto-scroll slides. Falls back to the
     // old single-image hero fields so existing stores keep working unchanged. ----
     const heroObj = Object.assign({}, defaultHero, siteRow.hero);
-    let heroBanners = Array.isArray(heroObj.banners) ? heroObj.banners.filter(Boolean) : [];
-    if(!heroBanners.length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
+    const rawHeroBanners = Array.isArray(heroObj.banners) ? heroObj.banners : [];
+    let heroBanners;
+    if(!rawHeroBanners.filter(Boolean).length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
       heroBanners = [{
         ctaPrimary: heroObj.ctaPrimary || 'Shop Now',
         productId: heroObj.productId != null ? heroObj.productId : null,
         imageUrl: siteRow.hero_image_url || null,
         imageMobileUrl: siteRow.hero_image_mobile_url || null
       }];
+    } else {
+      // Keep each banner at its original position (index 0 = Banner 1, etc.) —
+      // never drop empty/null slots and shift the rest down, or a banner's own
+      // product link can end up paired with the wrong slide.
+      heroBanners = Array.from({length: 3}, (_, idx) => rawHeroBanners[idx] || null).filter(Boolean);
     }
 
     return {
@@ -3029,8 +3035,8 @@
 
   function handleHeroBannerClick(i){
     const b = heroBannersData[i];
-    const pid = b && b.productId;
-    const p = pid ? findProduct(pid) : null;
+    const pid = b && b.productId != null && b.productId !== '' ? Number(b.productId) : null;
+    const p = pid != null && !Number.isNaN(pid) ? findProduct(pid) : null;
     if(p){ openProduct(p.id); }
     else { document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'}); }
   }
