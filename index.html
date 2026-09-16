@@ -1014,8 +1014,7 @@
 </head>
 <body>
 
-<div id="homeView">
-<!-- Top bar -->
+<!-- Top bar (persistent across Home / Category listing / Bike Model views) -->
 <header class="topbar" id="topbar">
   <div class="topbar-row">
     <button class="icon-btn" aria-label="Menu" id="menuBtn">
@@ -1047,13 +1046,14 @@
   </div>
 </header>
 
-<!-- Header inline search results panel -->
+<!-- Header inline search results panel (persistent) -->
 <div class="header-search-backdrop" id="headerSearchBackdrop"></div>
 <div class="header-search-panel" id="headerSearchPanel">
   <p class="search-hint" id="searchHint">Start typing to find products.</p>
   <div class="product-grid" id="searchResultsGrid"></div>
 </div>
 
+<div id="homeView">
 <!-- Trust marquee -->
 <div class="trust-strip">
   <div class="trust-track">
