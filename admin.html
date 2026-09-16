@@ -1997,8 +1997,8 @@
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_stock').value = p.stock != null ? p.stock : '';
       document.getElementById('p_sale').checked = !!p.sale;
-      document.getElementById('p_saleDiscount').value = '';
-      toggleSaleDiscountBlock();
+      document.getElementById('p_saleDiscount').value = p.sale_discount != null ? p.sale_discount : '';
+      setSaleDiscountBlockVisibility(!!p.sale);
       document.getElementById('p_outOfStock').checked = p.in_stock === false;
       document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
       document.getElementById('p_desc').value = p.desc || '';
@@ -2023,7 +2023,7 @@
       document.getElementById('p_stock').value = '';
       document.getElementById('p_sale').checked = false;
       document.getElementById('p_saleDiscount').value = '';
-      toggleSaleDiscountBlock();
+      setSaleDiscountBlockVisibility(false);
       document.getElementById('p_outOfStock').checked = false;
       document.getElementById('p_heroBanner').checked = false;
       document.getElementById('p_desc').value = '';
@@ -2077,8 +2077,11 @@
   // ---- Product variants ----
   function toggleSaleDiscountBlock(){
     const on = document.getElementById('p_sale').checked;
-    document.getElementById('p_saleDiscountBlock').style.display = on ? 'block' : 'none';
+    setSaleDiscountBlockVisibility(on);
     if(on) applySaleDiscount();
+  }
+  function setSaleDiscountBlockVisibility(on){
+    document.getElementById('p_saleDiscountBlock').style.display = on ? 'block' : 'none';
   }
   function applySaleDiscount(){
     const raw = document.getElementById('p_saleDiscount').value;
@@ -2205,6 +2208,7 @@
       stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
       in_stock: !document.getElementById('p_outOfStock').checked,
       sale: document.getElementById('p_sale').checked,
+      sale_discount: document.getElementById('p_sale').checked ? (Number(document.getElementById('p_saleDiscount').value) || null) : null,
       description: document.getElementById('p_desc').value.trim(),
       specs,
       bike_model_ids: bikeModelIds,
