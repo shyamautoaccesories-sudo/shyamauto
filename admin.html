@@ -583,12 +583,32 @@
         <div class="stat-card"><div class="num" id="statOrders">0</div><div class="lbl">Orders</div></div>
         <div class="stat-card"><div class="num" id="statRevenue">₹0</div><div class="lbl">Revenue</div></div>
       </div>
+
+      <div class="section-block">
+        <h3>Recent Orders</h3>
+        <div id="recentOrdersList"></div>
+      </div>
+
+      <div class="section-block">
+        <h3>Orders by Date</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Koi bhi date select karke us din ke total orders aur unki details dekhein.</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+          <input type="date" class="form-input" id="dashDateInput" style="max-width:180px;" onchange="renderDashboardDateOrders(this.value)">
+          <button class="btn-outline" style="font-size:12px;padding:10px 14px;" onclick="document.getElementById('dashDateInput').value='';renderDashboardDateOrders('');">Clear</button>
+        </div>
+        <div id="dashDateSummary"></div>
+        <div id="dashDateOrdersList"></div>
+      </div>
     </div>
 
     <!-- Products -->
     <div class="view" id="view-products">
       <p class="view-title">Products</p>
       <button class="btn-accent btn-block" style="margin-bottom:16px;" onclick="openProductSheet()">+ Add Product</button>
+      <div class="inv-search-wrap" style="margin-bottom:14px;">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="productSearchInput" placeholder="Search products by name…" oninput="renderProductList()">
+      </div>
       <div class="view-toggle">
         <button type="button" id="productViewListBtn" onclick="setProductViewMode('list')">
           <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -700,6 +720,12 @@
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="orderSearchInput" placeholder="Search by customer, phone, email or order #" oninput="filterOrdersSearch(this.value)">
         </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" stroke-width="2" style="flex:0 0 auto;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <input type="date" class="form-input" id="orderDateFilterInput" style="max-width:170px;padding:9px 10px;" onchange="filterOrdersByDate(this.value)">
+          <button class="btn-outline" style="font-size:12px;padding:8px 14px;" onclick="document.getElementById('orderDateFilterInput').value='';filterOrdersByDate('');">Clear Date</button>
+          <span style="font-size:11px;color:var(--muted);">Pick any date — not limited to the last 3 days.</span>
+        </div>
         <div class="order-filter-row" id="orderFilterRow">
           <button class="order-filter-chip active" data-status="all" onclick="filterOrdersByStatus('all')">All <span class="count" id="fcAll">0</span></button>
           <button class="order-filter-chip" data-status="Pending" onclick="filterOrdersByStatus('Pending')">Pending <span class="count" id="fcPending">0</span></button>
@@ -797,6 +823,10 @@
             <option value="out">Out of Stock</option>
           </select>
         </div>
+        <div style="display:flex;gap:8px;margin-top:2px;">
+          <button class="btn-outline" onclick="exportInventoryPDF()" style="font-size:12px;padding:8px 14px;">⬇ Export PDF</button>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:-2px;">Exports whatever the filters above are currently showing — pick "Low Stock (≤5)" from Stock Status first to get a low-stock-only PDF.</p>
       </div>
 
       <p class="inv-count" id="inv_count"></p>
@@ -886,6 +916,28 @@
         <button class="add-spec-btn" onclick="addStaffEmailRow('')">+ Add Staff Email</button>
         <button class="btn-accent btn-block" style="margin-top:14px;" onclick="saveNotificationSettings()">Save Notification Emails</button>
         <button class="btn-outline btn-block" style="margin-top:10px;" onclick="enableDesktopNotifications()">Enable Desktop Notifications</button>
+      </div>
+
+      <div class="section-block">
+        <h3>Reports</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+          Orders ka PDF report nikaalein — custom date range, 7 days, 15 days ya 1 month select karke. Stock report hamesha current stock dikhata hai (date range se independent).
+        </p>
+        <label class="form-label">Orders Range</label>
+        <div class="order-filter-row" id="reportRangeRow" style="margin-bottom:12px;">
+          <button class="order-filter-chip active" data-range="7" onclick="setReportRange('7')">7 Days</button>
+          <button class="order-filter-chip" data-range="15" onclick="setReportRange('15')">15 Days</button>
+          <button class="order-filter-chip" data-range="30" onclick="setReportRange('30')">1 Month</button>
+          <button class="order-filter-chip" data-range="custom" onclick="setReportRange('custom')">Custom</button>
+        </div>
+        <div class="form-row2" id="reportCustomDates" style="display:none;">
+          <div class="form-group"><label class="form-label">From</label><input class="form-input" type="date" id="report_from"></div>
+          <div class="form-group"><label class="form-label">To</label><input class="form-input" type="date" id="report_to"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;min-width:180px;" onclick="generateOrdersReportPDF()">⬇ Orders Report (PDF)</button>
+          <button class="btn-outline" style="flex:1;min-width:180px;" onclick="generateStockReportPDF()">⬇ Stock Report (PDF)</button>
+        </div>
       </div>
 
       <div class="section-block">
@@ -1268,6 +1320,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
 <script>
   // ---- Supabase setup ----
   const SUPABASE_URL = 'https://imbkegyydoltttfkfndu.supabase.co';
@@ -1623,6 +1677,52 @@
     } else {
       card.style.display = 'none';
     }
+
+    renderRecentOrders();
+    renderDashboardDateOrders(document.getElementById('dashDateInput') ? document.getElementById('dashDateInput').value : '');
+  }
+
+  // ---- Dashboard: recent orders + orders-by-date calendar ----
+  function renderRecentOrders(){
+    const wrap = document.getElementById('recentOrdersList');
+    if(!wrap) return;
+    if(!orders.length){
+      wrap.innerHTML = '<p class="empty-hint">No orders yet.</p>';
+      return;
+    }
+    // `orders` is already loaded sorted by created_at desc, so the first
+    // few entries are simply the most recent ones.
+    const recent = orders.slice(0, 5);
+    wrap.innerHTML = recent.map(o => `
+      <div class="new-order-row" onclick="goView('orders')">
+        <div>
+          <div class="title">${o.customer} <span style="color:var(--muted);font-weight:500;">#${o.id}</span></div>
+          <div class="sub">${o.createdAt ? formatOrderDate(o.createdAt) : ''} · ${o.status}</div>
+        </div>
+        <div class="amt">₹${o.total.toLocaleString('en-IN')}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderDashboardDateOrders(dateStr){
+    const summary = document.getElementById('dashDateSummary');
+    const listWrap = document.getElementById('dashDateOrdersList');
+    if(!summary || !listWrap) return;
+    if(!dateStr){
+      summary.innerHTML = '';
+      listWrap.innerHTML = '';
+      return;
+    }
+    const list = orders.filter(o => o.createdAt && o.createdAt.slice(0,10) === dateStr);
+    const revenue = list.reduce((s,o) => s + (o.total || 0), 0);
+    const dLabel = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+    summary.innerHTML = `
+      <div class="stat-grid" style="margin-bottom:14px;">
+        <div class="stat-card"><div class="num">${list.length}</div><div class="lbl">Orders on ${dLabel}</div></div>
+        <div class="stat-card"><div class="num">₹${revenue.toLocaleString('en-IN')}</div><div class="lbl">Revenue</div></div>
+      </div>
+    `;
+    listWrap.innerHTML = list.length ? list.map(orderCardHtml).join('') : '<p class="empty-hint">Is date par koi order nahi mila.</p>';
   }
 
   // ---- New order alerts ----
@@ -1684,7 +1784,18 @@
   }
 
   function productSubLine(p){
-    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? `<span class="badge on" style="margin-left:6px;">${p.cod_advance_type ? 'PARTIAL COD' : 'COD'}</span>` : ''}`;
+    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? `<span class="badge on" style="margin-left:6px;">${p.cod_advance_type ? 'PARTIAL COD' : 'COD'}</span>` : ''}${productStockBadgeHtml(p)}`;
+  }
+
+  // Shows current stock right on the Products list/grid card (from the same
+  // stock logic used in Inventory) so the admin doesn't need to open Inventory
+  // just to check how much is left.
+  function productStockBadgeHtml(p){
+    const info = getProductStockInfo(p);
+    if(info.status === 'unlimited') return '';
+    if(info.status === 'out') return '<span class="badge warn" style="margin-left:6px;">OUT OF STOCK</span>';
+    if(info.status === 'low') return `<span class="badge low" style="margin-left:6px;">LOW STOCK${info.totalStock != null ? ': ' + info.totalStock : ''}</span>`;
+    return `<span class="badge on" style="margin-left:6px;">STOCK: ${info.totalStock != null ? info.totalStock : '—'}</span>`;
   }
 
   // ---- Shows each variant's name (color/size etc.) as a small chip right on
@@ -1755,12 +1866,22 @@
       wrap.innerHTML = '<p class="empty-hint">No products yet. Tap "+ Add Product" to create one.</p>';
       return;
     }
+
+    const searchEl = document.getElementById('productSearchInput');
+    const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    const list = q ? site.products.filter(p => (p.name || '').toLowerCase().includes(q)) : site.products;
+
+    if(list.length === 0){
+      wrap.className = '';
+      wrap.innerHTML = '<p class="empty-hint">No products match your search.</p>';
+      return;
+    }
     if(productViewMode === 'grid'){
       wrap.className = 'product-grid';
-      wrap.innerHTML = site.products.map(p => productGridCardHtml(p)).join('');
+      wrap.innerHTML = list.map(p => productGridCardHtml(p)).join('');
     } else {
       wrap.className = '';
-      wrap.innerHTML = site.products.map(p => productListRowHtml(p)).join('');
+      wrap.innerHTML = list.map(p => productListRowHtml(p)).join('');
     }
   }
 
@@ -1817,11 +1938,9 @@
     return { hasVariants, totalStock, forcedOut, status };
   }
 
-  function renderInventory(){
-    const wrap = document.getElementById('inventoryList');
-    if(!wrap) return;
-    populateInventoryFilters();
-
+  // Shared by renderInventory() and exportInventoryPDF() so the PDF always
+  // matches exactly what's on screen (search + category/brand/model/stock filters).
+  function getFilteredInventoryList(){
     const q = (document.getElementById('inv_search').value || '').trim().toLowerCase();
     const fCat = document.getElementById('inv_filterCat').value;
     const fBrand = document.getElementById('inv_filterBrand').value;
@@ -1842,6 +1961,15 @@
         return true;
       });
     }
+    return { list, fStock };
+  }
+
+  function renderInventory(){
+    const wrap = document.getElementById('inventoryList');
+    if(!wrap) return;
+    populateInventoryFilters();
+
+    const { list } = getFilteredInventoryList();
 
     document.getElementById('inv_count').textContent = `${list.length} product${list.length === 1 ? '' : 's'}`;
 
@@ -1905,6 +2033,43 @@
         </div>
       `;
     }).join('');
+  }
+
+  // ---- Inventory: Export PDF (respects whatever filters are currently applied,
+  // so selecting "Low Stock (≤5)" in Stock Status before exporting gives a
+  // low-stock-only PDF). ----
+  function stockStatusLabel(status){
+    if(status === 'out') return 'Out of Stock';
+    if(status === 'low') return 'Low Stock';
+    if(status === 'unlimited') return 'Not Tracked';
+    return 'In Stock';
+  }
+  function exportInventoryPDF(){
+    const { list, fStock } = getFilteredInventoryList();
+    if(!list.length){ showToast('Export karne ke liye koi product nahi hai'); return; }
+    if(typeof window.jspdf === 'undefined'){ showToast('PDF library load nahi ho payi — page refresh karke try karein.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const title = fStock === 'low' ? 'Low Stock Report' : (fStock === 'out' ? 'Out of Stock Report' : 'Inventory Report');
+    doc.setFontSize(14);
+    doc.text(`${(site.store && site.store.name) || 'Shyam Auto'} — ${title}`, 14, 15);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}  ·  ${list.length} product${list.length===1?'':'s'}`, 14, 21);
+    const rows = list.map(p => {
+      const info = getProductStockInfo(p);
+      const stockLabel = info.status === 'unlimited' ? '∞' : (info.totalStock != null ? info.totalStock : '—');
+      return [p.name, p.cat || '', p.brand || '', '₹' + (p.price||0).toLocaleString('en-IN'), String(stockLabel), stockStatusLabel(info.status)];
+    });
+    doc.autoTable({
+      startY: 26,
+      head: [['Product', 'Category', 'Brand', 'Price', 'Stock', 'Status']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [184,41,26] }
+    });
+    const filename = `${fStock === 'low' ? 'low-stock' : (fStock === 'out' ? 'out-of-stock' : 'inventory')}-${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(filename);
+    showToast('PDF downloaded');
   }
 
   async function setProductStock(id, val){
@@ -3410,6 +3575,7 @@
   const RECENT_ORDER_DAYS = 3;
   let orderStatusFilter = 'all';
   let orderSearchTerm = '';
+  let orderDateFilter = ''; // 'YYYY-MM-DD' — when set, overrides the "current orders (3 days)" list with that day's orders across ALL orders (current + history)
   let orderHistoryStatusFilter = 'all';
   let orderHistorySearchTerm = '';
 
@@ -3430,8 +3596,16 @@
     orderSearchTerm = val.trim().toLowerCase();
     renderOrders();
   }
+  function filterOrdersByDate(dateStr){
+    orderDateFilter = dateStr || '';
+    renderOrders();
+  }
+  function getOrdersBaseList(){
+    if(orderDateFilter) return orders.filter(o => o.createdAt && o.createdAt.slice(0,10) === orderDateFilter);
+    return getCurrentOrders();
+  }
   function getFilteredOrders(){
-    return getCurrentOrders().filter(o => {
+    return getOrdersBaseList().filter(o => {
       if(orderStatusFilter !== 'all' && o.status !== orderStatusFilter) return false;
       if(orderSearchTerm){
         const hay = [o.customer, o.phone, String(o.id)].join(' ').toLowerCase();
@@ -3470,7 +3644,7 @@
   }
 
   function renderOrderStats(){
-    const cur = getCurrentOrders();
+    const cur = getOrdersBaseList();
     document.getElementById('ordStatTotal').textContent = cur.length;
     document.getElementById('ordStatPending').textContent = cur.filter(o => o.status === 'Pending').length;
     document.getElementById('ordStatShipped').textContent = cur.filter(o => o.status === 'Shipped').length;
@@ -3683,6 +3857,15 @@
     renderOrderStats();
     const wrap = document.getElementById('orderList');
     const list = getFilteredOrders();
+    if(orderDateFilter){
+      const dLabel = new Date(orderDateFilter + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+      if(list.length === 0){
+        wrap.innerHTML = `<p class="empty-hint">Is date (${dLabel}) par koi order nahi mila.</p>`;
+        return;
+      }
+      wrap.innerHTML = list.map(orderCardHtml).join('');
+      return;
+    }
     if(getCurrentOrders().length === 0){
       wrap.innerHTML = '<p class="empty-hint">No current orders. Orders from the last 3 days show up here.</p>';
       return;
@@ -3795,6 +3978,74 @@
     const filename = `${filenamePrefix || 'orders-backup'}-${new Date().toISOString().slice(0,10)}.xlsx`;
     XLSX.writeFile(wb, filename);
     showToast('Excel backup downloaded');
+  }
+
+  // ---- Settings → Reports (custom-range / 7 / 15 / 30 day PDF reports) ----
+  let reportRange = '7';
+  function setReportRange(r){
+    reportRange = r;
+    document.querySelectorAll('#reportRangeRow .order-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.range === r));
+    const customWrap = document.getElementById('reportCustomDates');
+    if(customWrap) customWrap.style.display = r === 'custom' ? 'grid' : 'none';
+  }
+  function getReportDateBounds(){
+    const now = new Date();
+    if(reportRange === 'custom'){
+      const from = document.getElementById('report_from').value;
+      const to = document.getElementById('report_to').value;
+      if(!from || !to){ showToast('Custom range ke liye From aur To dono date select karein'); return null; }
+      return { from: new Date(from + 'T00:00:00'), to: new Date(to + 'T23:59:59'), label: `${from} to ${to}` };
+    }
+    const days = Number(reportRange) || 7;
+    const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    return { from, to: now, label: `Last ${days} days` };
+  }
+  function generateOrdersReportPDF(){
+    const bounds = getReportDateBounds();
+    if(!bounds) return;
+    if(typeof window.jspdf === 'undefined'){ showToast('PDF library load nahi ho payi — page refresh karke try karein.'); return; }
+    const list = orders.filter(o => o.createdAt && new Date(o.createdAt) >= bounds.from && new Date(o.createdAt) <= bounds.to);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(`${(site.store && site.store.name) || 'Shyam Auto'} — Orders Report`, 14, 15);
+    doc.setFontSize(9);
+    doc.text(`Range: ${bounds.label}`, 14, 21);
+    const revenue = list.reduce((s,o) => s + (o.total || 0), 0);
+    doc.text(`Total Orders: ${list.length}   ·   Total Revenue: ₹${revenue.toLocaleString('en-IN')}`, 14, 26);
+    const rows = list.map(o => [String(o.id), o.createdAt ? formatOrderDate(o.createdAt) : '', o.customer, o.phone || '', o.status, o.paymentMethod, '₹' + (o.total||0).toLocaleString('en-IN')]);
+    doc.autoTable({
+      startY: 32,
+      head: [['Order #','Date','Customer','Phone','Status','Payment','Total']],
+      body: rows.length ? rows : [['—','No orders in this range','','','','','']],
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [184,41,26] }
+    });
+    doc.save(`orders-report-${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast(rows.length ? 'PDF downloaded' : 'PDF downloaded (no orders in this range)');
+  }
+  function generateStockReportPDF(){
+    if(typeof window.jspdf === 'undefined'){ showToast('PDF library load nahi ho payi — page refresh karke try karein.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(`${(site.store && site.store.name) || 'Shyam Auto'} — Stock Report`, 14, 15);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}  ·  ${site.products.length} products`, 14, 21);
+    const rows = site.products.map(p => {
+      const info = getProductStockInfo(p);
+      const stockLabel = info.status === 'unlimited' ? '∞' : (info.totalStock != null ? info.totalStock : '—');
+      return [p.name, p.cat || '', p.brand || '', '₹' + (p.price||0).toLocaleString('en-IN'), String(stockLabel), stockStatusLabel(info.status)];
+    });
+    doc.autoTable({
+      startY: 26,
+      head: [['Product','Category','Brand','Price','Stock','Status']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [184,41,26] }
+    });
+    doc.save(`stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('PDF downloaded');
   }
 
   async function updateOrderStatus(id, status){
