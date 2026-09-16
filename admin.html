@@ -1037,7 +1037,12 @@
 
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Mark as SALE</span>
-        <label class="switch"><input type="checkbox" id="p_sale"><span class="switch-track"></span></label>
+        <label class="switch"><input type="checkbox" id="p_sale" onchange="toggleSaleDiscountBlock()"><span class="switch-track"></span></label>
+      </div>
+      <div class="form-group" id="p_saleDiscountBlock" style="display:none;">
+        <label class="form-label">Discount (%)</label>
+        <input class="form-input" id="p_saleDiscount" type="number" min="0" max="99" step="0.01" placeholder="e.g. 20" oninput="applySaleDiscount()">
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;">Selling Price above is calculated automatically from MRP using this %. You can still edit it manually after.</p>
       </div>
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Mark as Out of Stock</span>
@@ -1992,6 +1997,8 @@
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_stock').value = p.stock != null ? p.stock : '';
       document.getElementById('p_sale').checked = !!p.sale;
+      document.getElementById('p_saleDiscount').value = '';
+      toggleSaleDiscountBlock();
       document.getElementById('p_outOfStock').checked = p.in_stock === false;
       document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
       document.getElementById('p_desc').value = p.desc || '';
@@ -2015,6 +2022,8 @@
       document.getElementById('p_mrp').value = '';
       document.getElementById('p_stock').value = '';
       document.getElementById('p_sale').checked = false;
+      document.getElementById('p_saleDiscount').value = '';
+      toggleSaleDiscountBlock();
       document.getElementById('p_outOfStock').checked = false;
       document.getElementById('p_heroBanner').checked = false;
       document.getElementById('p_desc').value = '';
@@ -2066,6 +2075,17 @@
   });
 
   // ---- Product variants ----
+  function toggleSaleDiscountBlock(){
+    const on = document.getElementById('p_sale').checked;
+    document.getElementById('p_saleDiscountBlock').style.display = on ? 'block' : 'none';
+    if(on) applySaleDiscount();
+  }
+  function applySaleDiscount(){
+    const pct = Number(document.getElementById('p_saleDiscount').value);
+    const mrp = Number(document.getElementById('p_mrp').value);
+    if(!pct || !mrp) return;
+    document.getElementById('p_price').value = Math.round(mrp - (mrp * pct / 100));
+  }
   function toggleVariantMode(){
     const on = document.getElementById('p_hasVariants').checked;
     document.getElementById('p_variantsBlock').style.display = on ? 'block' : 'none';
