@@ -1094,7 +1094,7 @@
         <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
         <label class="switch"><input type="checkbox" id="p_heroBanner"><span class="switch-track"></span></label>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Turning this on links this product to <strong>Banner 1</strong> of the homepage hero carousel — tapping that banner opens this product. Enabling it here replaces whatever was linked to Banner 1 before. Banners 2 &amp; 3 can be linked from Banners &amp; Homepage Text.</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Turning this ON links this product to <strong>Banner 1</strong> of the homepage hero carousel — tapping that banner opens this product, replacing whatever was linked before. Turning it OFF here does nothing (it won't remove an existing link) — to unlink Banner 1, go to Appearance → Banners &amp; Homepage Text and set "Links to product" to "— None —". Banners 2 &amp; 3 are set from there too.</p>
       <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="p_desc"></textarea></div>
       <label class="form-label">Specifications</label>
       <div id="specRows"></div>
@@ -1375,16 +1375,22 @@
     // ---- Hero banners: up to 3 auto-scroll slides. Migrates old single-image
     // hero fields into Banner 1 the first time a store loads this admin. ----
     const heroObj = Object.assign({}, defaultHero, siteRow.hero);
-    let heroBanners = Array.isArray(heroObj.banners) ? heroObj.banners.filter(Boolean) : [];
-    if(!heroBanners.length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
+    const rawHeroBanners = Array.isArray(heroObj.banners) ? heroObj.banners : [];
+    let heroBanners;
+    if(!rawHeroBanners.filter(Boolean).length && (siteRow.hero_image_url || siteRow.hero_image_mobile_url)){
       heroBanners = [{
         ctaPrimary: heroObj.ctaPrimary || 'Shop Now',
         productId: heroObj.productId != null ? heroObj.productId : null,
         imageUrl: siteRow.hero_image_url || null,
         imageMobileUrl: siteRow.hero_image_mobile_url || null
       }];
+    } else {
+      heroBanners = rawHeroBanners.slice();
     }
-    while(heroBanners.length < HERO_BANNER_SLOTS) heroBanners.push(emptyHeroBanner());
+    // Keep exactly HERO_BANNER_SLOTS banners at their original positions (index 0 =
+    // Banner 1, etc.) — never filter out empty/null slots and shift the rest down,
+    // or a later banner's product link can end up saved against the wrong slot.
+    heroBanners = Array.from({length: HERO_BANNER_SLOTS}, (_, idx) => heroBanners[idx] || emptyHeroBanner());
     heroObj.banners = heroBanners;
 
     return {
@@ -2388,18 +2394,21 @@
     saveBtn.disabled = false;
     if(error){ showToast(error.message); return; }
 
-    // ---- Sync "Add to Home Hero Banner" toggle with Banner 1's product link ----
-    const heroBanners0 = (site.hero && Array.isArray(site.hero.banners)) ? site.hero.banners.slice() : [];
-    while(heroBanners0.length < HERO_BANNER_SLOTS) heroBanners0.push(emptyHeroBanner());
-    const currentHeroProductId = heroBanners0[0].productId != null ? Number(heroBanners0[0].productId) : null;
-    if(wantsHeroBanner && savedProductId != null && currentHeroProductId !== Number(savedProductId)){
-      heroBanners0[0] = Object.assign({}, heroBanners0[0], { productId: Number(savedProductId) });
-      site.hero = Object.assign({}, site.hero, { banners: heroBanners0 });
-      await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
-    } else if(!wantsHeroBanner && savedProductId != null && currentHeroProductId === Number(savedProductId)){
-      heroBanners0[0] = Object.assign({}, heroBanners0[0], { productId: null });
-      site.hero = Object.assign({}, site.hero, { banners: heroBanners0 });
-      await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
+    // ---- "Add to Home Hero Banner" toggle: a shortcut to LINK this product to
+    // Banner 1 (same as picking it in Appearance → Banners). It only ever SETS
+    // the link when turned on here — it never clears Banner 1's link on save,
+    // even if this happens to be the currently-linked product and the toggle
+    // is off, so an unrelated edit can never silently unlink Banner 1. To
+    // remove a banner's product link, use "— None —" in Appearance → Banners.
+    if(wantsHeroBanner && savedProductId != null){
+      const heroBanners0 = (site.hero && Array.isArray(site.hero.banners)) ? site.hero.banners.slice() : [];
+      while(heroBanners0.length < HERO_BANNER_SLOTS) heroBanners0.push(emptyHeroBanner());
+      const currentHeroProductId = heroBanners0[0].productId != null ? Number(heroBanners0[0].productId) : null;
+      if(currentHeroProductId !== Number(savedProductId)){
+        heroBanners0[0] = Object.assign({}, heroBanners0[0], { productId: Number(savedProductId) });
+        site.hero = Object.assign({}, site.hero, { banners: heroBanners0 });
+        await sb.from('site_content').update({ hero: site.hero }).eq('id', 1);
+      }
     }
 
     site = await loadSite();
