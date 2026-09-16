@@ -2081,9 +2081,14 @@
     if(on) applySaleDiscount();
   }
   function applySaleDiscount(){
-    const pct = Number(document.getElementById('p_saleDiscount').value);
+    const raw = document.getElementById('p_saleDiscount').value;
     const mrp = Number(document.getElementById('p_mrp').value);
-    if(!pct || !mrp) return;
+    if(!mrp) return;
+    const pct = Number(raw);
+    if(raw === '' || !pct){
+      document.getElementById('p_price').value = mrp;
+      return;
+    }
     document.getElementById('p_price').value = Math.round(mrp - (mrp * pct / 100));
   }
   function toggleVariantMode(){
