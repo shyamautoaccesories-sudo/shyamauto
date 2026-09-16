@@ -1083,6 +1083,12 @@
   <div class="hero-carousel-dots" id="heroCarouselDots"></div>
 </section>
 
+<!-- Sale -->
+<section class="block" id="saleSection" style="display:none;">
+  <div class="section-head"><h2>🔥 On Sale</h2><a href="#" onclick="showProducts('section','sale');return false;">View all</a></div>
+  <div class="product-scroll" id="saleGrid"></div>
+</section>
+
 <!-- Categories -->
 <section class="block" id="shopByCategory">
   <div class="section-head">
@@ -1981,7 +1987,7 @@
 
   let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
-  let bestsellers = [], newArrivals = [], helmets = [];
+  let bestsellers = [], newArrivals = [], helmets = [], saleProducts = [];
   let categories = [];
 
   const iconSvg = `<svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 0 1 16 0v2H4z"/><circle cx="12" cy="18" r="1"/></svg>`;
@@ -2010,6 +2016,7 @@
     bestsellers = products.slice(0,5);
     newArrivals = products.slice(5,10);
     helmets = products.filter(p => p.cat === "Helmets");
+    saleProducts = products.filter(p => p.sale);
     categories = [...new Set(products.map(p => p.cat))];
 
     // ---- Hero banner (auto-scroll carousel, up to 3 slides) ----
@@ -2047,6 +2054,8 @@
     document.getElementById('bestsellerGrid').innerHTML = bestsellers.map(cardHtml).join('');
     document.getElementById('newArrivalGrid').innerHTML = newArrivals.map(cardHtml).join('');
     document.getElementById('helmetGrid').innerHTML = helmets.map(cardHtml).join('');
+    document.getElementById('saleGrid').innerHTML = saleProducts.map(cardHtml).join('');
+    document.getElementById('saleSection').style.display = saleProducts.length ? 'block' : 'none';
 
     // Keep in-page product listing (if currently open) in sync too
     if(productsView && productsView.style.display !== 'none'){
@@ -2214,6 +2223,7 @@
       activeGearBrand ? activeGearBrand :
       activeSection === 'bestsellers' ? 'Bestsellers' :
       activeSection === 'new' ? 'New Arrivals' :
+      activeSection === 'sale' ? 'On Sale' :
       activeCat !== 'All' ? activeCat : 'All Products';
     renderChips();
     renderProductGrid();
@@ -2324,6 +2334,7 @@
     let list = products.slice();
     if(activeSection === 'bestsellers') list = list.slice(0,5);
     else if(activeSection === 'new') list = list.slice(5,10);
+    else if(activeSection === 'sale') list = list.filter(p => p.sale);
     if(activeCat !== 'All') list = list.filter(p => p.cat === activeCat);
     if(activeModel) list = list.filter(p => (p.bike_model_ids || []).includes(activeModel));
     if(activeGearBrand) list = list.filter(p => p.brand === activeGearBrand);
