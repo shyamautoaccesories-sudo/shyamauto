@@ -305,6 +305,18 @@
     background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
   }
 
+  /* ---------- Quick model/brand chips (below the Filters button) ---------- */
+  .model-chip-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding-bottom:2px;}
+  .model-chip-scroll::-webkit-scrollbar{display:none;}
+  .model-chip{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:12.5px;font-weight:600;
+    white-space:nowrap;
+  }
+  .model-chip .opt-count{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
+  .model-chip.active{background:var(--yellow);border-color:var(--yellow);color:#fff;}
+  .model-chip.active .opt-count{color:rgba(255,255,255,0.85);}
+
   /* ---------- Filters drawer (right side sheet, Flipkart/Amazon style) ---------- */
   .filter-overlay{
     position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:70;
@@ -1292,6 +1304,7 @@
         </select>
       </div>
     </div>
+    <div class="model-chip-scroll" id="modelChipsRow" style="display:none;"></div>
   </div>
   <div class="grid-wrap">
     <div class="product-grid" id="productGrid"></div>
@@ -2330,6 +2343,40 @@
     if(productFilters.models.has(id)) productFilters.models.delete(id); else productFilters.models.add(id);
     renderProductGrid();
   }
+
+  // Quick model/brand chips shown below the Filters button on a listing
+  // page (e.g. after tapping into a category from "Shop by Category").
+  // Unlike the drawer's checkboxes (multi-select), tapping a chip here is
+  // single-select: pick one to show only that bike's products, tap the
+  // same chip again to clear it and show every brand/model again.
+  function toggleQuickModelChip(id){
+    const alreadyOnlySelected = productFilters.models.has(id) && productFilters.models.size === 1;
+    productFilters.models.clear();
+    if(!alreadyOnlySelected) productFilters.models.add(id);
+    renderProductGrid();
+  }
+
+  function renderModelChips(contextList){
+    const row = document.getElementById('modelChipsRow');
+    if(!row) return;
+    // Hidden on a page already scoped to one model — nothing left to pick.
+    if(activeModel){ row.style.display = 'none'; row.innerHTML = ''; return; }
+    const modelCounts = {};
+    contextList.forEach(p => (p.bike_model_ids || []).forEach(id => { modelCounts[id] = (modelCounts[id]||0)+1; }));
+    const modelIds = Object.keys(modelCounts).map(Number).filter(id => site.bikeModels.some(m => m.id === id));
+    if(!modelIds.length){ row.style.display = 'none'; row.innerHTML = ''; return; }
+    row.style.display = 'flex';
+    row.innerHTML = modelIds.map(id => {
+      const m = site.bikeModels.find(mm => mm.id === id);
+      const active = productFilters.models.has(id);
+      return `
+        <button type="button" class="model-chip ${active ? 'active' : ''}" onclick="toggleQuickModelChip(${id})">
+          ${m.brand} ${m.name}
+          <span class="opt-count">${modelCounts[id]}</span>
+        </button>
+      `;
+    }).join('');
+  }
   function togglePriceFilter(key){
     if(productFilters.priceBuckets.has(key)) productFilters.priceBuckets.delete(key); else productFilters.priceBuckets.add(key);
     renderProductGrid();
@@ -2470,6 +2517,7 @@
       : '<p class="empty-state">No products found in this filter.</p>';
 
     renderFilterPanel(contextList);
+    renderModelChips(contextList);
     updateFilterCountDot();
   }
   document.getElementById('sortSelect').addEventListener('change', renderProductGrid);
