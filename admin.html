@@ -1040,6 +1040,13 @@
         <label class="switch"><input type="checkbox" id="p_sale" onchange="toggleSaleDiscountBlock()"><span class="switch-track"></span></label>
       </div>
       <div class="form-group" id="p_saleDiscountBlock" style="display:none;">
+        <div id="p_saleVariantPicker" style="display:none;margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--line);">
+          <label class="form-label">Apply Sale To</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;margin:6px 0;">
+            <input type="checkbox" id="p_saleAllVariants" onchange="toggleAllVariantSale()"> All Variants
+          </label>
+          <div id="p_saleVariantList" style="display:flex;flex-direction:column;gap:7px;"></div>
+        </div>
         <label class="form-label">Discount (%)</label>
         <input class="form-input" id="p_saleDiscount" type="number" min="0" max="99" step="0.01" placeholder="e.g. 20" oninput="applySaleDiscount()">
         <p style="font-size:11px;color:var(--muted);margin-top:6px;">Selling Price above is calculated automatically from MRP using this %. You can still edit it manually after.</p>
@@ -2009,6 +2016,7 @@
       document.getElementById('p_hasVariants').checked = hasVariants;
       if(hasVariants) p.variants.forEach(v => addVariantRow(v));
       toggleVariantMode();
+      if(hasVariants && p.sale) renderSaleVariantPicker(p.variants);
     } else {
       document.getElementById('p_name').value = '';
       document.getElementById('p_brand').value = '';
@@ -2078,16 +2086,66 @@
   function toggleSaleDiscountBlock(){
     const on = document.getElementById('p_sale').checked;
     setSaleDiscountBlockVisibility(on);
+    const hasVariants = document.getElementById('p_hasVariants').checked;
+    document.getElementById('p_saleVariantPicker').style.display = (on && hasVariants) ? 'block' : 'none';
+    if(on && hasVariants) renderSaleVariantPicker();
     if(on) applySaleDiscount();
   }
   function setSaleDiscountBlockVisibility(on){
     document.getElementById('p_saleDiscountBlock').style.display = on ? 'block' : 'none';
   }
+  function renderSaleVariantPicker(sourceVariants){
+    const wrap = document.getElementById('p_saleVariantList');
+    if(!wrap) return;
+    const cards = Array.from(document.querySelectorAll('#variantRows .variant-card'));
+    const prevChecked = Array.from(wrap.querySelectorAll('.sale-variant-check')).map(c => c.checked);
+    wrap.innerHTML = cards.length ? cards.map((card, i) => {
+      const name = card.querySelector('.variant-name').value.trim() || `Variant ${i + 1}`;
+      const checked = sourceVariants ? !!(sourceVariants[i] && sourceVariants[i].sale) : !!prevChecked[i];
+      return `<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;">
+        <input type="checkbox" class="sale-variant-check" data-idx="${i}" ${checked ? 'checked' : ''} onchange="onSaleVariantCheckChange()">
+        ${name}
+      </label>`;
+    }).join('') : '<p style="font-size:11.5px;color:var(--muted);">Add a variant first.</p>';
+    updateSaleAllVariantsCheckboxState();
+  }
+  function refreshSaleVariantPickerIfVisible(){
+    const picker = document.getElementById('p_saleVariantPicker');
+    if(picker && picker.style.display !== 'none') renderSaleVariantPicker();
+  }
+  function updateSaleAllVariantsCheckboxState(){
+    const checks = Array.from(document.querySelectorAll('#p_saleVariantList .sale-variant-check'));
+    const allEl = document.getElementById('p_saleAllVariants');
+    if(!allEl) return;
+    allEl.checked = checks.length > 0 && checks.every(c => c.checked);
+  }
+  function toggleAllVariantSale(){
+    const all = document.getElementById('p_saleAllVariants').checked;
+    document.querySelectorAll('#p_saleVariantList .sale-variant-check').forEach(c => c.checked = all);
+    applySaleDiscount();
+  }
+  function onSaleVariantCheckChange(){
+    updateSaleAllVariantsCheckboxState();
+    applySaleDiscount();
+  }
   function applySaleDiscount(){
     const raw = document.getElementById('p_saleDiscount').value;
+    const pct = Number(raw);
+    const hasVariants = document.getElementById('p_hasVariants').checked;
+    if(hasVariants){
+      const cards = Array.from(document.querySelectorAll('#variantRows .variant-card'));
+      document.querySelectorAll('#p_saleVariantList .sale-variant-check').forEach(chk => {
+        const card = cards[Number(chk.dataset.idx)];
+        if(!card || !chk.checked) return;
+        const mrp = Number(card.querySelector('.variant-mrp').value);
+        if(!mrp) return;
+        const priceInput = card.querySelector('.variant-price');
+        priceInput.value = (raw === '' || !pct) ? mrp : Math.round(mrp - (mrp * pct / 100));
+      });
+      return;
+    }
     const mrp = Number(document.getElementById('p_mrp').value);
     if(!mrp) return;
-    const pct = Number(raw);
     if(raw === '' || !pct){
       document.getElementById('p_price').value = mrp;
       return;
@@ -2101,6 +2159,10 @@
     if(on && document.querySelectorAll('#variantRows .variant-card').length === 0){
       addVariantRow();
     }
+    const salePicker = document.getElementById('p_saleVariantPicker');
+    const saleOn = document.getElementById('p_sale').checked;
+    salePicker.style.display = (on && saleOn) ? 'block' : 'none';
+    if(on && saleOn) renderSaleVariantPicker();
   }
 
   function addVariantRow(v){
@@ -2110,8 +2172,8 @@
     row.className = 'variant-card';
     row.innerHTML = `
       <div class="variant-card-head">
-        <input class="form-input variant-name" placeholder="Variant name (e.g. Red — Medium)" value="${v.name || ''}">
-        <button type="button" class="variant-remove" onclick="this.closest('.variant-card').remove()">
+        <input class="form-input variant-name" placeholder="Variant name (e.g. Red — Medium)" value="${v.name || ''}" oninput="refreshSaleVariantPickerIfVisible()">
+        <button type="button" class="variant-remove" onclick="this.closest('.variant-card').remove(); refreshSaleVariantPickerIfVisible();">
           <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -2121,6 +2183,7 @@
         <div><label class="form-label">Stock Qty</label><input class="form-input variant-stock" type="number" value="${v.stock != null ? v.stock : ''}"></div>
       </div>`;
     wrap.appendChild(row);
+    refreshSaleVariantPickerIfVisible();
   }
 
   function addSpecRow(key, val){
@@ -2144,11 +2207,12 @@
     let price, mrp, variants = [];
 
     if(hasVariants){
-      variants = Array.from(document.querySelectorAll('#variantRows .variant-card')).map(card => ({
+      variants = Array.from(document.querySelectorAll('#variantRows .variant-card')).map((card, i) => ({
         name: card.querySelector('.variant-name').value.trim(),
         price: Number(card.querySelector('.variant-price').value) || 0,
         mrp: Number(card.querySelector('.variant-mrp').value) || null,
-        stock: card.querySelector('.variant-stock').value === '' ? null : Number(card.querySelector('.variant-stock').value)
+        stock: card.querySelector('.variant-stock').value === '' ? null : Number(card.querySelector('.variant-stock').value),
+        sale: document.getElementById('p_sale').checked && !!document.querySelector(`#p_saleVariantList .sale-variant-check[data-idx="${i}"]`)?.checked
       })).filter(v => v.name && v.price > 0);
 
       if(variants.length === 0){ showToast('Add at least one variant with a name and price'); return; }
