@@ -110,6 +110,9 @@
   .grid-card .grid-actions button:first-child{border-right:1px solid var(--line);}
   .grid-card .grid-actions svg{width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2;}
   .grid-card .grid-actions button.danger svg{stroke:var(--red);}
+  .variant-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+  .variant-chip{font-family:var(--font-mono);font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:5px;background:rgba(29,95,191,0.1);color:var(--blue);border:1px solid rgba(29,95,191,0.25);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .variant-chip.more{background:var(--surface-2);color:var(--muted);border-color:var(--line);}
   .badge{font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:5px;}
   .badge.on{background:rgba(30,158,92,0.12);color:var(--green);}
   .badge.off{background:var(--surface-2);color:var(--muted);}
@@ -1029,9 +1032,9 @@
         <button class="add-variant-btn" onclick="addVariantRow()">+ Add Variant</button>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Delivery Charge (₹)</label>
-        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Added on top of the Selling Price at checkout — for every order of this product, whether the customer pays Online or via COD. So if COD is left OFF below and only Online Payment is offered, this charge still applies to the online total (e.g. Selling Price ₹5,800 + Delivery Charge ₹200 = customer pays ₹6,000 online). Leave blank or 0 and the Delivery Charge row won't appear at checkout at all.</p>
+      <div class="form-group" style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;">
+        <label class="form-label" style="margin-bottom:4px;">Online Delivery Charge (₹)</label>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Works for Online Payment orders — even if COD stays OFF below. e.g. Selling Price ₹5,800 + Delivery Charge ₹200 = customer pays ₹6,000 online. Leave blank or 0 to charge nothing (row won't show at checkout).</p>
         <input class="form-input" id="p_deliveryCharge" type="number" step="1" min="0" placeholder="0">
       </div>
 
@@ -1678,6 +1681,16 @@
     return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? `<span class="badge on" style="margin-left:6px;">${p.cod_advance_type ? 'PARTIAL COD' : 'COD'}</span>` : ''}`;
   }
 
+  // ---- Shows each variant's name (color/size etc.) as a small chip right on
+  // the Products list/grid card, so the admin can see them without opening Edit. ----
+  function productVariantChipsHtml(p){
+    if(!p.variants || !p.variants.length) return '';
+    const max = 4;
+    const shown = p.variants.slice(0, max).map(v => `<span class="variant-chip">${v.name || 'Unnamed'}</span>`).join('');
+    const extra = p.variants.length > max ? `<span class="variant-chip more">+${p.variants.length - max} more</span>` : '';
+    return `<div class="variant-chips">${shown}${extra}</div>`;
+  }
+
   function productListRowHtml(p){
     return `
       <div class="row-card">
@@ -1687,6 +1700,7 @@
         <div class="row-info">
           <div class="title">${p.name}</div>
           <div class="sub">${productSubLine(p)}</div>
+          ${productVariantChipsHtml(p)}
         </div>
         <div class="row-actions">
           <button class="icon-sm" onclick="openProductSheet(${p.id})" aria-label="Edit">
@@ -1709,6 +1723,7 @@
         <div class="grid-info">
           <div class="title">${p.name}</div>
           <div class="sub">${productSubLine(p)}</div>
+          ${productVariantChipsHtml(p)}
         </div>
         <div class="grid-actions">
           <button onclick="openProductSheet(${p.id})" aria-label="Edit">
