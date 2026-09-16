@@ -258,6 +258,7 @@
   .card-body{padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;flex:1;}
   .card-cat{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
   .card-name{font-size:12.5px;font-weight:600;line-height:1.25;min-height:31px;}
+  .card-variants{font-size:9.5px;color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-3px;}
   .plate{
     display:inline-flex;align-items:baseline;gap:4px;
     background:linear-gradient(180deg, #8F2013, var(--yellow));color:#fff;
@@ -2093,6 +2094,7 @@
       <div class="card-body">
         <span class="card-cat">${p.cat}${p.brand ? ` · ${p.brand}` : ''}</span>
         <p class="card-name">${p.name}</p>
+        ${hasVariants ? `<span class="card-variants">${p.variants.map(v => v.name).filter(Boolean).join(' · ')}</span>` : ''}
         <span class="plate"><span class="price">${hasVariants ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')}</span>${p.sale ? `<span class="mrp">₹${p.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
         <div class="card-foot">
           <span class="rating">★ ${p.rating}</span>
