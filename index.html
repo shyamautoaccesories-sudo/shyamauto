@@ -306,8 +306,10 @@
   }
 
   /* ---------- Quick model/brand chips (below the Filters button) ---------- */
-  .model-chip-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding-bottom:2px;}
+  .model-chip-wrap{display:flex;align-items:center;gap:6px;margin-top:10px;}
+  .model-chip-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding-bottom:2px;}
   .model-chip-scroll::-webkit-scrollbar{display:none;}
+  .model-chip-arrow{display:none;}
   .model-chip{
     flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;
     border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:12.5px;font-weight:600;
@@ -1000,6 +1002,7 @@
     .deal-banner{margin:32px auto 8px;max-width:1200px;}
     footer{padding:40px 40px 28px;max-width:1200px;margin:0 auto;}
     .filter-bar{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
+    .model-chip-arrow{display:flex;}
     .grid-wrap{padding:20px 40px 40px;max-width:1200px;margin:0 auto;}
     .product-grid{grid-template-columns:repeat(5,1fr);}
     .model-grid{grid-template-columns:repeat(4,1fr);}
@@ -1304,7 +1307,15 @@
         </select>
       </div>
     </div>
-    <div class="model-chip-scroll" id="modelChipsRow" style="display:none;"></div>
+    <div class="model-chip-wrap" id="modelChipsWrap" style="display:none;">
+      <button type="button" class="carousel-arrow prev model-chip-arrow" onclick="scrollCarousel('modelChipsRow',-1)" aria-label="Scroll left">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="model-chip-scroll" id="modelChipsRow"></div>
+      <button type="button" class="carousel-arrow next model-chip-arrow" onclick="scrollCarousel('modelChipsRow',1)" aria-label="Scroll right">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
   </div>
   <div class="grid-wrap">
     <div class="product-grid" id="productGrid"></div>
@@ -2209,7 +2220,7 @@
   function scrollCarousel(id, dir){
     const el = document.getElementById(id);
     if(!el) return;
-    const card = el.querySelector('.shop-card');
+    const card = el.firstElementChild;
     const step = card ? card.getBoundingClientRect().width + 12 : 200;
     el.scrollBy({ left: dir * step * 3, behavior: 'smooth' });
   }
@@ -2339,11 +2350,6 @@
     if(productFilters.brands.has(brand)) productFilters.brands.delete(brand); else productFilters.brands.add(brand);
     renderProductGrid();
   }
-  function toggleModelFilter(id){
-    if(productFilters.models.has(id)) productFilters.models.delete(id); else productFilters.models.add(id);
-    renderProductGrid();
-  }
-
   // Quick model/brand chips shown below the Filters button on a listing
   // page (e.g. after tapping into a category from "Shop by Category").
   // Unlike the drawer's checkboxes (multi-select), tapping a chip here is
@@ -2357,15 +2363,16 @@
   }
 
   function renderModelChips(contextList){
+    const wrap = document.getElementById('modelChipsWrap');
     const row = document.getElementById('modelChipsRow');
-    if(!row) return;
+    if(!wrap || !row) return;
     // Hidden on a page already scoped to one model — nothing left to pick.
-    if(activeModel){ row.style.display = 'none'; row.innerHTML = ''; return; }
+    if(activeModel){ wrap.style.display = 'none'; row.innerHTML = ''; return; }
     const modelCounts = {};
     contextList.forEach(p => (p.bike_model_ids || []).forEach(id => { modelCounts[id] = (modelCounts[id]||0)+1; }));
     const modelIds = Object.keys(modelCounts).map(Number).filter(id => site.bikeModels.some(m => m.id === id));
-    if(!modelIds.length){ row.style.display = 'none'; row.innerHTML = ''; return; }
-    row.style.display = 'flex';
+    if(!modelIds.length){ wrap.style.display = 'none'; row.innerHTML = ''; return; }
+    wrap.style.display = 'flex';
     row.innerHTML = modelIds.map(id => {
       const m = site.bikeModels.find(mm => mm.id === id);
       const active = productFilters.models.has(id);
@@ -2416,29 +2423,8 @@
       }
     }
 
-    // Bike Model — hidden on a page already scoped to one model.
-    if(!activeModel){
-      const modelCounts = {};
-      contextList.forEach(p => (p.bike_model_ids || []).forEach(id => { modelCounts[id] = (modelCounts[id]||0)+1; }));
-      const modelIds = Object.keys(modelCounts).map(Number).filter(id => site.bikeModels.some(m => m.id === id));
-      if(modelIds.length >= 1){
-        sections.push(`
-          <div class="filter-section">
-            <div class="filter-section-title">Bike Model</div>
-            ${modelIds.map(id => {
-              const m = site.bikeModels.find(mm => mm.id === id);
-              return `
-                <label class="filter-option">
-                  <input type="checkbox" ${productFilters.models.has(id) ? 'checked' : ''} onchange="toggleModelFilter(${id})">
-                  ${m.brand} ${m.name}
-                  <span class="opt-count">${modelCounts[id]}</span>
-                </label>
-              `;
-            }).join('')}
-          </div>
-        `);
-      }
-    }
+    // Bike Model is not shown here anymore — it's available as quick chips
+    // right below the Filters button on the listing page itself.
 
     // Price — always shown.
     const priceCounts = priceBuckets.map(b => ({ ...b, count: contextList.filter(p => Number(p.price) >= b.min && Number(p.price) < b.max).length }));
@@ -4305,6 +4291,13 @@
     site = await loadSiteContent();
     renderStorefront();
     trackPageView();
+
+    // Deep links from the header on other pages (About Us, Policies, etc.) —
+    // tapping Search or Cart there sends the shopper here with a flag so the
+    // matching overlay opens as soon as the storefront has loaded.
+    const headerParams = new URLSearchParams(window.location.search);
+    if(headerParams.get('openSearch') === '1') openSearch();
+    if(headerParams.get('openCart') === '1') openCart();
   })();
 </script>
 </body>
