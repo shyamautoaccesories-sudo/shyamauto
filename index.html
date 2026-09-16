@@ -1656,9 +1656,8 @@
       <div class="checkout-summary-row checkout-summary-discount" id="checkoutDiscountRow" style="display:none;"><span>Discount</span><span id="checkoutDiscountAmount">−₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutDeliveryRow" style="display:none;"><span>Delivery Charge</span><span id="checkoutDeliveryAmount">₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRow" style="display:none;"><span>COD Charge</span><span id="checkoutCodAmount">₹0</span></div>
-      <div class="checkout-summary-row checkout-summary-sub" id="checkoutAdvanceRow" style="display:none;"><span>Pay Online Now</span><span id="checkoutAdvanceAmount">₹0</span></div>
-      <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRemainingRow" style="display:none;"><span>Pay via COD</span><span id="checkoutCodRemainingAmount">₹0</span></div>
-      <div class="checkout-summary-row"><span>Order Total</span><span id="checkoutTotal">₹0</span></div>
+      <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRemainingRow" style="display:none;"><span>Pay via COD (on delivery)</span><span id="checkoutCodRemainingAmount">₹0</span></div>
+      <div class="checkout-summary-row"><span id="checkoutTotalLabel">Order Total</span><span id="checkoutTotal">₹0</span></div>
     </div>
     <div class="pdp-foot">
       <button class="pdp-add-btn" id="placeOrderBtn" style="flex:1;">Place Order</button>
@@ -2740,19 +2739,19 @@
     }
 
     const grandTotal = total + deliveryCharge + codCharge;
-    document.getElementById('checkoutTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
 
-    const advanceRow = document.getElementById('checkoutAdvanceRow');
     const codRemainingRow = document.getElementById('checkoutCodRemainingRow');
     const advanceAmount = isCod ? Math.min(grandTotal, keysCodAdvance()) : 0;
+    const totalLabelEl = document.getElementById('checkoutTotalLabel');
     if(isCod && advanceAmount > 0){
-      advanceRow.style.display = 'flex';
       codRemainingRow.style.display = 'flex';
-      document.getElementById('checkoutAdvanceAmount').textContent = '₹' + advanceAmount.toLocaleString('en-IN');
       document.getElementById('checkoutCodRemainingAmount').textContent = '₹' + (grandTotal - advanceAmount).toLocaleString('en-IN');
+      totalLabelEl.textContent = 'Pay Now (Online)';
+      document.getElementById('checkoutTotal').textContent = '₹' + advanceAmount.toLocaleString('en-IN');
     } else {
-      advanceRow.style.display = 'none';
       codRemainingRow.style.display = 'none';
+      totalLabelEl.textContent = 'Order Total';
+      document.getElementById('checkoutTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
     }
     return grandTotal;
   }
