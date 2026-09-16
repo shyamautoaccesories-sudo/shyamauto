@@ -1036,6 +1036,16 @@
       </div>
 
       <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Cash on Delivery (COD)</span>
+        <label class="switch"><input type="checkbox" id="p_codEnabled" onchange="toggleCodChargeBlock()"><span class="switch-track"></span></label>
+      </div>
+      <div class="form-group" id="p_codChargeBlock" style="display:none;">
+        <label class="form-label">COD Charge (₹)</label>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Extra charge added per unit only when the customer pays via Cash on Delivery for this product (on top of the Delivery Charge above). Leave blank or 0 for no extra COD charge.</p>
+        <input class="form-input" id="p_codCharge" type="number" step="1" min="0" placeholder="0">
+      </div>
+
+      <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Mark as SALE</span>
         <label class="switch"><input type="checkbox" id="p_sale" onchange="toggleSaleDiscountBlock()"><span class="switch-track"></span></label>
       </div>
@@ -1327,6 +1337,8 @@
       breadth_cm: p.breadth_cm != null ? Number(p.breadth_cm) : null,
       height_cm: p.height_cm != null ? Number(p.height_cm) : null,
       delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0,
+      cod_enabled: !!p.cod_enabled,
+      cod_charge: p.cod_charge != null ? Number(p.cod_charge) : 0,
       variants: Array.isArray(p.variants) ? p.variants : [],
       stock: p.stock != null ? Number(p.stock) : null,
       in_stock: p.in_stock != null ? !!p.in_stock : true
@@ -1637,7 +1649,7 @@
   }
 
   function productSubLine(p){
-    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}`;
+    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? '<span class="badge on" style="margin-left:6px;">COD</span>' : ''}`;
   }
 
   function productListRowHtml(p){
@@ -2000,6 +2012,9 @@
       document.getElementById('p_breadth').value = p.breadth_cm != null ? p.breadth_cm : '';
       document.getElementById('p_height').value = p.height_cm != null ? p.height_cm : '';
       document.getElementById('p_deliveryCharge').value = p.delivery_charge != null ? p.delivery_charge : '';
+      document.getElementById('p_codEnabled').checked = !!p.cod_enabled;
+      document.getElementById('p_codCharge').value = p.cod_charge != null ? p.cod_charge : '';
+      toggleCodChargeBlock();
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_stock').value = p.stock != null ? p.stock : '';
@@ -2026,6 +2041,9 @@
       document.getElementById('p_breadth').value = '';
       document.getElementById('p_height').value = '';
       document.getElementById('p_deliveryCharge').value = '';
+      document.getElementById('p_codEnabled').checked = false;
+      document.getElementById('p_codCharge').value = '';
+      toggleCodChargeBlock();
       document.getElementById('p_price').value = '';
       document.getElementById('p_mrp').value = '';
       document.getElementById('p_stock').value = '';
@@ -2083,6 +2101,10 @@
   });
 
   // ---- Product variants ----
+  function toggleCodChargeBlock(){
+    const on = document.getElementById('p_codEnabled').checked;
+    document.getElementById('p_codChargeBlock').style.display = on ? 'block' : 'none';
+  }
   function toggleSaleDiscountBlock(){
     const on = document.getElementById('p_sale').checked;
     setSaleDiscountBlockVisibility(on);
@@ -2267,6 +2289,8 @@
       breadth_cm: Number(document.getElementById('p_breadth').value) || null,
       height_cm: Number(document.getElementById('p_height').value) || null,
       delivery_charge: Number(document.getElementById('p_deliveryCharge').value) || 0,
+      cod_enabled: document.getElementById('p_codEnabled').checked,
+      cod_charge: document.getElementById('p_codEnabled').checked ? (Number(document.getElementById('p_codCharge').value) || 0) : 0,
       price,
       mrp,
       stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
