@@ -1656,6 +1656,8 @@
       <div class="checkout-summary-row checkout-summary-discount" id="checkoutDiscountRow" style="display:none;"><span>Discount</span><span id="checkoutDiscountAmount">−₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutDeliveryRow" style="display:none;"><span>Delivery Charge</span><span id="checkoutDeliveryAmount">₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRow" style="display:none;"><span>COD Charge</span><span id="checkoutCodAmount">₹0</span></div>
+      <div class="checkout-summary-row checkout-summary-sub" id="checkoutAdvanceRow" style="display:none;"><span>Pay Online Now</span><span id="checkoutAdvanceAmount">₹0</span></div>
+      <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRemainingRow" style="display:none;"><span>Pay via COD</span><span id="checkoutCodRemainingAmount">₹0</span></div>
       <div class="checkout-summary-row"><span>Order Total</span><span id="checkoutTotal">₹0</span></div>
     </div>
     <div class="pdp-foot">
@@ -1961,7 +1963,9 @@
       stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true,
       delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0,
       cod_enabled: !!p.cod_enabled,
-      cod_charge: p.cod_charge != null ? Number(p.cod_charge) : 0
+      cod_charge: p.cod_charge != null ? Number(p.cod_charge) : 0,
+      cod_advance_type: p.cod_advance_type || null,
+      cod_advance_value: p.cod_advance_value != null ? Number(p.cod_advance_value) : null
     }));
     const siteRow = siteRes.data || {};
 
@@ -2666,6 +2670,22 @@
     return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitCodCharge * info.qty : sum; }, 0);
   }
 
+  // ---- Partial COD — some products can require part of their price to be
+  // paid online upfront (fixed ₹ or %), with the rest collected as COD. ----
+  function lineCodAdvance(info){
+    const p = info.product;
+    if(!p.cod_enabled || !p.cod_advance_type) return 0;
+    const lineTotal = info.unitPrice * info.qty;
+    if(p.cod_advance_type === 'percent'){
+      return Math.round(lineTotal * (Number(p.cod_advance_value) || 0) / 100);
+    }
+    return Math.min(lineTotal, Math.round((Number(p.cod_advance_value) || 0) * info.qty));
+  }
+
+  function keysCodAdvance(){
+    return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + lineCodAdvance(info) : sum; }, 0);
+  }
+
   function selectedPaymentMethod(){
     const el = document.querySelector('input[name="coPayment"]:checked');
     return el ? el.value : 'Online (UPI/Card)';
@@ -2721,6 +2741,19 @@
 
     const grandTotal = total + deliveryCharge + codCharge;
     document.getElementById('checkoutTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
+
+    const advanceRow = document.getElementById('checkoutAdvanceRow');
+    const codRemainingRow = document.getElementById('checkoutCodRemainingRow');
+    const advanceAmount = isCod ? Math.min(grandTotal, keysCodAdvance()) : 0;
+    if(isCod && advanceAmount > 0){
+      advanceRow.style.display = 'flex';
+      codRemainingRow.style.display = 'flex';
+      document.getElementById('checkoutAdvanceAmount').textContent = '₹' + advanceAmount.toLocaleString('en-IN');
+      document.getElementById('checkoutCodRemainingAmount').textContent = '₹' + (grandTotal - advanceAmount).toLocaleString('en-IN');
+    } else {
+      advanceRow.style.display = 'none';
+      codRemainingRow.style.display = 'none';
+    }
     return grandTotal;
   }
 
@@ -2734,9 +2767,15 @@
     codOption.style.display = eligible ? 'flex' : 'none';
     if(eligible){
       const codCharge = keysCodCharge();
-      document.getElementById('payCodSub').textContent = codCharge > 0
-        ? `Pay ₹${codCharge.toLocaleString('en-IN')} COD charge + item total on delivery`
-        : 'Pay in cash when your order is delivered';
+      const advanceAmount = keysCodAdvance();
+      if(advanceAmount > 0){
+        const grandTotal = keysTotal() - (appliedCoupon ? appliedCoupon.discountAmount : 0) + keysDeliveryCharge() + codCharge;
+        document.getElementById('payCodSub').textContent = `Pay ₹${advanceAmount.toLocaleString('en-IN')} online now, ₹${Math.max(0, grandTotal - advanceAmount).toLocaleString('en-IN')} via Cash on Delivery`;
+      } else {
+        document.getElementById('payCodSub').textContent = codCharge > 0
+          ? `Pay ₹${codCharge.toLocaleString('en-IN')} COD charge + item total on delivery`
+          : 'Pay in cash when your order is delivered';
+      }
     } else {
       const codRadio = document.querySelector('input[name="coPayment"][value="Cash on Delivery"]');
       if(codRadio && codRadio.checked){
@@ -4231,6 +4270,7 @@
     const codCharge = isCod ? keysCodCharge() : 0;
     const combinedDeliveryCharge = deliveryCharge + codCharge;
     const total = Math.max(0, subtotal - discountAmount) + combinedDeliveryCharge;
+    const advanceAmount = isCod ? Math.min(total, keysCodAdvance()) : 0;
     const couponCode = appliedCoupon ? appliedCoupon.code : null;
 
     async function markCouponUsed(){
@@ -4263,9 +4303,9 @@
       return oversoldNotice;
     }
 
-    // ---- Cash on Delivery — no payment gateway involved, so the order is
-    // inserted straight into `orders` and confirmed immediately. ----
-    if(isCod){
+    // ---- Cash on Delivery (full) — no payment gateway involved, so the
+    // order is inserted straight into `orders` and confirmed immediately. ----
+    if(isCod && advanceAmount <= 0){
       btn.textContent = 'Placing order...';
       const { error: codErr } = await sb.from('orders').insert({
         user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode,
@@ -4291,6 +4331,110 @@
       showOrderResult('success', 'Order Placed!', oversoldNotice
         ? 'Your Cash on Delivery order has been placed. One item had very limited stock — we will confirm availability and contact you if anything needs to change.'
         : `Your order has been placed. Pay ₹${total.toLocaleString('en-IN')} in cash when it's delivered.`);
+      return;
+    }
+
+    // ---- Partial COD — part of the price is paid online via the payment
+    // gateway now, and the rest is collected as cash on delivery. IMPORTANT:
+    // the Razorpay order amount below is decided by your `create-razorpay-
+    // order` Supabase Edge Function, not by this file. That function needs
+    // a small update on your end so that when it receives payment_mode:
+    // 'partial_cod', it looks up each product's own cod_advance_type /
+    // cod_advance_value columns (never trust the client-sent advance_amount
+    // for the actual charge — recompute it server-side) and creates the
+    // Razorpay order for that advance amount instead of the full total.
+    // verify-razorpay-payment similarly needs to save payment_status:
+    // 'partial_cod' plus advance_paid_amount / cod_remaining_amount on the
+    // order row. Until that edge-function change is made, this will still
+    // charge the FULL order total online instead of just the advance.
+    if(isCod && advanceAmount > 0){
+      btn.textContent = 'Starting advance payment...';
+      const remainingCodAmount = total - advanceAmount;
+      const partialOrderPayload = {
+        user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode,
+        items, total, coupon_code: couponCode, discount_amount: discountAmount,
+        delivery_charge: combinedDeliveryCharge,
+        payment_method: 'Cash on Delivery (Partial Advance Paid)',
+        payment_status: 'partial_cod',
+        advance_paid_amount: advanceAmount,
+        cod_remaining_amount: remainingCodAmount
+      };
+      try{
+        const { data: createData, error: createErr } = await sb.functions.invoke('create-razorpay-order', {
+          body: {
+            items: items.map(it => ({ product_id: it.product_id, variant: it.variant, qty: it.qty })),
+            coupon_code: couponCode,
+            receipt: `sa_cod_${Date.now()}`,
+            payment_mode: 'partial_cod',
+            advance_amount: advanceAmount,
+            customer: { user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode }
+          }
+        });
+        if(createErr || !createData || createData.error){
+          throw new Error(createData?.error || createErr?.message || 'Could not start advance payment');
+        }
+
+        const rzpOrder = createData.order;
+
+        const rzp = new Razorpay({
+          key: createData.key_id,
+          amount: rzpOrder.amount,
+          currency: rzpOrder.currency,
+          name: 'Shyam Auto',
+          description: `Advance payment — ₹${remainingCodAmount.toLocaleString('en-IN')} balance on delivery`,
+          order_id: rzpOrder.id,
+          prefill: { name, contact: phoneWithCode },
+          theme: { color: '#f5a623' },
+          handler: async function(response){
+            btn.textContent = 'Confirming payment...';
+            const { data: verifyData, error: verifyErr } = await sb.functions.invoke('verify-razorpay-payment', {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order: partialOrderPayload
+              }
+            });
+            btn.disabled = false;
+            btn.textContent = 'Place Order';
+            if(verifyErr || !verifyData || !verifyData.verified || !verifyData.saved){
+              closeCheckoutFn();
+              showOrderResult('fail', 'Confirming your order…', 'Advance payment received! Your order is being confirmed and will appear shortly. If it doesn\'t show up in a few minutes, contact support with Payment ID: ' + response.razorpay_payment_id, { showButton:true, buttonText:'OK' });
+              return;
+            }
+            await markCouponUsed();
+            const oversoldNotice = await afterStockDecrement();
+            cart = {};
+            saveCartToStorage();
+            renderCart();
+            resetCouponUI();
+            closeCheckoutFn();
+            showOrderResult('success', 'Order Placed!', oversoldNotice
+              ? 'Advance payment successful! Your order has been placed. One item had very limited stock — we will confirm availability and contact you if anything needs to change.'
+              : `Advance payment of ₹${advanceAmount.toLocaleString('en-IN')} received. Pay the remaining ₹${remainingCodAmount.toLocaleString('en-IN')} in cash when it's delivered.`);
+          },
+          modal: {
+            ondismiss: function(){
+              btn.disabled = false;
+              btn.textContent = 'Place Order';
+              showToast('Payment cancelled');
+            }
+          }
+        });
+        rzp.on('payment.failed', function(){
+          btn.disabled = false;
+          btn.textContent = 'Place Order';
+          closeCheckoutFn();
+          showOrderResult('fail', 'Payment Failed', 'Something went wrong with your advance payment. Please try again.', { showButton:true, buttonText:'Try Again' });
+        });
+        rzp.open();
+        btn.textContent = 'Place Order';
+      }catch(err){
+        btn.disabled = false;
+        btn.textContent = 'Place Order';
+        closeCheckoutFn();
+        showOrderResult('fail', 'Order Failed', err.message || 'Something went wrong. Please try again.', { showButton:true, buttonText:'Try Again' });
+      }
       return;
     }
 
