@@ -4094,16 +4094,18 @@
     document.getElementById('payOnlineOption').classList.add('active');
     resetCouponUI();
     updateCheckoutTotals();
-    closeCartFn();
-    // See the menuAccountRow fix above: closeCartFn() consumes a history
-    // entry via an async history.back(). Opening checkoutOverlay (which
-    // pushes a new entry) in the same tick used to race with that pending
-    // back(), so the panel would open and then get closed again almost
-    // instantly. Deferring to the next tick lets the back() settle first.
-    setTimeout(() => {
-      checkoutOverlay.classList.add('open');
-      pushOverlayHistory();
-    }, 0);
+    // Swap the cart drawer straight for the checkout panel, without going
+    // through closeCartFn()'s async history.back(). That close+reopen
+    // (closeCartFn() then a delayed pushOverlayHistory() for checkout)
+    // raced with the pending back() navigation — most noticeably on the
+    // home page, where there's no earlier in-app history entry to land
+    // on, so the back() and the reopen would collide and the checkout
+    // panel would flash open and immediately close again. Since the cart
+    // is already counted as one open overlay, we just relabel it as the
+    // checkout panel in place instead of closing and reopening.
+    overlay.classList.remove('open');
+    drawer.classList.remove('open');
+    checkoutOverlay.classList.add('open');
   });
 
   // ---- Checkout — step 2: place order in Supabase with the confirmed details ----
