@@ -2986,7 +2986,7 @@
       const desktopSrc = b.imageUrl || b.imageMobileUrl || '';
       const mobileSrc = b.imageMobileUrl || b.imageUrl || '';
       const cta = (b.ctaPrimary || 'Shop Now').replace(/</g,'&lt;');
-      return `<a href="#" class="hero-slide" onclick="handleHeroBannerClick(${i});return false;" aria-label="${cta}">
+      return `<a href="#" class="hero-slide" onclick="onHeroSlideNativeClick(${i});return false;" aria-label="${cta}">
         <div class="hero-banner-frame">
           <img class="hero-banner-img hb-desktop" src="${desktopSrc}" alt="${cta}">
           <img class="hero-banner-img hb-mobile" src="${mobileSrc}" alt="${cta}">
@@ -3041,6 +3041,19 @@
     else { document.getElementById('bestsellers').scrollIntoView({behavior:'smooth'}); }
   }
 
+  // The swipe handler below calls track.setPointerCapture() on pointerdown so
+  // dragging feels smooth — but that capture can swallow the native "click"
+  // the browser would otherwise fire on the tapped <a class="hero-slide">
+  // (especially on touch devices). So a genuine tap is detected and handled
+  // manually in endHeroDrag(), and this wrapper (bound to the slide's onclick
+  // attribute) is briefly suppressed right after so we never open the
+  // product twice if the browser also manages to fire its own click.
+  let suppressHeroClick = false;
+  function onHeroSlideNativeClick(i){
+    if(suppressHeroClick) return;
+    handleHeroBannerClick(i);
+  }
+
   function handleDealBtnClick(){
     const deal = site.deal || {};
     if(deal.linkType === 'product' && deal.productId){
@@ -3079,9 +3092,20 @@
       track.style.transition = 'transform .5s ease';
       const width = track.clientWidth || 1;
       const threshold = width * 0.15;
+      const wasTap = Math.abs(dragX) < 6;
       if(dragX < -threshold) goToHeroSlide(heroSlideIndex + 1);
       else if(dragX > threshold) goToHeroSlide(heroSlideIndex - 1);
       else updateHeroCarousel(true);
+
+      // Barely-moved pointer = a tap, not a swipe — fire the banner's action
+      // directly, since setPointerCapture() above can prevent the browser's
+      // own click from reaching the <a>. Then briefly suppress that native
+      // click (for taps and real drags alike) so we don't double-fire if it
+      // does still arrive.
+      if(wasTap) handleHeroBannerClick(heroSlideIndex);
+      suppressHeroClick = true;
+      setTimeout(() => { suppressHeroClick = false; }, 350);
+
       dragX = 0;
       startHeroAutoplay();
     }
