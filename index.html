@@ -801,6 +801,19 @@
     padding:14px;border-radius:10px;
   }
 
+  /* ---------- Color / Size selectors (shown above price, Flipkart-style) ---------- */
+  .pdp-color-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px;}
+  .pdp-color-chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .pdp-color-chip.active{border-color:var(--yellow);background:rgba(184,41,26,0.08);color:var(--yellow-deep);}
+  .pdp-color-swatch{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:0 0 auto;}
+  .pdp-size-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .pdp-size-chip{min-width:44px;padding:9px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--text);text-align:center;}
+  .pdp-size-chip.active{border-color:var(--yellow);background:rgba(184,41,26,0.08);color:var(--yellow-deep);}
+  .pdp-size-chip.out-of-stock{opacity:0.4;text-decoration:line-through;pointer-events:none;}
+  .pdp-variant-group-title{font-size:11.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);font-weight:600;margin:14px 0 8px;}
+  .pdp-selected-label{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
+  .pdp-selected-label b{color:var(--text);}
+
   /* ---------- Auth (login / account) ---------- */
   .auth-title{font-size:20px;font-weight:600;font-family:var(--font-body);margin-top:16px;}
   .auth-sub{color:var(--muted);font-size:13px;margin-top:4px;margin-bottom:22px;line-height:1.5;}
@@ -1006,9 +1019,6 @@
     .grid-wrap{padding:20px 40px 40px;max-width:1200px;margin:0 auto;}
     .product-grid{grid-template-columns:repeat(5,1fr);}
     .model-grid{grid-template-columns:repeat(4,1fr);}
-  }
-  @media (min-width:1240px){
-    .hero-shop-btn{top:32px;left:32px;}
   }
 </style>
 </head>
@@ -1667,12 +1677,22 @@
       <p class="pdp-cat" id="pdpCat"></p>
       <h2 class="pdp-name" id="pdpName"></h2>
       <p class="pdp-rating" id="pdpRating"></p>
+      <div class="pdp-variants" id="pdpVariantsBlock" style="display:none;">
+        <div id="pdpColorSection" style="display:none;">
+          <p class="pdp-selected-label">Selected Color: <b id="pdpSelectedColorLabel"></b></p>
+          <div class="pdp-color-row" id="pdpColorRow"></div>
+        </div>
+        <div id="pdpSizeSection" style="display:none;">
+          <p class="pdp-variant-group-title">Select Size</p>
+          <div class="pdp-size-row" id="pdpSizeRow"></div>
+        </div>
+        <div id="pdpFlatVariantSection" style="display:none;">
+          <p class="pdp-variant-group-title">Select Option</p>
+          <div class="pdp-variant-chips" id="pdpVariantChips"></div>
+        </div>
+      </div>
       <div class="pdp-plate-row">
         <span class="plate" id="pdpPlate"></span>
-      </div>
-      <div class="pdp-variants" id="pdpVariantsBlock" style="display:none;">
-        <h4>Select Option</h4>
-        <div class="pdp-variant-chips" id="pdpVariantChips"></div>
       </div>
       <div class="pdp-desc">
         <h4>Description</h4>
@@ -3072,7 +3092,19 @@
   let pdpImages = [];
   let pdpActiveImgIdx = 0;
   let pdpSelectedVariantIndex = null;
+  let pdpSelectedColor = null;
+  let pdpSelectedSize = null;
   const pdpOverlay = document.getElementById('pdpOverlay');
+
+  const COLOR_HEX_MAP = {
+    black:'#1d1d1f', white:'#ffffff', beige:'#e8dcc8', red:'#c0392b', blue:'#2e5fb8',
+    green:'#2e8b57', yellow:'#f1c40f', grey:'#9a9a9a', gray:'#9a9a9a', brown:'#7b4a2d',
+    navy:'#1b2a4a', orange:'#e07a2b', pink:'#e39ab0', purple:'#7b61c9', maroon:'#7a1f2b',
+    khaki:'#c3b091', olive:'#6b6b2e', tan:'#d2b48c'
+  };
+  function colorNameToHex(name){
+    return COLOR_HEX_MAP[String(name).trim().toLowerCase()] || '#c9c9cc';
+  }
 
   function openProduct(id){
     const p = findProduct(id);
@@ -3099,21 +3131,100 @@
 
   function renderPdpVariants(p){
     const block = document.getElementById('pdpVariantsBlock');
-    const chips = document.getElementById('pdpVariantChips');
+    const colorSection = document.getElementById('pdpColorSection');
+    const sizeSection = document.getElementById('pdpSizeSection');
+    const flatSection = document.getElementById('pdpFlatVariantSection');
+    pdpSelectedVariantIndex = null;
+    pdpSelectedColor = null;
+    pdpSelectedSize = null;
+
     if(!Array.isArray(p.variants) || p.variants.length === 0){
       block.style.display = 'none';
-      pdpSelectedVariantIndex = null;
       updatePdpPlate();
       return;
     }
     block.style.display = 'block';
-    // Default to the first in-stock variant (or the first one if all are out of stock).
-    const firstInStock = p.variants.findIndex(v => v.stock == null || v.stock > 0);
-    pdpSelectedVariantIndex = firstInStock !== -1 ? firstInStock : 0;
-    chips.innerHTML = p.variants.map((v, i) => {
-      const outOfStock = v.stock != null && v.stock <= 0;
-      return `<button type="button" class="pdp-variant-chip ${i === pdpSelectedVariantIndex ? 'active' : ''} ${outOfStock ? 'out-of-stock' : ''}" onclick="selectPdpVariant(${i})">${v.name}${outOfStock ? ' (Out of stock)' : ''}</button>`;
+
+    const hasColorOrSize = p.variants.some(v => v.color || v.size);
+    if(hasColorOrSize){
+      flatSection.style.display = 'none';
+      const colors = [...new Set(p.variants.map(v => v.color).filter(Boolean))];
+      if(colors.length){
+        colorSection.style.display = 'block';
+        pdpSelectedColor = colors.find(c => p.variants.some(v => v.color === c && (v.stock == null || v.stock > 0))) || colors[0];
+        renderPdpColorRow(p, colors);
+      } else {
+        colorSection.style.display = 'none';
+      }
+      renderPdpSizeRow(p);
+    } else {
+      colorSection.style.display = 'none';
+      sizeSection.style.display = 'none';
+      flatSection.style.display = 'block';
+      const chips = document.getElementById('pdpVariantChips');
+      const firstInStock = p.variants.findIndex(v => v.stock == null || v.stock > 0);
+      pdpSelectedVariantIndex = firstInStock !== -1 ? firstInStock : 0;
+      chips.innerHTML = p.variants.map((v, i) => {
+        const outOfStock = v.stock != null && v.stock <= 0;
+        return `<button type="button" class="pdp-variant-chip ${i === pdpSelectedVariantIndex ? 'active' : ''} ${outOfStock ? 'out-of-stock' : ''}" onclick="selectPdpVariant(${i})">${v.name}${outOfStock ? ' (Out of stock)' : ''}</button>`;
+      }).join('');
+    }
+    updatePdpPlate();
+  }
+
+  function renderPdpColorRow(p, colors){
+    document.getElementById('pdpSelectedColorLabel').textContent = pdpSelectedColor || '';
+    document.getElementById('pdpColorRow').innerHTML = colors.map(c => `
+      <button type="button" class="pdp-color-chip ${c === pdpSelectedColor ? 'active' : ''}" onclick="selectPdpColor('${c.replace(/'/g,"\\'")}')">
+        <span class="pdp-color-swatch" style="background:${colorNameToHex(c)}"></span>${c}
+      </button>`).join('');
+  }
+
+  function selectPdpColor(color){
+    const p = findProduct(pdpCurrentId);
+    if(!p) return;
+    pdpSelectedColor = color;
+    document.getElementById('pdpSelectedColorLabel').textContent = color;
+    document.querySelectorAll('#pdpColorRow .pdp-color-chip').forEach(el => el.classList.toggle('active', el.textContent.trim() === color));
+    pdpSelectedSize = null;
+    renderPdpSizeRow(p);
+    updatePdpPlate();
+  }
+
+  function renderPdpSizeRow(p){
+    const sizeSection = document.getElementById('pdpSizeSection');
+    const forColor = p.variants.filter(v => !pdpSelectedColor || v.color === pdpSelectedColor);
+    const sizes = [...new Set(forColor.map(v => v.size).filter(Boolean))];
+    if(!sizes.length){
+      sizeSection.style.display = 'none';
+      const match = forColor[0];
+      pdpSelectedVariantIndex = match ? p.variants.indexOf(match) : null;
+      return;
+    }
+    sizeSection.style.display = 'block';
+    if(!pdpSelectedSize || !sizes.includes(pdpSelectedSize)){
+      const firstAvail = sizes.find(s => {
+        const v = p.variants.find(vv => (!pdpSelectedColor || vv.color === pdpSelectedColor) && vv.size === s);
+        return v && (v.stock == null || v.stock > 0);
+      });
+      pdpSelectedSize = firstAvail || sizes[0];
+    }
+    document.getElementById('pdpSizeRow').innerHTML = sizes.map(s => {
+      const v = p.variants.find(vv => (!pdpSelectedColor || vv.color === pdpSelectedColor) && vv.size === s);
+      const outOfStock = v && v.stock != null && v.stock <= 0;
+      return `<button type="button" class="pdp-size-chip ${s === pdpSelectedSize ? 'active' : ''} ${outOfStock ? 'out-of-stock' : ''}" onclick="selectPdpSize('${String(s).replace(/'/g,"\\'")}')">${s}</button>`;
     }).join('');
+    const matchVariant = p.variants.find(v => (!pdpSelectedColor || v.color === pdpSelectedColor) && v.size === pdpSelectedSize);
+    pdpSelectedVariantIndex = matchVariant ? p.variants.indexOf(matchVariant) : null;
+  }
+
+  function selectPdpSize(size){
+    const p = findProduct(pdpCurrentId);
+    if(!p) return;
+    pdpSelectedSize = size;
+    document.querySelectorAll('#pdpSizeRow .pdp-size-chip').forEach(el => el.classList.toggle('active', el.textContent.trim() === size));
+    const matchVariant = p.variants.find(v => (!pdpSelectedColor || v.color === pdpSelectedColor) && v.size === pdpSelectedSize);
+    pdpSelectedVariantIndex = matchVariant ? p.variants.indexOf(matchVariant) : null;
     updatePdpPlate();
   }
 
@@ -3133,10 +3244,11 @@
     document.getElementById('pdpPlate').innerHTML =
       `<span class="price">₹${price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${mrp.toLocaleString('en-IN')}</span>` : ''}`;
     const addBtn = document.getElementById('pdpAddBtn');
+    const needsSelection = Array.isArray(p.variants) && p.variants.length && pdpSelectedVariantIndex == null;
     const variantOutOfStock = v && v.stock != null && v.stock <= 0;
     const outOfStock = isProductOutOfStock(p) || variantOutOfStock;
-    addBtn.disabled = !!outOfStock;
-    addBtn.textContent = outOfStock ? 'Out of Stock' : 'Add to Cart';
+    addBtn.disabled = !!(outOfStock || needsSelection);
+    addBtn.textContent = needsSelection ? 'Select Size' : (outOfStock ? 'Out of Stock' : 'Add to Cart');
   }
 
   function renderPdpMedia(){
