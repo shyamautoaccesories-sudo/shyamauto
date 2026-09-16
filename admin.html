@@ -1007,12 +1007,6 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Delivery Charge (₹)</label>
-        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Added to the customer's total at checkout for each unit of this product ordered. Leave blank or 0 for free delivery.</p>
-        <input class="form-input" id="p_deliveryCharge" type="number" step="1" min="0" placeholder="0">
-      </div>
-
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">This product has variants (size / color etc.)</span>
         <label class="switch"><input type="checkbox" id="p_hasVariants" onchange="toggleVariantMode()"><span class="switch-track"></span></label>
@@ -1033,6 +1027,12 @@
         <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">e.g. "Red — Medium", "Black — Large". Customer picks one on the product page; price/stock shown will match their pick.</p>
         <div id="variantRows"></div>
         <button class="add-variant-btn" onclick="addVariantRow()">+ Add Variant</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Delivery Charge (₹)</label>
+        <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Added on top of the Selling Price at checkout — for every order of this product, whether the customer pays Online or via COD. So if COD is left OFF below and only Online Payment is offered, this charge still applies to the online total (e.g. Selling Price ₹5,800 + Delivery Charge ₹200 = customer pays ₹6,000 online). Leave blank or 0 and the Delivery Charge row won't appear at checkout at all.</p>
+        <input class="form-input" id="p_deliveryCharge" type="number" step="1" min="0" placeholder="0">
       </div>
 
       <div class="form-switch-row">
