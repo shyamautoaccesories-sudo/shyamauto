@@ -1043,6 +1043,28 @@
         <label class="form-label">COD Charge (₹)</label>
         <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Extra charge added per unit only when the customer pays via Cash on Delivery for this product (on top of the Delivery Charge above). Leave blank or 0 for no extra COD charge.</p>
         <input class="form-input" id="p_codCharge" type="number" step="1" min="0" placeholder="0">
+
+        <div class="form-switch-row" style="margin-top:16px;">
+          <span style="font-size:13px;font-weight:600;">Require Partial Online Payment for COD</span>
+          <label class="switch"><input type="checkbox" id="p_codPartialEnabled" onchange="toggleCodPartialBlock()"><span class="switch-track"></span></label>
+        </div>
+        <div id="p_codPartialBlock" style="display:none;">
+          <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Customer must pay this much online (via the payment gateway) at checkout before COD is allowed on this product — the rest is collected as cash on delivery.</p>
+          <div class="form-row2">
+            <div class="form-group">
+              <label class="form-label">Advance Type</label>
+              <select class="form-input" id="p_codAdvanceType" onchange="updateCodAdvancePreview()">
+                <option value="fixed">Fixed Amount (₹)</option>
+                <option value="percent">Percentage (%)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Advance Value</label>
+              <input class="form-input" id="p_codAdvanceValue" type="number" min="0" step="0.01" placeholder="e.g. 200" oninput="updateCodAdvancePreview()">
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--muted);" id="p_codAdvancePreview"></p>
+        </div>
       </div>
 
       <div class="form-switch-row">
@@ -1339,6 +1361,8 @@
       delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0,
       cod_enabled: !!p.cod_enabled,
       cod_charge: p.cod_charge != null ? Number(p.cod_charge) : 0,
+      cod_advance_type: p.cod_advance_type || null,
+      cod_advance_value: p.cod_advance_value != null ? Number(p.cod_advance_value) : null,
       variants: Array.isArray(p.variants) ? p.variants : [],
       stock: p.stock != null ? Number(p.stock) : null,
       in_stock: p.in_stock != null ? !!p.in_stock : true
@@ -1386,6 +1410,8 @@
       address: o.address || '',
       paymentMethod: o.payment_method || 'Cash on Delivery',
       paymentStatus: o.payment_status || 'cod',
+      advancePaid: o.advance_paid_amount != null ? Number(o.advance_paid_amount) : null,
+      codRemaining: o.cod_remaining_amount != null ? Number(o.cod_remaining_amount) : null,
       items: Array.isArray(o.items) ? o.items.reduce((s,it)=>s+(it.qty||1),0) : 0,
       itemList: Array.isArray(o.items) ? o.items : [],
       total: Number(o.total),
@@ -1649,7 +1675,7 @@
   }
 
   function productSubLine(p){
-    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? '<span class="badge on" style="margin-left:6px;">COD</span>' : ''}`;
+    return `${p.cat}${p.brand ? ' · ' + p.brand : ''} · ${p.variants && p.variants.length ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')} ${p.variants && p.variants.length ? `<span class="badge off" style="margin-left:6px;">${p.variants.length} VARIANTS</span>` : ''}${p.sale ? '<span class="badge on" style="margin-left:6px;">SALE</span>' : ''}${p.cod_enabled ? `<span class="badge on" style="margin-left:6px;">${p.cod_advance_type ? 'PARTIAL COD' : 'COD'}</span>` : ''}`;
   }
 
   function productListRowHtml(p){
@@ -2015,6 +2041,10 @@
       document.getElementById('p_codEnabled').checked = !!p.cod_enabled;
       document.getElementById('p_codCharge').value = p.cod_charge != null ? p.cod_charge : '';
       toggleCodChargeBlock();
+      document.getElementById('p_codPartialEnabled').checked = !!p.cod_advance_type;
+      document.getElementById('p_codAdvanceType').value = p.cod_advance_type || 'fixed';
+      document.getElementById('p_codAdvanceValue').value = p.cod_advance_value != null ? p.cod_advance_value : '';
+      toggleCodPartialBlock();
       document.getElementById('p_price').value = p.price;
       document.getElementById('p_mrp').value = p.mrp || '';
       document.getElementById('p_stock').value = p.stock != null ? p.stock : '';
@@ -2044,6 +2074,10 @@
       document.getElementById('p_codEnabled').checked = false;
       document.getElementById('p_codCharge').value = '';
       toggleCodChargeBlock();
+      document.getElementById('p_codPartialEnabled').checked = false;
+      document.getElementById('p_codAdvanceType').value = 'fixed';
+      document.getElementById('p_codAdvanceValue').value = '';
+      toggleCodPartialBlock();
       document.getElementById('p_price').value = '';
       document.getElementById('p_mrp').value = '';
       document.getElementById('p_stock').value = '';
@@ -2104,6 +2138,24 @@
   function toggleCodChargeBlock(){
     const on = document.getElementById('p_codEnabled').checked;
     document.getElementById('p_codChargeBlock').style.display = on ? 'block' : 'none';
+  }
+  function toggleCodPartialBlock(){
+    const on = document.getElementById('p_codPartialEnabled').checked;
+    document.getElementById('p_codPartialBlock').style.display = on ? 'block' : 'none';
+    updateCodAdvancePreview();
+  }
+  function updateCodAdvancePreview(){
+    const preview = document.getElementById('p_codAdvancePreview');
+    if(!document.getElementById('p_codPartialEnabled').checked){ preview.textContent = ''; return; }
+    const type = document.getElementById('p_codAdvanceType').value;
+    const val = Number(document.getElementById('p_codAdvanceValue').value) || 0;
+    const hasVariants = document.getElementById('p_hasVariants').checked;
+    const price = hasVariants
+      ? Math.min(...Array.from(document.querySelectorAll('#variantRows .variant-price')).map(i => Number(i.value) || Infinity).filter(n => n !== Infinity)) || 0
+      : (Number(document.getElementById('p_price').value) || 0);
+    if(!val || !price){ preview.textContent = ''; return; }
+    const advance = type === 'percent' ? Math.round(price * val / 100) : Math.min(price, Math.round(val));
+    preview.textContent = `e.g. on a ₹${price.toLocaleString('en-IN')} order, customer pays ₹${advance.toLocaleString('en-IN')} online now and ₹${(price - advance).toLocaleString('en-IN')} via COD.`;
   }
   function toggleSaleDiscountBlock(){
     const on = document.getElementById('p_sale').checked;
@@ -2291,6 +2343,8 @@
       delivery_charge: Number(document.getElementById('p_deliveryCharge').value) || 0,
       cod_enabled: document.getElementById('p_codEnabled').checked,
       cod_charge: document.getElementById('p_codEnabled').checked ? (Number(document.getElementById('p_codCharge').value) || 0) : 0,
+      cod_advance_type: (document.getElementById('p_codEnabled').checked && document.getElementById('p_codPartialEnabled').checked) ? document.getElementById('p_codAdvanceType').value : null,
+      cod_advance_value: (document.getElementById('p_codEnabled').checked && document.getElementById('p_codPartialEnabled').checked) ? (Number(document.getElementById('p_codAdvanceValue').value) || 0) : null,
       price,
       mrp,
       stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
@@ -3468,7 +3522,7 @@
     if(!o.address){ showToast('Is order par address nahi hai — label print nahi ho sakta.'); return; }
 
     const isCod = (o.paymentStatus || '').toLowerCase() !== 'paid';
-    const codAmount = isCod ? o.total : 0;
+    const codAmount = isCod ? (o.codRemaining != null ? o.codRemaining : o.total) : 0;
     const orderDate = o.createdAt ? formatOrderDate(o.createdAt) : '';
     const fromName = (site.store && site.store.name) || 'Shyam Auto';
     const fromAddress = (site.store && site.store.address) || '';
@@ -3552,7 +3606,7 @@
     </div>
 
     <div class="cod-strip ${isCod ? 'cod' : 'prepaid'}">
-      ${isCod ? `COD — COLLECT ₹${codAmount.toLocaleString('en-IN')}` : `PREPAID — ${o.paymentMethod || 'Paid Online'}`}
+      ${isCod ? `COD — COLLECT ₹${codAmount.toLocaleString('en-IN')}${o.advancePaid ? ` (₹${o.advancePaid.toLocaleString('en-IN')} already paid online)` : ''}` : `PREPAID — ${o.paymentMethod || 'Paid Online'}`}
     </div>
 
     ${o.shiprocketAwb ? `<div class="awb-strip">AWB: ${o.shiprocketAwb}${o.shiprocketCourier ? ' · ' + o.shiprocketCourier : ''}</div>` : ''}
