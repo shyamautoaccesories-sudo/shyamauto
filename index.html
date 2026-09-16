@@ -1628,6 +1628,13 @@
             <div class="pay-option-sub">We'll share a secure payment link on your phone</div>
           </div>
         </label>
+        <label class="pay-option" id="payCodOption" style="display:none;">
+          <input type="radio" name="coPayment" value="Cash on Delivery">
+          <div>
+            <div class="pay-option-label">Cash on Delivery</div>
+            <div class="pay-option-sub" id="payCodSub">Pay in cash when your order is delivered</div>
+          </div>
+        </label>
       </div>
 
       <div class="coupon-box" id="couponBox">
@@ -1648,6 +1655,7 @@
       <div class="checkout-summary-row checkout-summary-sub"><span>Subtotal</span><span id="checkoutSubtotal">₹0</span></div>
       <div class="checkout-summary-row checkout-summary-discount" id="checkoutDiscountRow" style="display:none;"><span>Discount</span><span id="checkoutDiscountAmount">−₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutDeliveryRow" style="display:none;"><span>Delivery Charge</span><span id="checkoutDeliveryAmount">₹0</span></div>
+      <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRow" style="display:none;"><span>COD Charge</span><span id="checkoutCodAmount">₹0</span></div>
       <div class="checkout-summary-row"><span>Order Total</span><span id="checkoutTotal">₹0</span></div>
     </div>
     <div class="pdp-foot">
@@ -1951,7 +1959,9 @@
       rating: p.rating, sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
       bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : [],
       stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true,
-      delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0
+      delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0,
+      cod_enabled: !!p.cod_enabled,
+      cod_charge: p.cod_charge != null ? Number(p.cod_charge) : 0
     }));
     const siteRow = siteRes.data || {};
 
@@ -2631,7 +2641,8 @@
     const unitPrice = variant ? variant.price : p.price;
     const unitMrp = variant ? variant.mrp : p.mrp;
     const unitDeliveryCharge = Number(p.delivery_charge || 0);
-    return { product: p, variant, unitPrice, unitMrp, unitDeliveryCharge, qty: line.qty };
+    const unitCodCharge = Number(p.cod_charge || 0);
+    return { product: p, variant, unitPrice, unitMrp, unitDeliveryCharge, unitCodCharge, qty: line.qty };
   }
 
   function keysTotal(){
@@ -2640,6 +2651,24 @@
 
   function keysDeliveryCharge(){
     return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitDeliveryCharge * info.qty : sum; }, 0);
+  }
+
+  // ---- Cash on Delivery — only offered when EVERY product currently in the
+  // cart has COD enabled by the admin. Each product's own COD charge (set
+  // in Admin → Products) is summed on top of the normal delivery charge. ----
+  function cartCodEligible(){
+    const keys = Object.keys(cart);
+    if(keys.length === 0) return false;
+    return keys.every(key => { const info = cartLineInfo(key); return info && info.product.cod_enabled; });
+  }
+
+  function keysCodCharge(){
+    return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitCodCharge * info.qty : sum; }, 0);
+  }
+
+  function selectedPaymentMethod(){
+    const el = document.querySelector('input[name="coPayment"]:checked');
+    return el ? el.value : 'Online (UPI/Card)';
   }
 
   // ---------------------------------------------------------------------
@@ -2680,9 +2709,42 @@
       deliveryRow.style.display = 'none';
     }
 
-    const grandTotal = total + deliveryCharge;
+    const isCod = selectedPaymentMethod() === 'Cash on Delivery';
+    const codCharge = isCod ? keysCodCharge() : 0;
+    const codRow = document.getElementById('checkoutCodRow');
+    if(isCod && codCharge > 0){
+      codRow.style.display = 'flex';
+      document.getElementById('checkoutCodAmount').textContent = '₹' + codCharge.toLocaleString('en-IN');
+    } else {
+      codRow.style.display = 'none';
+    }
+
+    const grandTotal = total + deliveryCharge + codCharge;
     document.getElementById('checkoutTotal').textContent = '₹' + grandTotal.toLocaleString('en-IN');
     return grandTotal;
+  }
+
+  // ---- Show/hide the Cash on Delivery payment option based on whether every
+  // item currently in the cart has COD enabled, and keep its subtitle showing
+  // the COD charge that will apply. Falls back to Online if COD was selected
+  // but is no longer eligible (e.g. cart changed). ----
+  function refreshCodOptionUI(){
+    const codOption = document.getElementById('payCodOption');
+    const eligible = cartCodEligible();
+    codOption.style.display = eligible ? 'flex' : 'none';
+    if(eligible){
+      const codCharge = keysCodCharge();
+      document.getElementById('payCodSub').textContent = codCharge > 0
+        ? `Pay ₹${codCharge.toLocaleString('en-IN')} COD charge + item total on delivery`
+        : 'Pay in cash when your order is delivered';
+    } else {
+      const codRadio = document.querySelector('input[name="coPayment"][value="Cash on Delivery"]');
+      if(codRadio && codRadio.checked){
+        document.querySelector('input[name="coPayment"][value="Online (UPI/Card)"]').checked = true;
+        document.getElementById('payOnlineOption').classList.add('active');
+        codOption.classList.remove('active');
+      }
+    }
   }
 
   function resetCouponUI(){
@@ -4054,6 +4116,7 @@
       document.querySelectorAll('input[name="coPayment"]').forEach(r => {
         r.closest('.pay-option').classList.toggle('active', r.checked);
       });
+      updateCheckoutTotals();
     });
   });
 
@@ -4092,6 +4155,8 @@
     document.getElementById('coError').classList.remove('show');
     document.querySelector('input[name="coPayment"][value="Online (UPI/Card)"]').checked = true;
     document.getElementById('payOnlineOption').classList.add('active');
+    document.getElementById('payCodOption').classList.remove('active');
+    refreshCodOptionUI();
     resetCouponUI();
     updateCheckoutTotals();
     // Swap the cart drawer straight for the checkout panel, without going
@@ -4140,6 +4205,8 @@
     if(stockChanges.length){
       btn.disabled = false;
       document.getElementById('coError').classList.remove('show');
+      refreshCodOptionUI();
+      updateCheckoutTotals();
       showToast(stockChanges[0] + (stockChanges.length > 1 ? ` (+${stockChanges.length - 1} more update${stockChanges.length > 2 ? 's' : ''})` : ''));
       if(keys.length === 0) closeCheckoutFn();
       return;
@@ -4160,13 +4227,71 @@
     const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
     const deliveryCharge = keysDeliveryCharge();
-    const total = Math.max(0, subtotal - discountAmount) + deliveryCharge;
+    const isCod = selectedPaymentMethod() === 'Cash on Delivery' && cartCodEligible();
+    const codCharge = isCod ? keysCodCharge() : 0;
+    const combinedDeliveryCharge = deliveryCharge + codCharge;
+    const total = Math.max(0, subtotal - discountAmount) + combinedDeliveryCharge;
     const couponCode = appliedCoupon ? appliedCoupon.code : null;
 
     async function markCouponUsed(){
       if(!appliedCoupon) return;
       try{ await sb.rpc('increment_discount_usage', { discount_id: appliedCoupon.id }); }
       catch(e){ /* non-fatal — order already placed */ }
+    }
+
+    async function afterStockDecrement(){
+      let oversoldNotice = false;
+      try{
+        const { error: stockErr } = await sb.rpc('decrement_stock', { p_items: stockItems });
+        if(stockErr){
+          oversoldNotice = true;
+          console.error('decrement_stock failed:', stockErr);
+        } else {
+          stockItems.forEach(it => {
+            const p = findProduct(it.product_id);
+            if(!p) return;
+            if(it.variant_index != null && Array.isArray(p.variants) && p.variants[it.variant_index]){
+              const v = p.variants[it.variant_index];
+              if(v.stock != null) v.stock = Math.max(0, v.stock - it.qty);
+            } else if(p.stock != null){
+              p.stock = Math.max(0, p.stock - it.qty);
+            }
+          });
+          renderStorefront();
+        }
+      }catch(e){ oversoldNotice = true; console.error(e); }
+      return oversoldNotice;
+    }
+
+    // ---- Cash on Delivery — no payment gateway involved, so the order is
+    // inserted straight into `orders` and confirmed immediately. ----
+    if(isCod){
+      btn.textContent = 'Placing order...';
+      const { error: codErr } = await sb.from('orders').insert({
+        user_id: user.id, customer_name: name, phone: phoneWithCode, address, city, state, pincode,
+        items, total, coupon_code: couponCode, discount_amount: discountAmount,
+        delivery_charge: combinedDeliveryCharge,
+        payment_method: 'Cash on Delivery', payment_status: 'cod', status: 'Pending'
+      });
+      if(codErr){
+        btn.disabled = false;
+        btn.textContent = 'Place Order';
+        showToast(codErr.message || 'Could not place order. Please try again.');
+        return;
+      }
+      await markCouponUsed();
+      const oversoldNotice = await afterStockDecrement();
+      cart = {};
+      saveCartToStorage();
+      renderCart();
+      resetCouponUI();
+      btn.disabled = false;
+      btn.textContent = 'Place Order';
+      closeCheckoutFn();
+      showOrderResult('success', 'Order Placed!', oversoldNotice
+        ? 'Your Cash on Delivery order has been placed. One item had very limited stock — we will confirm availability and contact you if anything needs to change.'
+        : `Your order has been placed. Pay ₹${total.toLocaleString('en-IN')} in cash when it's delivered.`);
+      return;
     }
 
     // ---- Online Payment (Razorpay) ----
