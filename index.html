@@ -285,13 +285,21 @@
   .chip-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
   .chip-scroll::-webkit-scrollbar{display:none;}
   .chip{
-    flex:0 0 auto;width:68px;height:68px;border-radius:10px;border:none;
-    color:var(--muted);background:transparent;padding:0;
-    display:flex;align-items:center;justify-content:center;position:relative;
+    flex:0 0 auto;width:68px;border-radius:10px;border:none;
+    color:var(--muted);background:transparent;padding:0 0 6px;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;position:relative;
   }
+  .chip-icon-box{width:68px;height:68px;display:flex;align-items:center;justify-content:center;}
   .chip svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.8;}
   .chip img{width:56px;height:56px;object-fit:contain;}
+  .chip-label{
+    font-size:10.5px;font-weight:600;line-height:1.15;color:var(--text);
+    max-width:68px;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    text-align:center;white-space:normal;
+  }
   .chip.active{color:var(--yellow);}
+  .chip.active .chip-label{color:var(--yellow);}
   .chip.active::after{content:'';position:absolute;left:12px;right:12px;bottom:-2px;height:3px;border-radius:2px;background:var(--yellow);}
   .filter-row2{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;}
   .result-count{font-size:12px;color:var(--muted);font-family:var(--font-mono);flex:1;min-width:0;}
@@ -2141,7 +2149,7 @@
         <span class="plate"><span class="price">${hasVariants ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')}</span>${p.sale ? `<span class="mrp">₹${p.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
         <div class="card-foot">
           <span class="rating">★ ${p.rating}</span>
-          <button class="add-btn" ${outOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${outOfStock ? 'Out of stock' : (hasVariants ? 'Select options' : 'Add to cart')}">
+          <button class="add-btn" ${outOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${outOfStock ? 'Out of stock' : 'Add to cart'}">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
@@ -2246,7 +2254,8 @@
     else if(mode === 'section') activeSection = value;
     else if(mode === 'model') activeModel = value;
     else if(mode === 'brand') activeGearBrand = value;
-    resetProductFilters(); // fresh page context — old filter picks (brand/model/price etc.) no longer apply
+    // Filter picks (brand/model/price etc.) intentionally carry over when
+    // switching between sections/categories — they only reset on showHome().
     homeView.style.display = 'none';
     bikeModelsView.style.display = 'none';
     productsView.style.display = 'block';
@@ -2275,6 +2284,7 @@
     bikeModelsView.style.display = 'none';
     homeView.style.display = 'block';
     window.scrollTo(0,0);
+    resetProductFilters(); // filters only clear once the user leaves back to the home screen
     if(!suppressViewHistory) history.pushState({ view: 'home' }, '');
   }
   function backFromProducts(){
@@ -2312,14 +2322,14 @@
       const iconInner = c === 'All'
         ? allCategoriesIcon
         : (catRow && catRow.icon_url ? `<img src="${catRow.icon_url}" alt="">` : `<span style="font-size:14px;font-weight:700;">${c.slice(0,2).toUpperCase()}</span>`);
-      return `<button class="chip ${c === activeCat ? 'active' : ''}" data-cat="${c}" title="${c}" aria-label="${c}">${iconInner}</button>`;
+      return `<button class="chip ${c === activeCat ? 'active' : ''}" data-cat="${c}" title="${c}" aria-label="${c}"><span class="chip-icon-box">${iconInner}</span><span class="chip-label">${c}</span></button>`;
     }).join('');
     document.querySelectorAll('#catChips .chip').forEach(btn => {
       btn.addEventListener('click', () => {
         activeSection = null;
         activeGearBrand = null;
         activeCat = btn.dataset.cat;
-        resetProductFilters();
+        // Filters stay as-is here too — see note in showProducts().
         const model = activeModel ? site.bikeModels.find(m => m.id === activeModel) : null;
         document.getElementById('pageTitle').textContent = model ? model.name : (activeCat === 'All' ? 'All Products' : activeCat);
         renderChips();
@@ -2877,19 +2887,25 @@
     const p = findProduct(id);
     if(!p) return;
     if(isProductOutOfStock(p)){ showToast('This product is out of stock'); return; }
+    // The + button always adds straight to cart — every category behaves the
+    // same way. For variant products (size/colour etc.) we quietly pick the
+    // first in-stock variant as the default, same as the detail sheet does;
+    // the customer can still open the product to switch variants afterwards.
+    let variantIndex = null;
+    let variant = null;
     if(Array.isArray(p.variants) && p.variants.length){
-      // Variant products need an option picked first — open the detail sheet instead of a blind add.
-      openProduct(id);
-      return;
+      variantIndex = p.variants.findIndex(v => v.stock == null || v.stock > 0);
+      if(variantIndex === -1) variantIndex = 0;
+      variant = p.variants[variantIndex];
     }
-    const key = cartKeyFor(id, null);
-    const maxQty = p.stock != null ? p.stock : Infinity;
+    const key = cartKeyFor(id, variantIndex);
+    const maxQty = variant ? (variant.stock != null ? variant.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
     const existingQty = cart[key] ? cart[key].qty : 0;
     if(existingQty >= maxQty){
       showToast(`Only ${maxQty} in stock for this product — you already have all of it in your cart`);
       return;
     }
-    cart[key] = { id: Number(id), variantIndex: null, qty: existingQty + 1 };
+    cart[key] = { id: Number(id), variantIndex, qty: existingQty + 1 };
     saveCartToStorage();
     renderCart();
     showToast('Added to cart');
