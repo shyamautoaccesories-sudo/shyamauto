@@ -1824,6 +1824,13 @@
   // so both paths always stay in sync.
   let openOverlayCount = 0;
   let closingFromPopstate = false;
+  // Set right before we call history.back() ourselves (from consumeOverlayHistory,
+  // e.g. tapping Apply/Clear/X/backdrop on any drawer). The overlay's UI is
+  // already closed at that point, so when the resulting popstate fires we just
+  // need to swallow it — not run the "real back button" logic below, which
+  // would otherwise mistake it for page-level navigation and reset the view
+  // (this was the cause of Filters "Apply" un-filtering the product grid).
+  let programmaticOverlayClose = false;
   // Separate from the overlay stack above: tracks page-level view changes
   // (home / category listing / bike-model picker) so the hardware/browser
   // Back button steps through in-app pages instead of leaving the site.
@@ -1838,10 +1845,18 @@
   function consumeOverlayHistory(){
     if(openOverlayCount > 0 && !closingFromPopstate){
       openOverlayCount--;
+      programmaticOverlayClose = true;
       history.back();
     }
   }
   window.addEventListener('popstate', (e) => {
+    if(programmaticOverlayClose){
+      // This pop was caused by our own consumeOverlayHistory() call above —
+      // the overlay is already closed and any filters already applied, so
+      // just consume the event and do nothing else.
+      programmaticOverlayClose = false;
+      return;
+    }
     if(openOverlayCount > 0){
       openOverlayCount--;
       closingFromPopstate = true;
