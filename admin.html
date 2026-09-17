@@ -150,6 +150,7 @@
   .inv-row-info{flex:1;min-width:0;}
   .inv-row-info .title{font-size:13px;font-weight:600;line-height:1.3;}
   .inv-row-info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .inv-row-status{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
   .inv-row-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap;}
   .inv-stepper{display:flex;align-items:center;gap:6px;}
   .inv-stepper button{width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:var(--text);flex:0 0 auto;}
@@ -159,6 +160,18 @@
   .inv-variant-list{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px;}
   .inv-variant-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;}
   .inv-variant-row .vname{flex:1;min-width:0;color:var(--text);font-weight:500;}
+
+  /* ---------- Inventory: grid view ---------- */
+  .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .inv-grid-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+  .inv-grid-card .grid-media{width:100%;aspect-ratio:1/1;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;color:var(--muted);overflow:hidden;}
+  .inv-grid-card .grid-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .inv-grid-card .grid-info{padding:10px 10px 4px;}
+  .inv-grid-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .inv-grid-card .title{font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .inv-grid-card .sub{font-size:11px;color:var(--muted);margin-top:4px;}
+  .inv-grid-controls{padding:0 10px 12px;}
+  .inv-grid-controls .inv-row-controls{margin-top:10px;padding-top:10px;justify-content:space-between;}
 
   /* ---------- Analytics (unified) ---------- */
   .an-range-tabs{display:flex;gap:8px;margin-bottom:16px;}
@@ -833,6 +846,17 @@
       <div class="inv-export-row">
         <button class="btn-outline" onclick="exportInventoryPDF()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Export PDF</button>
         <p>Exports whatever the filters above are currently showing — pick "Low Stock (≤5)" from Stock Status first to get a low-stock-only PDF.</p>
+      </div>
+
+      <div class="view-toggle">
+        <button type="button" id="invViewListBtn" onclick="setInventoryViewMode('list')">
+          <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          List
+        </button>
+        <button type="button" id="invViewGridBtn" onclick="setInventoryViewMode('grid')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Grid
+        </button>
       </div>
 
       <p class="inv-count" id="inv_count"></p>
@@ -1970,33 +1994,40 @@
     return { list, fStock };
   }
 
-  function renderInventory(){
-    const wrap = document.getElementById('inventoryList');
-    if(!wrap) return;
-    populateInventoryFilters();
+  // Remembers list vs grid across visits, per-browser — same pattern as the
+  // Products list/grid toggle.
+  let inventoryViewMode = (function(){
+    try{ return localStorage.getItem('sa_admin_inventory_view') || 'list'; }catch(e){ return 'list'; }
+  })();
 
-    const { list } = getFilteredInventoryList();
+  function setInventoryViewMode(mode){
+    inventoryViewMode = mode;
+    try{ localStorage.setItem('sa_admin_inventory_view', mode); }catch(e){}
+    renderInventory();
+  }
 
-    document.getElementById('inv_count').textContent = `${list.length} product${list.length === 1 ? '' : 's'}`;
+  const INV_EDIT_ICON = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 
-    if(site.products.length === 0){
-      wrap.innerHTML = '<p class="empty-hint">No products yet. Add some under Products first.</p>';
-      return;
-    }
-    if(list.length === 0){
-      wrap.innerHTML = '<p class="empty-hint">No products match these filters.</p>';
-      return;
-    }
-
-    wrap.innerHTML = list.map(p => {
-      const info = getProductStockInfo(p);
-      const thumb = p.images && p.images[0];
-      const statusBadge = info.status === 'out' ? '<span class="badge warn">OUT OF STOCK</span>'
-        : info.status === 'low' ? '<span class="badge low">LOW STOCK</span>'
-        : info.status === 'unlimited' ? '<span class="badge off">NOT TRACKED</span>'
-        : '<span class="badge on">IN STOCK</span>';
-
-      const variantRows = info.hasVariants ? `
+  // Same stock-control markup (stepper / variant rows / force-out-of-stock
+  // toggle) is used by both the list row and the grid card so the two views
+  // never drift out of sync.
+  function inventoryStockControlsHtml(p, info){
+    return `
+      <div class="inv-row-controls">
+        ${info.hasVariants
+          ? `<span style="font-size:11px;color:var(--muted);">Total stock: ${info.totalStock != null ? info.totalStock : '—'} (set per option below)</span>`
+          : `<div class="inv-stepper">
+              <button type="button" onclick="adjustProductStock(${p.id}, -1)">−</button>
+              <input type="number" min="0" value="${p.stock != null ? p.stock : ''}" placeholder="∞" onchange="setProductStock(${p.id}, this.value)">
+              <button type="button" onclick="adjustProductStock(${p.id}, 1)">+</button>
+            </div>`
+        }
+        <div class="inv-oos-toggle">
+          <label class="switch"><input type="checkbox" ${p.in_stock === false ? 'checked' : ''} onchange="toggleProductOutOfStock(${p.id}, this.checked)"><span class="switch-track"></span></label>
+          <span>Force Out of Stock</span>
+        </div>
+      </div>
+      ${info.hasVariants ? `
         <div class="inv-variant-list">
           ${p.variants.map((v,i) => `
             <div class="inv-variant-row">
@@ -2009,36 +2040,97 @@
             </div>
           `).join('')}
         </div>
-      ` : '';
+      ` : ''}
+    `;
+  }
 
-      return `
-        <div class="inv-row">
-          <div class="inv-row-top">
-            <div class="inv-row-media">${thumb ? `<img src="${thumb}">` : 'IMG'}</div>
-            <div class="inv-row-info">
-              <div class="title">${p.name}</div>
-              <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ₹${p.price.toLocaleString('en-IN')}</div>
-            </div>
-            ${statusBadge}
+  function inventoryStatusBadgeHtml(info){
+    return info.status === 'out' ? '<span class="badge warn">OUT OF STOCK</span>'
+      : info.status === 'low' ? '<span class="badge low">LOW STOCK</span>'
+      : info.status === 'unlimited' ? '<span class="badge off">NOT TRACKED</span>'
+      : '<span class="badge on">IN STOCK</span>';
+  }
+
+  // List-view row: media + name/price on the left, stock status + Edit button
+  // on the right (same Edit sheet as Products — opening it from here or from
+  // Products both save through the same function and refresh both views).
+  function inventoryListRowHtml(p){
+    const info = getProductStockInfo(p);
+    const thumb = p.images && p.images[0];
+    return `
+      <div class="inv-row">
+        <div class="inv-row-top">
+          <div class="inv-row-media">${thumb ? `<img src="${thumb}">` : 'IMG'}</div>
+          <div class="inv-row-info">
+            <div class="title">${p.name}</div>
+            <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ₹${p.price.toLocaleString('en-IN')}</div>
           </div>
-          <div class="inv-row-controls">
-            ${info.hasVariants
-              ? `<span style="font-size:11px;color:var(--muted);">Total stock: ${info.totalStock != null ? info.totalStock : '—'} (set per option below)</span>`
-              : `<div class="inv-stepper">
-                  <button type="button" onclick="adjustProductStock(${p.id}, -1)">−</button>
-                  <input type="number" min="0" value="${p.stock != null ? p.stock : ''}" placeholder="∞" onchange="setProductStock(${p.id}, this.value)">
-                  <button type="button" onclick="adjustProductStock(${p.id}, 1)">+</button>
-                </div>`
-            }
-            <div class="inv-oos-toggle">
-              <label class="switch"><input type="checkbox" ${p.in_stock === false ? 'checked' : ''} onchange="toggleProductOutOfStock(${p.id}, this.checked)"><span class="switch-track"></span></label>
-              <span>Force Out of Stock</span>
-            </div>
+          <div class="inv-row-status">
+            ${inventoryStatusBadgeHtml(info)}
+            <button class="icon-sm" onclick="openProductSheet(${p.id})" aria-label="Edit">${INV_EDIT_ICON}</button>
           </div>
-          ${variantRows}
         </div>
-      `;
-    }).join('');
+        ${inventoryStockControlsHtml(p, info)}
+      </div>
+    `;
+  }
+
+  // Grid-view card: same photo-first layout as the Products grid, with the
+  // stock status + Edit button on top of the info block and the same stock
+  // controls underneath.
+  function inventoryGridCardHtml(p){
+    const info = getProductStockInfo(p);
+    const thumb = p.images && p.images[0];
+    return `
+      <div class="inv-grid-card">
+        <div class="grid-media">${thumb ? `<img src="${thumb}">` : 'IMG'}</div>
+        <div class="grid-info">
+          <div class="inv-grid-top">
+            ${inventoryStatusBadgeHtml(info)}
+            <button class="icon-sm" onclick="openProductSheet(${p.id})" aria-label="Edit">${INV_EDIT_ICON}</button>
+          </div>
+          <div class="title">${p.name}</div>
+          <div class="sub">${p.cat}${p.brand ? ' · ' + p.brand : ''} · ₹${p.price.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="inv-grid-controls">
+          ${inventoryStockControlsHtml(p, info)}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderInventory(){
+    const wrap = document.getElementById('inventoryList');
+    if(!wrap) return;
+    populateInventoryFilters();
+
+    const { list } = getFilteredInventoryList();
+
+    document.getElementById('inv_count').textContent = `${list.length} product${list.length === 1 ? '' : 's'}`;
+
+    const listBtn = document.getElementById('invViewListBtn');
+    const gridBtn = document.getElementById('invViewGridBtn');
+    if(listBtn) listBtn.classList.toggle('active', inventoryViewMode !== 'grid');
+    if(gridBtn) gridBtn.classList.toggle('active', inventoryViewMode === 'grid');
+
+    if(site.products.length === 0){
+      wrap.className = '';
+      wrap.innerHTML = '<p class="empty-hint">No products yet. Add some under Products first.</p>';
+      return;
+    }
+    if(list.length === 0){
+      wrap.className = '';
+      wrap.innerHTML = '<p class="empty-hint">No products match these filters.</p>';
+      return;
+    }
+
+    if(inventoryViewMode === 'grid'){
+      wrap.className = 'inv-grid';
+      wrap.innerHTML = list.map(p => inventoryGridCardHtml(p)).join('');
+    } else {
+      wrap.className = '';
+      wrap.innerHTML = list.map(p => inventoryListRowHtml(p)).join('');
+    }
   }
 
   // ---- Inventory: Export PDF (respects whatever filters are currently applied,
