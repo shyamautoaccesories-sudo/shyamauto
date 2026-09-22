@@ -325,23 +325,37 @@
   .acct-head-sub{font-size:11.5px;color:var(--muted);margin:0;word-break:break-all;}
   /* ---- Account panel layout ---- */
   .acct-section-title{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:0 0 14px;}
-  .acct-field-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .acct-field .auth-input{width:100%;min-width:0;text-overflow:ellipsis;}
+  .acct-field-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  .acct-field .auth-input{width:100%;min-width:0;text-overflow:clip;}
   .acct-field{min-width:0;margin-bottom:16px;}
   .acct-field .auth-label{margin:0 0 6px;}
   .acct-field-center{display:flex;flex-direction:column;align-items:center;}
   .acct-field-center .auth-label{align-self:center;}
-  .acct-field-center .auth-input{width:100%;max-width:560px;text-align:center;}
+  .acct-field-center{width:100%;}
+  .acct-field-center .auth-input{width:100%;max-width:none;text-align:center;}
   @media (max-width:640px){
     .acct-field-row{grid-template-columns:1fr;}
     .acct-field-center .auth-input{max-width:none;}
+  }
+  @media (min-width:860px){
+    /* the Details panel stretches across the available width, so a long
+       name, a 10-digit phone number and a long email all fit without
+       being cut off */
+    #acctPanelDetails{width:100%;}
+    #acctPanelDetails .acct-field-row{gap:28px;}
+    #acctPanelDetails .acct-field .auth-input{height:46px;font-size:14.5px;}
+    #acctPanelDetails .acct-field-center .auth-input{height:46px;font-size:14.5px;}
   }
   /* the account header must not squeeze the name either */
   .acct-head{align-items:center;}
   .acct-head-info{flex:1;min-width:0;}
   .acct-head-name{word-break:break-word;}
   .acct-head-sub{word-break:break-all;}
-  .acct-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .acct-tabs{display:flex;gap:8px;margin-bottom:18px;}
+  @media (min-width:860px){
+    #acctPanelDetails .acct-field-row,
+    #acctPanelDetails .acct-field-center{max-width:none;}
+  }
   .acct-tab{flex:1;padding:9px 4px;border:1px solid var(--line);border-radius:9px;background:transparent;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;}
   .acct-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
   .acct-addr-card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;position:relative;}
