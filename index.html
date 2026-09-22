@@ -269,7 +269,11 @@
      Applied inside the account sheet and the checkout sheet on wide
      screens, so the form uses the full width instead of leaving the
      left half empty. ---- */
-  .form-2col{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px 20px;align-items:start;}
+  .form-2col{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px 20px;align-items:start;max-width:640px;}
+  /* pairs of short fields sit side by side, like a real form */
+  .form-2col .pair{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;}
+  .form-2col .pair > div{min-width:0;}
+  .form-2col .pair .auth-label{margin:0 0 6px;}
   .form-2col .auth-label{margin:11px 0 0;align-self:start;}
   .form-2col .auth-input,
   .form-2col .phone-input-row,
@@ -287,8 +291,8 @@
 
   @media (min-width:860px){
     /* wide screens: the sheet grows and the label column appears */
-    .pdp-sheet.wide{max-width:820px;}
-    .form-2col{grid-template-columns:180px minmax(0,1fr);}
+    .pdp-sheet.wide{max-width:900px;}
+    .form-2col{grid-template-columns:190px minmax(0,1fr);gap:16px 24px;max-width:none;}
   }
   @media (max-width:859px){
     /* phones: keep it stacked exactly as before */
@@ -2070,11 +2074,17 @@
       </div>
 
       <div id="acctPanelDetails">
-        <label class="auth-label">Full name</label>
-        <input class="auth-input" id="acctFullName" placeholder="Your name">
-        <label class="auth-label" style="margin-top:12px;">Phone number</label>
-        <input class="auth-input" id="acctPhone" placeholder="+91" inputmode="tel">
-        <label class="auth-label" style="margin-top:12px;">Email</label>
+        <div class="pair">
+          <div>
+            <label class="auth-label">Full name</label>
+            <input class="auth-input" id="acctFullName" placeholder="Your name">
+          </div>
+          <div>
+            <label class="auth-label">Phone number</label>
+            <input class="auth-input" id="acctPhone" placeholder="+91" inputmode="tel">
+          </div>
+        </div>
+        <label class="auth-label">Email</label>
         <input class="auth-input" id="acctEmail" readonly style="opacity:.7;">
         <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px;" id="acctSaveBtn" onclick="saveProfile()">Save Details</button>
       </div>
@@ -2334,6 +2344,10 @@
     }
   }
   window.addEventListener('popstate', (e) => {
+    // Any overlay may have just closed via the browser back button.
+    setTimeout(function(){
+      if(typeof clearScrollLockIfIdle === 'function') clearScrollLockIfIdle();
+    }, 0);
     if(programmaticOverlayClose){
       // This pop was caused by our own consumeOverlayHistory() call above —
       // the overlay is already closed and any filters already applied, so
@@ -3779,6 +3793,38 @@
   }
 
 
+  /* ---------------------------------------------------------------------
+     SCROLL LOCK — reference counted.
+     Overlays (lightbox, order popup) call lockScroll()/unlockScroll().
+     A plain body{overflow:hidden} could stick around if the overlay went
+     away by a different route, which froze the header in place. Counting
+     the locks and clearing at zero makes that impossible.
+     --------------------------------------------------------------------- */
+  var _scrollLocks = 0;
+  function lockScroll(){
+    _scrollLocks++;
+    document.body.style.overflow = "hidden";
+  }
+  function unlockScroll(){
+    _scrollLocks = Math.max(0, _scrollLocks - 1);
+    if(_scrollLocks === 0) document.body.style.overflow = "";
+  }
+  // safety net: if no overlay is actually open, the page must scroll
+  function clearScrollLockIfIdle(){
+    var anyOpen = [
+      "lbOverlay", "orderResultOverlay", "pdpOverlay", "accountOverlay",
+      "addressOverlay", "reviewOverlay", "shareOverlay", "checkoutOverlay",
+      "authOverlay", "infoOverlay"
+    ].some(function(id){
+      var el = document.getElementById(id);
+      return el && (el.classList.contains("open") || el.classList.contains("show"));
+    });
+    if(!anyOpen){
+      _scrollLocks = 0;
+      document.body.style.overflow = "";
+    }
+  }
+
   function showToast(msg){
     const t = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = msg;
@@ -3804,7 +3850,7 @@
     icon.classList.add(status);
 
     overlay.classList.add('show');
-    document.body.style.overflow = 'hidden';
+    lockScroll();
 
     clearTimeout(window._orderResultTimer);
     if(status === 'success' && !opts.showButton){
@@ -3813,7 +3859,8 @@
   }
   function closeOrderResult(){
     document.getElementById('orderResultOverlay').classList.remove('show');
-    document.body.style.overflow = '';
+    unlockScroll();
+    clearScrollLockIfIdle();
     clearTimeout(window._orderResultTimer);
   }
   document.getElementById('orderResultOverlay').addEventListener('click', (e)=>{
@@ -4089,7 +4136,9 @@
       var f = files[i];
       // Auto-compress to <=100KB, so any phone photo uploads fast and stays light.
       f = await compressReviewPhoto(f);
-      var path = currentUser.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
+      var rvUid = await requireUserId();
+      if(!rvUid){ showToast('Session expired - please log in again'); break; }
+      var path = rvUid + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
       var up = await sb.storage.from('review-images').upload(path, f, { upsert: false, contentType: 'image/jpeg' });
       if(up.error){ showToast('Photo upload failed'); continue; }
       var pub = sb.storage.from('review-images').getPublicUrl(path);
@@ -4133,11 +4182,13 @@
     if(!rvfRating){ showToast('Please select a star rating first'); return; }
     var btn = document.getElementById('rvfSubmit');
     btn.disabled = true;
+    var rvUidForInsert = await requireUserId();
+    if(!rvUidForInsert){ btn.disabled = false; showToast('Session expired - please log in again'); return; }
     var meta = currentUser.user_metadata || {};
     var payload = {
       product_id: rvfProductId,
       order_id: rvfOrderId,
-      user_id: currentUser.id,
+      user_id: rvUidForInsert,
       user_name: meta.full_name || meta.name || 'Rider',
       rating: rvfRating,
       title: document.getElementById('rvfTitle').value.trim() || null,
@@ -4379,11 +4430,12 @@
     lbResetTransform();
     lbApply();
     lbOverlay.classList.add("open");
-    document.body.style.overflow = "hidden";
+    lockScroll();
   }
   function closeLightbox(){
     lbOverlay.classList.remove("open");
-    document.body.style.overflow = "";
+    unlockScroll();
+    clearScrollLockIfIdle();
   }
   function lbResetTransform(){ lbScale = 1; lbTx = 0; lbTy = 0; }
   function lbApply(){
@@ -4550,6 +4602,8 @@
     var { data: userRes } = await sb.auth.getUser();
     if(!userRes || !userRes.user) return;
     var uid = userRes.user.id;
+    // make sure the in-memory object carries the id too
+    if(currentUser && !currentUser.id) currentUser = userFromSupabase(userRes.user);
     var pr = await sb.from("profiles").select("*").eq("id", uid).maybeSingle();
     myProfile = (pr && pr.data) ? pr.data : null;
     if(!myProfile){
@@ -4589,7 +4643,10 @@
     acctOverlay.classList.add("open");
     pushOverlayHistory();
   }
-  function closeAccount(){ acctOverlay.classList.remove("open"); }
+  function closeAccount(){
+    acctOverlay.classList.remove("open");
+    clearScrollLockIfIdle();
+  }
 
   function acctTab(which){
     var map = { details:"acctPanelDetails", address:"acctPanelAddress", orders:"acctPanelOrders" };
@@ -4610,14 +4667,17 @@
     showToast("Uploading photo\u2026");
     // the profile photo is compressed too (a little larger target is fine here)
     f = await compressTicketImage(f, 200 * 1024);
-    var path = currentUser.id + "/avatar-" + Date.now() + ".jpg";
+    var avPathUid = await requireUserId();
+    if(!avPathUid){ showToast("Session expired - please log in again"); return; }
+    var path = avPathUid + "/avatar-" + Date.now() + ".jpg";
     var up = await sb.storage.from("avatars").upload(path, f, { upsert: true, contentType: "image/jpeg" });
     input.value = "";
     if(up.error){ showToast("Photo upload failed"); return; }
     var pub = sb.storage.from("avatars").getPublicUrl(path);
     var url = pub && pub.data ? pub.data.publicUrl : null;
     var avPatch = { avatar_url: url, updated_at: new Date().toISOString() };
-    var avUid = currentUser.id;
+    var avUid = await requireUserId();
+    if(!avUid){ showToast("Session expired - please log in again"); return; }
     var avExisting = await sb.from("profiles").select("id").eq("id", avUid).maybeSingle();
     var avHave = !!(avExisting && avExisting.data && avExisting.data.id);
     var avRes = avHave
@@ -4650,7 +4710,12 @@
     // Ask the database whether the row exists BEFORE writing anything.
     // (A blind upsert/insert on an existing id is what produced the
     // "violates row-level security policy" error.)
-    var uid = currentUser.id;
+    var uid = await requireUserId();
+    if(!uid){
+      btn.disabled = false;
+      showToast("Session expired - please log in again");
+      return;
+    }
     var existing = await sb.from("profiles").select("id").eq("id", uid).maybeSingle();
     var haveRow = !!(existing && existing.data && existing.data.id);
 
@@ -4719,14 +4784,19 @@
     document.getElementById("addrState").value = a ? (a.state || "") : "";
     addrOverlay.classList.add("open");
   }
-  function closeAddressForm(){ addrOverlay.classList.remove("open"); }
+  function closeAddressForm(){
+    addrOverlay.classList.remove("open");
+    clearScrollLockIfIdle();
+  }
 
   async function saveAddress(){
     var addr = document.getElementById("addrLine").value.trim();
     var name = document.getElementById("addrName").value.trim();
     if(!addr || !name){ showToast("Name and address are required"); return; }
+    var uidForAddr = await requireUserId();
+    if(!uidForAddr){ showToast("Session expired - please log in again"); return; }
     var payload = {
-      user_id: currentUser.id,
+      user_id: uidForAddr,
       label: document.getElementById("addrLabel").value.trim() || "Home",
       full_name: name,
       phone: document.getElementById("addrPhone").value.trim() || null,
@@ -4751,7 +4821,9 @@
   }
 
   async function makeAddressDefault(id){
-    await sb.from("user_addresses").update({ is_default: false }).eq("user_id", currentUser.id);
+    var uidForDef = await requireUserId();
+    if(!uidForDef) return;
+    await sb.from("user_addresses").update({ is_default: false }).eq("user_id", uidForDef);
     await sb.from("user_addresses").update({ is_default: true }).eq("id", id);
     await loadProfile();
     renderAddressList();
@@ -4856,7 +4928,10 @@
     document.getElementById("shareLinkInput").value = url;
     shareOverlay.classList.add("open");
   }
-  function closeShareSheet(){ shareOverlay.classList.remove("open"); }
+  function closeShareSheet(){
+    shareOverlay.classList.remove("open");
+    clearScrollLockIfIdle();
+  }
 
   async function copyShareLink(){
     var url = document.getElementById("shareLinkInput").value;
@@ -4926,6 +5001,7 @@
     const wasOpen = pdpOverlay.classList.contains('open');
     pdpOverlay.classList.remove('open');
     if(wasOpen) consumeOverlayHistory();
+    if(typeof clearScrollLockIfIdle === 'function') clearScrollLockIfIdle();
   }
   function pdpChangeQty(delta){
     const p = findProduct(pdpCurrentId);
@@ -4995,7 +5071,24 @@
     if(!u) return null;
     const name = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || u.email || 'Rider';
     const sub = u.email || 'Signed in';
-    return { name, sub, initial: name.charAt(0).toUpperCase() };
+    // The Supabase user id is REQUIRED by every profile / address / photo
+    // write. Without it those calls send `undefined` and Postgres rejects
+    // the UUID, which is what the app was showing on Save Details.
+    return { id: u.id, email: u.email || null, name, sub, initial: name.charAt(0).toUpperCase() };
+  }
+
+  // Always resolve a real UUID before writing. Falls back to the live
+  // session (and repairs a stale in-memory user) so an undefined id can
+  // never reach the database again.
+  async function requireUserId(){
+    if(currentUser && currentUser.id) return currentUser.id;
+    var s = await sb.auth.getSession();
+    var u = s && s.data && s.data.session && s.data.session.user;
+    if(u && u.id){ currentUser = userFromSupabase(u); return u.id; }
+    var g = await sb.auth.getUser();
+    var gu = g && g.data && g.data.user;
+    if(gu && gu.id){ currentUser = userFromSupabase(gu); return gu.id; }
+    return null;
   }
 
   const authOverlay = document.getElementById('authOverlay');
@@ -5275,7 +5368,9 @@
     for(var i = 0; i < files.length; i++){
       // the same compressor the reviews use \u2014 keeps every photo under 100KB
       var f = await compressTicketImage(files[i], 100 * 1024);
-      var path = currentUser.id + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + ".jpg";
+      var tkUid = await requireUserId();
+      if(!tkUid){ showToast("Session expired - please log in again"); break; }
+      var path = tkUid + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + ".jpg";
       var up = await sb.storage.from("ticket-images").upload(path, f, { upsert: false, contentType: "image/jpeg" });
       if(up.error){ showToast("Photo upload failed"); continue; }
       var pub = sb.storage.from("ticket-images").getPublicUrl(path);
