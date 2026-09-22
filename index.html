@@ -245,6 +245,47 @@
   }
   .card-share-btn svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:2;}
   .card-share-btn:hover svg{stroke:var(--text);}
+  .acct-dot{display:none;width:24px;height:24px;border-radius:50%;overflow:hidden;background:var(--yellow);color:#fff;font-size:10.5px;font-weight:700;align-items:center;justify-content:center;font-family:var(--font-display);}
+  .acct-dot img{width:100%;height:100%;object-fit:cover;}
+  #accountBtnTop.has-photo .acct-dot{display:flex;}
+  #accountBtnTop.has-photo #accountIconSvg{display:none;}
+
+  /* ---- Ticket photo picker (customer) ---- */
+  .tk-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:8px;margin-top:10px;}
+  .tk-tile{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line);}
+  .tk-tile img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+  .tk-tile-del{position:absolute;top:3px;right:3px;width:19px;height:19px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .tk-add-tile{aspect-ratio:1;border:1.5px dashed var(--line);border-radius:9px;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.3px;padding:0;font-family:inherit;}
+  .tk-add-tile:hover{border-color:var(--text);color:var(--text);}
+  .tk-add-tile svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+  .tk-add-tile[disabled]{opacity:.45;cursor:not-allowed;}
+  .tk-photo-hint{font-size:10.5px;color:var(--muted);margin:7px 0 0;line-height:1.45;}
+  .tk-thread-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .tk-thread-photos img{width:62px;height:62px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;}
+  .tk-expiry{font-size:10px;color:var(--muted);margin-top:6px;}
+
+  /* ---- Account / profile ---- */
+  .acct-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+  .acct-avatar-btn{position:relative;width:74px;height:74px;border-radius:50%;overflow:hidden;border:2px solid var(--line);background:var(--surface-2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0;}
+  .acct-avatar-btn img{width:100%;height:100%;object-fit:cover;display:block;}
+  .acct-avatar-btn svg{width:30px;height:30px;stroke:var(--muted);fill:none;stroke-width:1.6;}
+  .acct-avatar-edit{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:8px;font-weight:700;letter-spacing:.4px;text-align:center;padding:3px 0;}
+  .acct-head-info{flex:1;min-width:0;}
+  .acct-head-name{font-size:16px;font-weight:600;margin:0 0 2px;}
+  .acct-head-sub{font-size:11.5px;color:var(--muted);margin:0;word-break:break-all;}
+  .acct-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .acct-tab{flex:1;padding:9px 4px;border:1px solid var(--line);border-radius:9px;background:transparent;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;}
+  .acct-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
+  .acct-addr-card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;position:relative;}
+  .acct-addr-card.is-default{border-color:var(--text);}
+  .acct-addr-label{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;background:var(--surface-2);border-radius:99px;padding:2px 8px;margin-bottom:6px;}
+  .acct-addr-card.is-default .acct-addr-label{background:var(--text);color:#fff;}
+  .acct-addr-line{font-size:12px;line-height:1.5;color:var(--muted);margin:0;}
+  .acct-addr-name{font-size:12.5px;font-weight:600;color:var(--text);margin:0 0 3px;}
+  .acct-addr-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .acct-addr-actions button{font-size:11px;padding:5px 11px;border-radius:7px;border:1px solid var(--line);background:transparent;cursor:pointer;font-weight:600;color:var(--text);font-family:inherit;}
+  .acct-addr-actions button.danger{color:#dc2626;border-color:#fca5a5;}
+  .acct-empty{font-size:12px;color:var(--muted);text-align:center;padding:18px 0;}
   .pdp-wish-btn{
     position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
     background:var(--surface);border:1px solid var(--line);
@@ -262,11 +303,11 @@
   .pdp-share-btn svg{width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2;}
   .pdp-share-btn:hover svg{stroke:var(--text);}
   .pdp-zoom-hint{
-    position:absolute;bottom:12px;left:12px;z-index:2;display:inline-flex;align-items:center;gap:5px;
-    background:rgba(0,0,0,.6);color:#fff;border-radius:99px;padding:4px 9px;
-    font-size:9.5px;font-weight:600;letter-spacing:.3px;pointer-events:none;
+    position:absolute;bottom:8px;left:8px;z-index:2;display:inline-flex;align-items:center;gap:3px;
+    background:rgba(0,0,0,.5);color:#fff;border-radius:99px;padding:2px 7px;
+    font-size:8px;font-weight:700;letter-spacing:.3px;pointer-events:none;line-height:1.4;
   }
-  .pdp-zoom-hint svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.2;}
+  .pdp-zoom-hint svg{width:8px;height:8px;stroke:#fff;fill:none;stroke-width:2.4;}
 
   /* ---- Share sheet ---- */
   .share-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;margin:14px 0 4px;}
@@ -355,7 +396,12 @@
     font-family:var(--font-mono);
     box-shadow:0 3px 6px rgba(184,41,26,0.35), 0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 4px rgba(90,20,10,0.25) inset;
   }
-  .plate .price{font-size:13.5px;font-weight:700;}
+  .plate .price{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+  .plate{padding:7px 13px;}
+  .plate .mrp{font-size:12px;}
+  .pdp-plate-row .plate .price{font-size:20px;}
+  .pdp-plate-row .plate .mrp{font-size:14px;}
+  .pdp-plate-row .plate{padding:9px 16px;}
   .plate .mrp{font-size:9.5px;text-decoration:line-through;opacity:0.55;}
   .card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
   .rating{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);}
@@ -1174,31 +1220,7 @@
     /* Two columns: sticky gallery on the left, details stacked on the right.
        The gallery and the details column are each a single grid item, so the
        right side always starts at the very top of the row. */
-    .pdp-scroll{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
-      column-gap:38px;align-items:start;padding-top:30px;}
-    .pdp-media-wrap{grid-column:1;grid-row:1;position:sticky;top:0;}
-    .pdp-thumbs{grid-column:1;grid-row:2;margin:12px 0 0;align-self:start;}
-    .pdp-media{margin:0;}
-    /* Everything on the right lives in one column-2 item that spans both rows. */
-    .pdp-details{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;min-width:0;}
-    .pdp-cat{margin-top:0;}
-    .pdp-name{font-size:26px;margin-top:8px;}
-    .pdp-rating{margin-top:8px;}
-    .pdp-plate-row{margin-top:14px;}
-    .pdp-desc{margin-top:18px;}
-    .pdp-reviews{border-top:1px solid var(--line);margin-top:22px;}
-    .pdp-foot{padding-left:34px;padding-right:34px;}
     .pdp-share-btn{top:60px;}
-    /* desktop gallery grid — 2x2 like a real product page */
-    .pdp-media.grid-mode{aspect-ratio:auto;height:auto;background:transparent;display:grid;
-      grid-template-columns:1fr 1fr;gap:10px;padding:0;align-content:start;}
-    .pdp-media.grid-mode img{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;
-      border-radius:10px;background:var(--surface-2);}
-    /* a single photo on desktop should not stretch to full column height */
-    .pdp-media.solo-mode{aspect-ratio:1/1;max-height:none;}
-    .pdp-media.grid-mode .badge-sale,.pdp-media.grid-mode .badge-oos{top:10px;left:10px;}
-    .pdp-wish-btn{top:12px;right:12px;}
-    .pdp-share-btn{top:56px;right:12px;}
     .lb-thumbs{padding-bottom:16px;}
   }
 
@@ -1217,11 +1239,15 @@
     </button>
     <div class="logo" id="navLogo">SHYAM <span>AUTO</span></div>
     <div class="topbar-actions">
+      <button class="icon-btn" aria-label="My account" id="accountBtnTop" onclick="openAccount()" style="display:none;">
+        <span class="acct-dot" id="accountAvatar"></span>
+        <svg viewBox="0 0 24 24" id="accountIconSvg"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </button>
       <button class="icon-btn" aria-label="Search" id="searchBtnTop" onclick="openSearch()">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <button class="icon-btn" aria-label="Open wishlist" id="wishBtnTop">
-        <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10.2-9.2C.1 8.6 1.6 5 5.3 4.3c2-.4 4 .5 5.2 2.3 1.2-1.8 3.2-2.7 5.2-2.3 3.7.7 5.2 4.3 3.5 7.5C19.5 16.4 12 21 12 21z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.2 5.2 0 0 0-7.4 0L12 6l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 21l8.8-9a5.2 5.2 0 0 0 0-7.4z"/></svg>
         <span class="cart-count" id="wishCountTop" style="display:none;">0</span>
       </button>
       <button class="icon-btn" aria-label="Open cart" id="cartBtnTop">
@@ -1672,6 +1698,10 @@
           </div>
           <label class="auth-label" style="margin-top:12px;">Describe the issue</label>
           <textarea class="auth-input chat-textarea" id="chatMessage" placeholder="Tell us what happened..." rows="4"></textarea>
+          <label class="auth-label" style="margin-top:12px;">Add photos (optional)</label>
+          <input id="tkFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onTicketImagesPicked(this)">
+          <div class="tk-photos" id="tkPhotoGrid"></div>
+          <p class="tk-photo-hint" id="tkPhotoHint">Up to 4 photos. Each is compressed automatically, so large phone photos are fine. Photos are deleted automatically after 15 days.</p>
           <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px;" id="chatSubmitBtn" onclick="submitTicket()">Submit Ticket</button>
         </div>
 
@@ -1696,6 +1726,8 @@
       <div id="chatThreadView" style="display:none;">
         <button class="chat-thread-back" onclick="closeTicketThread()">&larr; Back to My Tickets</button>
         <div id="chatThreadHead"></div>
+        <div id="chatThreadPhotos" class="tk-thread-photos"></div>
+        <p class="tk-expiry" id="chatThreadPhotoExpiry" style="display:none;"></p>
         <div id="chatThreadMessages" class="chat-thread-messages"></div>
         <div id="chatThreadReplyBox">
           <textarea class="auth-input chat-textarea" id="chatReplyInput" placeholder="Type a message..." rows="2" style="min-height:50px;"></textarea>
@@ -1910,6 +1942,91 @@
         <button onclick="pdpChangeQty(1)">+</button>
       </div>
       <button class="pdp-add-btn" id="pdpAddBtn">Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account / profile sheet -->
+<div class="pdp-overlay" id="accountOverlay">
+  <div class="pdp-sheet" onclick="event.stopPropagation()">
+    <div class="pdp-handle"></div>
+    <button class="pdp-close" onclick="closeAccount()" aria-label="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="pdp-scroll">
+      <h2 class="pdp-name" style="margin-bottom:16px;">My Account</h2>
+      <input id="acctAvatarFile" type="file" accept="image/*" style="display:none;" onchange="onAvatarPicked(this)">
+      <div class="acct-head">
+        <button class="acct-avatar-btn" onclick="document.getElementById('acctAvatarFile').click()" aria-label="Change profile photo">
+          <span id="acctAvatarInner"></span>
+          <span class="acct-avatar-edit">CHANGE</span>
+        </button>
+        <div class="acct-head-info">
+          <p class="acct-head-name" id="acctName">Rider</p>
+          <p class="acct-head-sub" id="acctSub"></p>
+        </div>
+      </div>
+
+      <div class="acct-tabs">
+        <button class="acct-tab active" id="acctTabDetails" onclick="acctTab('details')">Details</button>
+        <button class="acct-tab" id="acctTabAddress" onclick="acctTab('address')">Addresses</button>
+        <button class="acct-tab" id="acctTabOrders" onclick="acctTab('orders')">Orders</button>
+      </div>
+
+      <div id="acctPanelDetails">
+        <label class="auth-label">Full name</label>
+        <input class="auth-input" id="acctFullName" placeholder="Your name">
+        <label class="auth-label" style="margin-top:12px;">Phone number</label>
+        <input class="auth-input" id="acctPhone" placeholder="+91" inputmode="tel">
+        <label class="auth-label" style="margin-top:12px;">Email</label>
+        <input class="auth-input" id="acctEmail" readonly style="opacity:.7;">
+        <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px;" id="acctSaveBtn" onclick="saveProfile()">Save Details</button>
+      </div>
+
+      <div id="acctPanelAddress" style="display:none;">
+        <div id="acctAddrList"></div>
+        <button class="btn-outline" style="width:100%;justify-content:center;margin-top:6px;" onclick="openAddressForm()">+ Add Address</button>
+      </div>
+
+      <div id="acctPanelOrders" style="display:none;">
+        <div id="acctOrdersList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Address form sheet -->
+<div class="pdp-overlay" id="addressOverlay">
+  <div class="pdp-sheet" style="max-width:460px;" onclick="event.stopPropagation()">
+    <div class="pdp-handle"></div>
+    <button class="pdp-close" onclick="closeAddressForm()" aria-label="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="pdp-scroll">
+      <h2 class="pdp-name" id="addrHeading" style="margin-bottom:14px;">Add Address</h2>
+      <label class="auth-label">Label</label>
+      <input class="auth-input" id="addrLabel" placeholder="Home / Office / Other">
+      <label class="auth-label" style="margin-top:12px;">Full name</label>
+      <input class="auth-input" id="addrName" placeholder="Name for this address">
+      <label class="auth-label" style="margin-top:12px;">Phone number</label>
+      <input class="auth-input" id="addrPhone" placeholder="+91" inputmode="tel">
+      <label class="auth-label" style="margin-top:12px;">Complete address</label>
+      <textarea class="auth-input chat-textarea" id="addrLine" rows="3" placeholder="House / street / area"></textarea>
+      <label class="auth-label" style="margin-top:12px;">Landmark (optional)</label>
+      <input class="auth-input" id="addrLandmark">
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <div style="flex:1;">
+          <label class="auth-label">Pincode</label>
+          <input class="auth-input" id="addrPincode" inputmode="numeric">
+        </div>
+        <div style="flex:1;">
+          <label class="auth-label">City</label>
+          <input class="auth-input" id="addrCity">
+        </div>
+      </div>
+      <label class="auth-label" style="margin-top:12px;">State</label>
+      <input class="auth-input" id="addrState">
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:18px;" onclick="saveAddress()">Save Address</button>
     </div>
   </div>
 </div>
@@ -3734,7 +3851,13 @@
     return new Promise(function(resolve){ canvas.toBlob(resolve, type, quality); });
   }
 
-  async function compressReviewPhoto(file){
+  // Same routine for review photos, ticket photos and the profile photo.
+  async function compressTicketImage(file, targetBytes){
+    return compressReviewPhoto(file, targetBytes);
+  }
+
+  async function compressReviewPhoto(file, targetBytes){
+    if(targetBytes) RVF_TARGET_BYTES = targetBytes;
     var im;
     try { im = await loadImageFile(file); }
     catch(e){ return file; }  // not decodable \u2014 let the upload decide
@@ -3965,23 +4088,14 @@
     const badge = isProductOutOfStock(p)
       ? '<span class="badge-oos">OUT OF STOCK</span>'
       : (p.sale ? '<span class="badge-sale">SALE</span>' : '');
-    // Desktop (>=860px) with several photos: show a 2x2 gallery grid like a full
-    // product page. Mobile / single photo: one big tappable image.
-    const gridMode = window.matchMedia('(min-width:860px)').matches && pdpImages.length > 1;
-    el.classList.toggle('grid-mode', gridMode);
-    el.classList.toggle('solo-mode', !gridMode);
-    if(gridMode){
-      el.innerHTML = badge + pdpImages.slice(0, 4).map((src, i) =>
-        `<img src="${src}" alt="${p.name}" loading="lazy" onclick="zoomPdpImage(${i})">`
-      ).join('');
-    } else {
-      const img = pdpImages[pdpActiveImgIdx];
-      el.innerHTML = badge +
-        (img
-          ? `<img src="${img}" alt="${p.name}" onclick="zoomPdpImage(${pdpActiveImgIdx})">
-             <span class="pdp-zoom-hint"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="11" y1="8.5" x2="11" y2="13.5"/><line x1="8.5" y1="11" x2="13.5" y2="11"/></svg>TAP TO ZOOM</span>`
-          : iconSvg);
-    }
+    // One large photo + thumbnails, on every screen size (original behaviour).
+    const img = pdpImages[pdpActiveImgIdx];
+    el.classList.remove('grid-mode', 'solo-mode');
+    el.innerHTML = badge +
+      (img
+        ? `<img src="${img}" alt="${p.name}" onclick="zoomPdpImage(${pdpActiveImgIdx})">
+           <span class="pdp-zoom-hint"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/></svg>ZOOM</span>`
+        : iconSvg);
   }
   /* =====================================================================
      IMAGE LIGHTBOX \u2014 pinch-zoom on touch, wheel/buttons on desktop
@@ -4117,6 +4231,260 @@
   }
 
   /* =====================================================================
+     ACCOUNT & PROFILE \u2014 name, photo, phone, saved addresses
+     ===================================================================== */
+  var myProfile = null;
+  var myAddresses = [];
+  var editingAddressId = null;
+  var acctOverlay = document.getElementById("accountOverlay");
+  var addrOverlay = document.getElementById("addressOverlay");
+
+  function acctAvatarHtml(){
+    var url = myProfile && myProfile.avatar_url;
+    if(url) return '<img src="' + escHtml(url) + '" alt="">';
+    return '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+  }
+
+  // Keep the header button and the side-menu row in sync with the session.
+  function refreshAccountChrome(){
+    var btn = document.getElementById("accountBtnTop");
+    var dot = document.getElementById("accountAvatar");
+    var logged = (typeof currentUser !== "undefined" && currentUser);
+    if(btn) btn.style.display = logged ? "flex" : "none";
+    if(dot && logged){
+      var url = myProfile && myProfile.avatar_url;
+      var name = (myProfile && myProfile.full_name) || currentUser.name || "R";
+      if(url){
+        dot.innerHTML = '<img src="' + escHtml(url) + '" alt="">';
+        btn.classList.add("has-photo");
+      } else {
+        dot.textContent = initialsOf(name);
+        btn.classList.remove("has-photo");
+      }
+    }
+    var menuName = document.getElementById("menuAccountName");
+    if(menuName && logged){
+      menuName.textContent = (myProfile && myProfile.full_name) || currentUser.name || "My Account";
+    }
+    var menuSub = document.getElementById("menuAccountSub");
+    if(menuSub && logged) menuSub.textContent = currentUser.sub || "My account";
+    var menuAv = document.getElementById("menuAccountAvatar");
+    if(menuAv && logged){
+      var u2 = myProfile && myProfile.avatar_url;
+      menuAv.innerHTML = u2
+        ? '<img src="' + escHtml(u2) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+        : '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+    }
+  }
+
+  async function loadProfile(){
+    if(typeof currentUser === "undefined" || !currentUser){
+      myProfile = null; myAddresses = []; refreshAccountChrome(); return;
+    }
+    var { data: userRes } = await sb.auth.getUser();
+    if(!userRes || !userRes.user) return;
+    var uid = userRes.user.id;
+    var pr = await sb.from("profiles").select("*").eq("id", uid).maybeSingle();
+    myProfile = (pr && pr.data) ? pr.data : null;
+    if(!myProfile){
+      // row missing (account created before the trigger existed) \u2014 make it
+      var meta = userRes.user.user_metadata || {};
+      var ins = await sb.from("profiles").insert({
+        id: uid,
+        full_name: meta.full_name || meta.name || null,
+        phone: meta.phone || null
+      }).select().single();
+      myProfile = (ins && ins.data) ? ins.data : { id: uid };
+    }
+    var ar = await sb.from("user_addresses")
+      .select("*").eq("user_id", uid)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true });
+    myAddresses = Array.isArray(ar && ar.data) ? ar.data : [];
+    refreshAccountChrome();
+  }
+
+  function openAccount(){
+    if(typeof currentUser === "undefined" || !currentUser){
+      var ov = document.getElementById("authOverlay");
+      if(ov) ov.classList.add("open");
+      return;
+    }
+    document.getElementById("acctName").textContent =
+      (myProfile && myProfile.full_name) || currentUser.name || "Rider";
+    document.getElementById("acctSub").textContent = currentUser.sub || "";
+    document.getElementById("acctFullName").value = (myProfile && myProfile.full_name) || "";
+    document.getElementById("acctPhone").value = (myProfile && myProfile.phone) || "";
+    document.getElementById("acctEmail").value = currentUser.sub || "";
+    document.getElementById("acctAvatarInner").innerHTML = acctAvatarHtml();
+    renderAddressList();
+    renderAccountOrders();
+    acctTab("details");
+    acctOverlay.classList.add("open");
+    pushOverlayHistory();
+  }
+  function closeAccount(){ acctOverlay.classList.remove("open"); }
+
+  function acctTab(which){
+    var map = { details:"acctPanelDetails", address:"acctPanelAddress", orders:"acctPanelOrders" };
+    var tabMap = { details:"acctTabDetails", address:"acctTabAddress", orders:"acctTabOrders" };
+    Object.keys(map).forEach(function(k){
+      var t = document.getElementById(tabMap[k]);
+      var panel = document.getElementById(map[k]);
+      var on = (k === which);
+      if(t) t.classList.toggle("active", on);
+      if(panel) panel.style.display = on ? "block" : "none";
+    });
+  }
+
+  async function onAvatarPicked(input){
+    var f = (input.files || [])[0];
+    if(!f) return;
+    if(typeof currentUser === "undefined" || !currentUser){ input.value = ""; return; }
+    showToast("Uploading photo\u2026");
+    // the profile photo is compressed too (a little larger target is fine here)
+    f = await compressTicketImage(f, 200 * 1024);
+    var path = currentUser.id + "/avatar-" + Date.now() + ".jpg";
+    var up = await sb.storage.from("avatars").upload(path, f, { upsert: true, contentType: "image/jpeg" });
+    input.value = "";
+    if(up.error){ showToast("Photo upload failed"); return; }
+    var pub = sb.storage.from("avatars").getPublicUrl(path);
+    var url = pub && pub.data ? pub.data.publicUrl : null;
+    var { error } = await sb.from("profiles").update({ avatar_url: url, updated_at: new Date().toISOString() }).eq("id", currentUser.id);
+    if(error){ showToast("Could not save the photo"); return; }
+    if(!myProfile) myProfile = { id: currentUser.id };
+    myProfile.avatar_url = url;
+    document.getElementById("acctAvatarInner").innerHTML = acctAvatarHtml();
+    refreshAccountChrome();
+    showToast("Profile photo updated");
+  }
+
+  async function saveProfile(){
+    var name = document.getElementById("acctFullName").value.trim();
+    var phone = document.getElementById("acctPhone").value.trim();
+    var btn = document.getElementById("acctSaveBtn");
+    btn.disabled = true;
+    var { error } = await sb.from("profiles").upsert({
+      id: currentUser.id,
+      full_name: name || null,
+      phone: phone || null,
+      updated_at: new Date().toISOString()
+    });
+    btn.disabled = false;
+    if(error){ showToast("Could not save your details"); return; }
+    myProfile = Object.assign({}, myProfile, { full_name: name || null, phone: phone || null });
+    document.getElementById("acctName").textContent = name || "Rider";
+    refreshAccountChrome();
+    showToast("Details saved");
+  }
+
+  function renderAddressList(){
+    var wrap = document.getElementById("acctAddrList");
+    if(!wrap) return;
+    if(!myAddresses.length){
+      wrap.innerHTML = '<p class="acct-empty">No saved addresses yet.</p>';
+      return;
+    }
+    wrap.innerHTML = myAddresses.map(function(a){
+      var bits = [a.address, a.landmark, [a.city, a.state, a.pincode].filter(Boolean).join(" ")].filter(Boolean);
+      return '<div class="acct-addr-card' + (a.is_default ? " is-default" : "") + '">' +
+        '<span class="acct-addr-label">' + escHtml(a.label || "Address") + (a.is_default ? " \u00b7 Default" : "") + '</span>' +
+        '<p class="acct-addr-name">' + escHtml(a.full_name || "") + (a.phone ? " \u00b7 " + escHtml(a.phone) : "") + '</p>' +
+        '<p class="acct-addr-line">' + escHtml(bits.join(", ")) + '</p>' +
+        '<div class="acct-addr-actions">' +
+          '<button onclick="openAddressForm(' + a.id + ')">Edit</button>' +
+          (a.is_default ? '' : '<button onclick="makeAddressDefault(' + a.id + ')">Make default</button>') +
+          '<button class="danger" onclick="deleteAddress(' + a.id + ')">Delete</button>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  function openAddressForm(id){
+    editingAddressId = id || null;
+    var a = id ? myAddresses.filter(function(x){ return x.id === id; })[0] : null;
+    document.getElementById("addrHeading").textContent = a ? "Edit Address" : "Add Address";
+    document.getElementById("addrLabel").value = a ? (a.label || "") : "";
+    document.getElementById("addrName").value = a ? (a.full_name || "") : ((myProfile && myProfile.full_name) || "");
+    document.getElementById("addrPhone").value = a ? (a.phone || "") : ((myProfile && myProfile.phone) || "");
+    document.getElementById("addrLine").value = a ? (a.address || "") : "";
+    document.getElementById("addrLandmark").value = a ? (a.landmark || "") : "";
+    document.getElementById("addrPincode").value = a ? (a.pincode || "") : "";
+    document.getElementById("addrCity").value = a ? (a.city || "") : "";
+    document.getElementById("addrState").value = a ? (a.state || "") : "";
+    addrOverlay.classList.add("open");
+  }
+  function closeAddressForm(){ addrOverlay.classList.remove("open"); }
+
+  async function saveAddress(){
+    var addr = document.getElementById("addrLine").value.trim();
+    var name = document.getElementById("addrName").value.trim();
+    if(!addr || !name){ showToast("Name and address are required"); return; }
+    var payload = {
+      user_id: currentUser.id,
+      label: document.getElementById("addrLabel").value.trim() || "Home",
+      full_name: name,
+      phone: document.getElementById("addrPhone").value.trim() || null,
+      address: addr,
+      landmark: document.getElementById("addrLandmark").value.trim() || null,
+      pincode: document.getElementById("addrPincode").value.trim() || null,
+      city: document.getElementById("addrCity").value.trim() || null,
+      state: document.getElementById("addrState").value.trim() || null
+    };
+    var res;
+    if(editingAddressId){
+      res = await sb.from("user_addresses").update(payload).eq("id", editingAddressId);
+    } else {
+      payload.is_default = myAddresses.length === 0;
+      res = await sb.from("user_addresses").insert(payload);
+    }
+    if(res.error){ showToast("Could not save the address"); return; }
+    closeAddressForm();
+    await loadProfile();
+    renderAddressList();
+    showToast(editingAddressId ? "Address updated" : "Address saved");
+  }
+
+  async function makeAddressDefault(id){
+    await sb.from("user_addresses").update({ is_default: false }).eq("user_id", currentUser.id);
+    await sb.from("user_addresses").update({ is_default: true }).eq("id", id);
+    await loadProfile();
+    renderAddressList();
+  }
+
+  async function deleteAddress(id){
+    if(!confirm("Delete this address?")) return;
+    var { error } = await sb.from("user_addresses").delete().eq("id", id);
+    if(error){ showToast("Could not delete the address"); return; }
+    await loadProfile();
+    renderAddressList();
+    showToast("Address deleted");
+  }
+
+  function renderAccountOrders(){
+    var wrap = document.getElementById("acctOrdersList");
+    if(!wrap) return;
+    var list = (typeof myOrders !== "undefined" && Array.isArray(myOrders)) ? myOrders : [];
+    if(!list.length){
+      wrap.innerHTML = '<p class="acct-empty">No orders yet.</p>';
+      return;
+    }
+    wrap.innerHTML = list.slice(0, 3).map(function(o){
+      var count = (o.items || []).reduce(function(s, it){ return s + it.qty; }, 0);
+      return '<div class="acct-addr-card">' +
+        '<span class="acct-addr-label">#' + escHtml(o.id) + '</span>' +
+        '<p class="acct-addr-name">' + escHtml(o.status) + '</p>' +
+        '<p class="acct-addr-line">' + count + ' item' + (count === 1 ? '' : 's') + ' \u00b7 \u20b9' +
+          Number(o.total || 0).toLocaleString("en-IN") + '</p>' +
+        '<div class="acct-addr-actions"><button onclick="closeAccount(); openOrderDetail(\'' + escHtml(o.id) + '\')">View order</button></div>' +
+      '</div>';
+    }).join("") +
+    '<button class="btn-outline" style="width:100%;justify-content:center;margin-top:6px;" onclick="closeAccount(); openMyOrders()">See all my orders</button>';
+  }
+
+  if(acctOverlay) acctOverlay.addEventListener("click", closeAccount);
+  if(addrOverlay) addrOverlay.addEventListener("click", closeAddressForm);
+
+  /* =====================================================================
      SHARE A PRODUCT
      ===================================================================== */
   var shareOverlay = document.getElementById("shareOverlay");
@@ -4235,14 +4603,6 @@
       `<button class="pdp-thumb ${i === pdpActiveImgIdx ? 'active' : ''}" onclick="selectPdpImage(${i})"><img src="${src}"></button>`
     ).join('');
   }
-  // Re-lay out the PDP gallery when crossing the desktop breakpoint.
-  window.matchMedia('(min-width:860px)').addEventListener('change', function(){
-    if(pdpOverlay.classList.contains('open') && pdpCurrentId){
-      renderPdpMedia();
-      renderPdpThumbs();
-    }
-  });
-
   function selectPdpImage(i){
     pdpActiveImgIdx = i;
     renderPdpMedia();
@@ -4522,6 +4882,8 @@
   }
 
   function resetChatForm(){
+    tkImageUrls = [];
+    renderTicketPhotoGrid();
     selectedIssueType = null;
     chatOrderContext = null;
     document.querySelectorAll('#chatTypeChips .chat-chip').forEach(c => c.classList.remove('active'));
@@ -4530,6 +4892,93 @@
     document.getElementById('chatFormFields').style.display = 'none';
     document.getElementById('chatConfirm').style.display = 'none';
     document.getElementById('chatStepChip').style.display = 'block';
+  }
+
+  /* ---- Ticket photos (customer side) ---- */
+  var TK_MAX_PHOTOS = 4;
+  var tkImageUrls = [];
+  var tkUploading = false;
+
+  function pickTicketPhotos(){
+    if(tkUploading) return;
+    if(tkImageUrls.length >= TK_MAX_PHOTOS){
+      showToast("You can add up to " + TK_MAX_PHOTOS + " photos");
+      return;
+    }
+    document.getElementById("tkFileInput").click();
+  }
+  function removeTicketPhoto(i){ tkImageUrls.splice(i, 1); renderTicketPhotoGrid(); }
+
+  function renderTicketPhotoGrid(){
+    var grid = document.getElementById("tkPhotoGrid");
+    if(!grid) return;
+    var jsonAttr = JSON.stringify(tkImageUrls).replace(/"/g, "&quot;");
+    var tiles = tkImageUrls.map(function(u, i){
+      return '<div class="tk-tile">' +
+        '<img src="' + escHtml(u) + '" onclick="openLightbox(JSON.parse(this.dataset.all), ' + i + ')" data-all="' + jsonAttr + '">' +
+        '<button type="button" class="tk-tile-del" title="Remove photo" onclick="removeTicketPhoto(' + i + ')">&times;</button>' +
+      '</div>';
+    }).join("");
+    var full = tkImageUrls.length >= TK_MAX_PHOTOS;
+    var addTile = '<button type="button" class="tk-add-tile" onclick="pickTicketPhotos()"' +
+      ((full || tkUploading) ? " disabled" : "") + ">" +
+      (tkUploading
+        ? "<span>Uploading…</span>"
+        : '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg><span>ADD PHOTO</span>') +
+      "</button>";
+    grid.innerHTML = tiles + (full ? "" : addTile);
+    var hint = document.getElementById("tkPhotoHint");
+    if(hint){
+      hint.textContent = full
+        ? "Maximum " + TK_MAX_PHOTOS + " photos added. Remove one to add another. Photos are deleted automatically after 15 days."
+        : "Up to " + TK_MAX_PHOTOS + " photos. Each is compressed automatically, so large phone photos are fine. Photos are deleted automatically after 15 days.";
+    }
+  }
+
+  async function onTicketImagesPicked(input){
+    var room = TK_MAX_PHOTOS - tkImageUrls.length;
+    var files = Array.from(input.files || []).slice(0, Math.max(room, 0));
+    if(!files.length){ input.value = ""; return; }
+    if(!currentUser){ showToast("Please log in first"); input.value = ""; return; }
+    tkUploading = true;
+    renderTicketPhotoGrid();
+    showToast(files.length > 1 ? "Compressing & uploading photos\u2026" : "Compressing & uploading photo\u2026");
+    for(var i = 0; i < files.length; i++){
+      // the same compressor the reviews use \u2014 keeps every photo under 100KB
+      var f = await compressTicketImage(files[i], 100 * 1024);
+      var path = currentUser.id + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + ".jpg";
+      var up = await sb.storage.from("ticket-images").upload(path, f, { upsert: false, contentType: "image/jpeg" });
+      if(up.error){ showToast("Photo upload failed"); continue; }
+      var pub = sb.storage.from("ticket-images").getPublicUrl(path);
+      if(pub && pub.data && pub.data.publicUrl) tkImageUrls.push(pub.data.publicUrl);
+    }
+    input.value = "";
+    tkUploading = false;
+    renderTicketPhotoGrid();
+    if(tkImageUrls.length) showToast("Photo added");
+  }
+
+  function renderTicketThreadPhotos(){
+    var wrap = document.getElementById("chatThreadPhotos");
+    var exp = document.getElementById("chatThreadPhotoExpiry");
+    if(!wrap) return;
+    var imgs = (activeTicket && Array.isArray(activeTicket.images)) ? activeTicket.images : [];
+    if(!imgs.length){
+      wrap.innerHTML = "";
+      if(exp) exp.style.display = "none";
+      return;
+    }
+    var jsonAttr = JSON.stringify(imgs).replace(/"/g, "&quot;");
+    wrap.innerHTML = imgs.map(function(u){
+      return '<img src="' + escHtml(u) + '" data-all="' + jsonAttr + '" onclick="openLightbox(JSON.parse(this.dataset.all), 0)">';
+    }).join("");
+    if(exp && activeTicket.images_expire_at){
+      var days = Math.ceil((new Date(activeTicket.images_expire_at) - Date.now()) / 86400000);
+      exp.style.display = days > 0 ? "block" : "none";
+      exp.textContent = days > 0 ? ("Photos auto-delete in " + days + " day" + (days === 1 ? "" : "s")) : "";
+    } else if(exp){
+      exp.style.display = "none";
+    }
   }
 
   async function submitTicket(){
@@ -4548,7 +4997,12 @@
       issue_type: selectedIssueType,
       order_ref: orderRef,
       status: 'Open',
-      messages: [{ sender: 'customer', text: message, at: new Date().toISOString() }]
+      messages: [{ sender: 'customer', text: message, at: new Date().toISOString() }],
+      images: tkImageUrls.slice(),
+      // photos are removed automatically 15 days after they were uploaded
+      images_expire_at: tkImageUrls.length
+        ? new Date(Date.now() + 15 * 86400000).toISOString()
+        : null
     };
     const { data, error } = await sb.from('tickets').insert(payload).select().single();
     if(error){ showToast(error.message); return; }
@@ -4557,6 +5011,8 @@
     document.getElementById('chatFormFields').style.display = 'none';
     document.getElementById('chatConfirmId').textContent = '#' + data.id;
     document.getElementById('chatConfirm').style.display = 'block';
+    tkImageUrls = [];
+    renderTicketPhotoGrid();
   }
 
   async function loadMyTickets(){
@@ -4611,6 +5067,7 @@
       </div>
     `;
     renderThreadMessages();
+    renderTicketThreadPhotos();
     const closed = activeTicket.status === 'Closed';
     document.getElementById('chatThreadReplyBox').style.display = closed ? 'none' : 'block';
     document.getElementById('chatThreadClosedNote').style.display = closed ? 'block' : 'none';
@@ -4988,6 +5445,8 @@
   async function doLogout(){
     await sb.auth.signOut({ scope: 'local' });
     currentUser = null;
+    myProfile = null; myAddresses = [];
+    if(typeof refreshAccountChrome === 'function') refreshAccountChrome();
     updateAccountNav();
     // Wipe any leftover Supabase auth keys so a stuck/partial session can
     // never block the next login attempt.
@@ -5011,11 +5470,13 @@
   // (covers OTP login, OAuth redirect return, logout, session restore on reload).
   sb.auth.onAuthStateChange((_event, session) => {
     currentUser = userFromSupabase(session && session.user);
+    loadProfile();
     updateAccountNav();
     loadWishlist().then(refreshWishlistUI);
   });
   sb.auth.getSession().then(({ data }) => {
     currentUser = userFromSupabase(data.session && data.session.user);
+    loadProfile();
     updateAccountNav();
     loadWishlist().then(refreshWishlistUI);
   });
@@ -5058,6 +5519,12 @@
   menuOverlay.addEventListener('click', closeMenu);
 
   document.getElementById('menuAccountRow').addEventListener('click', () => {
+    // Signed in? this row opens the profile instead of the login sheet.
+    if(typeof currentUser !== 'undefined' && currentUser){
+      closeMenu();
+      setTimeout(openAccount, 0);
+      return;
+    }
     // closeMenu() consumes a history entry via history.back(), which is
     // ASYNC. Calling openAuth() (which pushes a new history entry)
     // immediately after used to race with that pending back() — the auth
