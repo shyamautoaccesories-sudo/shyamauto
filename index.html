@@ -1032,6 +1032,8 @@
   .pay-option-sub{font-size:11.5px;color:var(--muted);margin-top:1px;}
   .pay-option.disabled{opacity:0.5;cursor:not-allowed;background:var(--surface-2);}
   .pay-option-badge{font-size:10px;font-weight:700;color:var(--red);margin-left:6px;text-transform:uppercase;letter-spacing:0.3px;}
+  .co-delivery-hint{font-size:11.5px;color:var(--muted);margin:0 0 2px;line-height:1.5;}
+  .co-delivery-hint strong{color:var(--text);}
   .co-row{display:flex;gap:10px;}
   .co-row .auth-field{flex:1;min-width:0;}
   .phone-input-row{display:flex;gap:8px;}
@@ -1871,7 +1873,9 @@
       <input class="auth-input" id="coLandmark" type="text" placeholder="Enter any nearby landmark" style="margin-bottom:16px;">
 
       <label class="auth-label">Pincode</label>
-      <input class="auth-input" id="coPincode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter pincode" style="margin-bottom:16px;">
+      <input class="auth-input" id="coPincode" type="text" inputmode="numeric" maxlength="6" placeholder="Enter pincode" style="margin-bottom:6px;">
+      <p class="co-delivery-hint" id="coDeliveryHint" style="display:none;"></p>
+      <div style="height:12px;"></div>
 
       <div class="co-row" style="margin-bottom:4px;">
         <div class="auth-field">
@@ -2384,16 +2388,18 @@
 
   // ---- Load site content from Supabase (falls back to defaults if a table is empty) ----
   async function loadSiteContent(){
-    const [prodRes, catRes, brandRes, siteRes, modelRes, gearBrandRes, reviewRes] = await Promise.all([
+    const [prodRes, catRes, brandRes, siteRes, modelRes, gearBrandRes, reviewRes, zoneRes] = await Promise.all([
       sb.from('products').select('*').order('id'),
       sb.from('categories').select('*').order('id'),
       sb.from('brands').select('*').order('id'),
       sb.from('site_content').select('*').eq('id', 1).maybeSingle(),
       sb.from('bike_models').select('*').order('id'),
       sb.from('product_brands').select('*').order('id'),
-      sb.from('reviews').select('*').eq('status', 'Published').order('created_at', { ascending: false })
+      sb.from('reviews').select('*').eq('status', 'Published').order('created_at', { ascending: false }),
+      sb.from('delivery_zones').select('*').eq('active', true).order('prefix')
     ]);
     allReviews = Array.isArray(reviewRes && reviewRes.data) ? reviewRes.data : [];
+    deliveryZones = Array.isArray(zoneRes && zoneRes.data) ? zoneRes.data : [];
     const rows = prodRes.data && prodRes.data.length ? prodRes.data : defaultProducts;
     const mappedProducts = rows.map(p => ({
       id: p.id, name: p.name, cat: p.cat, brand: p.brand || null, price: Number(p.price), mrp: p.mrp != null ? Number(p.mrp) : null,
@@ -3112,8 +3118,81 @@
     return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitPrice * info.qty : sum; }, 0);
   }
 
+  /* ---------------------------------------------------------------------
+     DELIVERY CHARGES
+     Admin → Settings → Delivery Charges mein pincode-prefix wise rates
+     hote hain. Rule: sabse specific (longest) prefix jeetta hai. Final
+     charge = zip (zone) aur product charge mein se JO ZYADA HO, kyunki
+     bhaari item par product ka charge sahi hota hai, aur door ke pincode
+     par zone ka.
+     --------------------------------------------------------------------- */
+  var deliveryZones = [];
+
+  function deliveryStoreSettings(){
+    var st = (typeof site !== "undefined" && site && site.store) ? site.store : {};
+    return {
+      defaultCharge: Number(st.default_delivery_charge || 0),
+      freeAbove: Number(st.free_delivery_above || 0)
+    };
+  }
+
+  // longest matching prefix wins
+  function zoneForPincode(pin){
+    var p = String(pin || "").trim();
+    if(!/^[0-9]{1,6}$/.test(p)) return null;
+    var best = null;
+    (deliveryZones || []).forEach(function(z){
+      var pre = String(z.prefix || "").trim();
+      if(!pre) return;
+      if(p.indexOf(pre) === 0){
+        if(!best || pre.length > String(best.prefix).length) best = z;
+      }
+    });
+    return best;
+  }
+
+  // product charges summed from the cart
+  function cartProductDeliveryCharge(){
+    return Object.keys(cart).reduce(function(sum, key){
+      var info = cartLineInfo(key);
+      return info ? sum + info.unitDeliveryCharge * info.qty : sum;
+    }, 0);
+  }
+
+  // The charge actually applied at checkout.
   function keysDeliveryCharge(){
-    return Object.keys(cart).reduce((sum, key) => { const info = cartLineInfo(key); return info ? sum + info.unitDeliveryCharge * info.qty : sum; }, 0);
+    var subtotal = keysTotal();
+    var productCharge = cartProductDeliveryCharge();
+    var st = deliveryStoreSettings();
+
+    // free-delivery threshold (order value based)
+    if(st.freeAbove > 0 && subtotal >= st.freeAbove) return 0;
+
+    var pin = "";
+    var pinEl = document.getElementById("coPincode");
+    if(pinEl) pin = pinEl.value.trim();
+
+    var zone = zoneForPincode(pin);
+    var zoneCharge = zone ? Number(zone.charge || 0) : st.defaultCharge;
+
+    // jo zyada ho wahi lagta hai; product ka charge 0 ho to zone ka
+    return Math.max(productCharge, zoneCharge);
+  }
+
+  // human-readable line for the checkout summary
+  function deliveryDescription(){
+    var st = deliveryStoreSettings();
+    var subtotal = keysTotal();
+    if(st.freeAbove > 0 && subtotal >= st.freeAbove) return "Free delivery applied";
+    var pinEl = document.getElementById("coPincode");
+    var pin = pinEl ? pinEl.value.trim() : "";
+    var zone = zoneForPincode(pin);
+    if(zone){
+      var place = [zone.city, zone.state].filter(Boolean).join(", ");
+      return place ? ("To " + place) : ("Pincode " + pin);
+    }
+    if(/^\d{6}$/.test(pin)) return "Standard delivery";
+    return "Enter pincode for exact charge";
   }
 
   // ---- Cash on Delivery — only offered when EVERY product currently in the
@@ -3159,6 +3238,21 @@
     let raw = d.type === 'percent' ? (subtotal * Number(d.value) / 100) : Number(d.value);
     if(d.type === 'percent' && d.max_discount != null) raw = Math.min(raw, Number(d.max_discount));
     return Math.round(Math.min(raw, subtotal));
+  }
+
+  function renderDeliveryHint(){
+    var el = document.getElementById("coDeliveryHint");
+    if(!el) return;
+    var charge = keysDeliveryCharge();
+    var desc = deliveryDescription();
+    var st = deliveryStoreSettings();
+    if(st.freeAbove > 0 && keysTotal() >= st.freeAbove){
+      el.style.display = "block";
+      el.innerHTML = "<strong>Free delivery</strong> on this order";
+      return;
+    }
+    el.style.display = "block";
+    el.innerHTML = desc + " \u2014 <strong>\u20b9" + charge.toLocaleString("en-IN") + "</strong>";
   }
 
   function updateCheckoutTotals(){
@@ -5647,12 +5741,27 @@
   document.getElementById('checkoutClose').addEventListener('click', closeCheckoutFn);
   checkoutOverlay.addEventListener('click', closeCheckoutFn);
 
-  // ---- Pincode → auto-fill City & State ----
+  // ---- Pincode → auto-fill City & State, and re-price delivery ----
   document.getElementById('coPincode').addEventListener('input', async (e) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 6);
     e.target.value = val;
+    // Delivery charge pincode par depend karta hai — turant update karein
+    updateCheckoutTotals();
+    renderDeliveryHint();
     const cityEl = document.getElementById('coCity');
     const stateEl = document.getElementById('coState');
+    // zone rule se city/state pehle bhar dein (API se pehle, offline bhi chale)
+    var zone = zoneForPincode(val);
+    if(zone && zone.city){
+      if(!cityEl.value || cityEl.classList.contains('co-input-auto')){
+        cityEl.value = zone.city;
+        cityEl.classList.add('co-input-auto');
+      }
+      if(zone.state && (!stateEl.value || stateEl.classList.contains('co-input-auto'))){
+        stateEl.value = zone.state;
+        stateEl.classList.add('co-input-auto');
+      }
+    }
     if(val.length !== 6){
       cityEl.classList.remove('co-input-auto');
       stateEl.classList.remove('co-input-auto');
@@ -5675,6 +5784,11 @@
     }
   });
   document.getElementById('coCity').addEventListener('input', (e) => e.target.classList.remove('co-input-auto'));
+  // Saved address se pincode bharne par bhi delivery charge refresh ho jaye
+  ['coCity','coState','coPincode'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('change', function(){ updateCheckoutTotals(); renderDeliveryHint(); });
+  });
   document.getElementById('coState').addEventListener('input', (e) => e.target.classList.remove('co-input-auto'));
 
   document.querySelectorAll('input[name="coPayment"]').forEach(radio => {
