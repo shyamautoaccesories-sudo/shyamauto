@@ -4980,38 +4980,18 @@
     return id ? String(id).trim() : null;
   }
 
-  // Opens a product once per shared link. The id is consumed and removed from
-  // the address bar straight away, so a later refresh (or the back button)
-  // never re-opens the sheet on its own.
-  var _sharedProductHandled = false;
-
   function openSharedProductFromUrl(){
-    if(_sharedProductHandled) return;
     var id = sharedProductIdFromUrl();
     if(!id) return;
-    _sharedProductHandled = true;
-
-    // Clean the URL immediately — keeps the link shareable but stops the
-    // sheet from popping up again on every reload.
-    try {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch(e){ /* ignore */ }
-
     var p = findProduct(id) || findProduct(Number(id));
     if(!p){
       showToast("That product is no longer available");
       return;
     }
-    // Deferred a tick so the storefront has painted first.
+    // Open the product sheet. Deferred a tick so the storefront has painted
+    // first — closing the sheet then leaves the shopper on a real page.
     setTimeout(function(){ openProduct(p.id); }, 60);
   }
-
-  // If the user lands with only a hash (#product=12) also consume it once,
-  // instead of letting it fire again on each refresh.
-  window.addEventListener("hashchange", function(){
-    if(_sharedProductHandled) return;
-    openSharedProductFromUrl();
-  });
 
   if(shareOverlay){
     shareOverlay.addEventListener("click", closeShareSheet);
