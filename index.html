@@ -269,7 +269,7 @@
      Applied inside the account sheet and the checkout sheet on wide
      screens, so the form uses the full width instead of leaving the
      left half empty. ---- */
-  .form-2col{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px 20px;align-items:start;max-width:640px;}
+  .form-2col{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px 20px;align-items:start;max-width:640px;margin:0 auto;}
   /* pairs of short fields sit side by side, like a real form */
   .form-2col .pair{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;}
   .form-2col .pair > div{min-width:0;}
@@ -282,7 +282,10 @@
   .form-2col .full{grid-column:2;padding:0;background:none;border:none;}
   .form-2col .co-delivery-hint{grid-column:2;margin:-6px 0 0;}
   .form-2col .field-error{grid-column:2;}
-  .form-2col .pay-options{grid-column:2;}
+  .form-2col .pay-options{grid-column:1 / -1;max-width:560px;margin:0 auto;}
+  .form-2col .coupon-row{grid-column:1 / -1;display:flex;gap:10px;max-width:560px;margin:0 auto;}
+  .form-2col .checkout-summary{grid-column:1 / -1;max-width:640px;margin:8px auto 0;width:100%;}
+  .form-2col .co-error-row{grid-column:1 / -1;max-width:640px;margin:0 auto;}
   .form-2col .acct-tabs{grid-column:1 / -1;margin-bottom:4px;}
   .form-2col .acct-head{grid-column:1 / -1;}
   .form-2col .acct-addr-card,
@@ -292,7 +295,7 @@
   @media (min-width:860px){
     /* wide screens: the sheet grows and the label column appears */
     .pdp-sheet.wide{max-width:900px;}
-    .form-2col{grid-template-columns:190px minmax(0,1fr);gap:16px 24px;max-width:none;}
+    .form-2col{grid-template-columns:200px minmax(0,1fr);gap:16px 26px;max-width:760px;margin:0 auto;}
   }
   @media (max-width:859px){
     /* phones: keep it stacked exactly as before */
@@ -312,6 +315,18 @@
   .acct-head-info{flex:1;min-width:0;}
   .acct-head-name{font-size:16px;font-weight:600;margin:0 0 2px;}
   .acct-head-sub{font-size:11.5px;color:var(--muted);margin:0;word-break:break-all;}
+  /* ---- Account panel layout ---- */
+  .acct-section-title{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:0 0 14px;}
+  .acct-field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .acct-field{min-width:0;margin-bottom:16px;}
+  .acct-field .auth-label{margin:0 0 6px;}
+  .acct-field-center{display:flex;flex-direction:column;align-items:center;}
+  .acct-field-center .auth-label{align-self:center;}
+  .acct-field-center .auth-input{width:100%;max-width:420px;text-align:center;}
+  @media (max-width:640px){
+    .acct-field-row{grid-template-columns:1fr;}
+    .acct-field-center .auth-input{max-width:none;}
+  }
   .acct-tabs{display:flex;gap:8px;margin-bottom:16px;}
   .acct-tab{flex:1;padding:9px 4px;border:1px solid var(--line);border-radius:9px;background:transparent;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;}
   .acct-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
@@ -2074,27 +2089,32 @@
       </div>
 
       <div id="acctPanelDetails">
-        <div class="pair">
-          <div>
+        <p class="acct-section-title">Details</p>
+        <div class="acct-field-row">
+          <div class="acct-field">
             <label class="auth-label">Full name</label>
             <input class="auth-input" id="acctFullName" placeholder="Your name">
           </div>
-          <div>
+          <div class="acct-field">
             <label class="auth-label">Phone number</label>
             <input class="auth-input" id="acctPhone" placeholder="+91" inputmode="tel">
           </div>
         </div>
-        <label class="auth-label">Email</label>
-        <input class="auth-input" id="acctEmail" readonly style="opacity:.7;">
+        <div class="acct-field acct-field-center">
+          <label class="auth-label">Email address</label>
+          <input class="auth-input" id="acctEmail" readonly style="opacity:.7;">
+        </div>
         <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px;" id="acctSaveBtn" onclick="saveProfile()">Save Details</button>
       </div>
 
       <div id="acctPanelAddress" style="display:none;">
+        <p class="acct-section-title">Addresses</p>
         <div id="acctAddrList"></div>
         <button class="btn-outline" style="width:100%;justify-content:center;margin-top:6px;" onclick="openAddressForm()">+ Add Address</button>
       </div>
 
       <div id="acctPanelOrders" style="display:none;">
+        <p class="acct-section-title">Orders</p>
         <div id="acctOrdersList"></div>
       </div>
       </div>
@@ -4960,18 +4980,38 @@
     return id ? String(id).trim() : null;
   }
 
+  // Opens a product once per shared link. The id is consumed and removed from
+  // the address bar straight away, so a later refresh (or the back button)
+  // never re-opens the sheet on its own.
+  var _sharedProductHandled = false;
+
   function openSharedProductFromUrl(){
+    if(_sharedProductHandled) return;
     var id = sharedProductIdFromUrl();
     if(!id) return;
+    _sharedProductHandled = true;
+
+    // Clean the URL immediately — keeps the link shareable but stops the
+    // sheet from popping up again on every reload.
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch(e){ /* ignore */ }
+
     var p = findProduct(id) || findProduct(Number(id));
     if(!p){
       showToast("That product is no longer available");
       return;
     }
-    // Open the product sheet. Deferred a tick so the storefront has painted
-    // first — closing the sheet then leaves the shopper on a real page.
+    // Deferred a tick so the storefront has painted first.
     setTimeout(function(){ openProduct(p.id); }, 60);
   }
+
+  // If the user lands with only a hash (#product=12) also consume it once,
+  // instead of letting it fire again on each refresh.
+  window.addEventListener("hashchange", function(){
+    if(_sharedProductHandled) return;
+    openSharedProductFromUrl();
+  });
 
   if(shareOverlay){
     shareOverlay.addEventListener("click", closeShareSheet);
