@@ -1689,7 +1689,7 @@
   <div class="gearbrand-scroll" id="gearBrandScroll"></div>
 </section>
 
-<!-- Authorised Brand Certificates (admin upload) -->
+<!-- Authorised Brand Certificates -->
 <section class="certificates" id="brandCertificates">
   <div class="section-head cert-head">
     <h3>Authorised Brand Certificates</h3>
@@ -2865,12 +2865,12 @@
   }
 
   function certificatePhotos(){
-    // Alag "Brand Certificates" upload (admin panel) — isse priority.
+    // Admin panel ke apne "Brand Certificates" upload se aate hain.
     var c = (site && site.certificates) ? site.certificates : [];
     var list = Array.isArray(c) ? c.map(toPhotoUrl).filter(Boolean) : [];
     if(list.length) return list;
 
-    // Purana data: jab tak naya column set na ho, gallery photos dikhao.
+    // Fallback: purani gallery photos, taaki pehle se upload kiya hua data gayab na ho.
     var g = (site && site.gallery) ? site.gallery : [];
     return Array.isArray(g) ? g.map(toPhotoUrl).filter(Boolean) : [];
   }
@@ -2933,7 +2933,7 @@
     openLightbox(photos, i || 0);
   }
 
-  // ---- Authorised Brand Certificates (admin upload) ----
+  // ---- Authorised Brand Certificates ----
     renderBrandCertificates();
 
   // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
@@ -2983,6 +2983,12 @@
     site = await loadSiteContent();
     renderStorefront();
   }
+
+  // Admin panel me change karke wapas aane par storefront turant update ho jaye
+  // (realtime event kisi wajah se na aaye to bhi).
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') refreshSite();
+  });
 
   function cardHtml(p){
     const thumb = Array.isArray(p.images) && p.images.length ? p.images[0] : null;
