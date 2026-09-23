@@ -375,6 +375,44 @@
   }
   .acct-tab{flex:1;padding:9px 4px;border:1px solid var(--line);border-radius:9px;background:transparent;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;}
   .acct-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
+
+  /* ---- modal alignment fixes: login / account / checkout ---- */
+  .auth-panel-shell{max-width:920px;margin:0 auto;padding:6px 0 10px;}
+  .auth-panel-shell .auth-title,
+  .auth-panel-shell .auth-sub{max-width:none;text-align:left;}
+  .auth-panel-shell .google-btn,
+  .auth-panel-shell .terms-note{max-width:none;}
+
+  .acct-shell{max-width:940px;margin:0 auto;padding:4px 0 10px;}
+  .acct-shell .form-2col{max-width:none;margin:0;display:block;}
+  .acct-shell .acct-head{max-width:840px;margin:0 auto 22px;}
+  .acct-shell .acct-tabs{max-width:840px;margin:0 auto 18px;}
+  .acct-shell #acctPanelDetails,
+  .acct-shell #acctPanelAddress,
+  .acct-shell #acctPanelOrders{max-width:840px;margin:0 auto;}
+
+  .checkout-shell{max-width:920px;margin:0 auto;padding:4px 0 8px;}
+  .checkout-shell .auth-title,
+  .checkout-shell .auth-sub{max-width:none;text-align:left;}
+  .checkout-shell .form-2col{max-width:none;margin:0;}
+  .checkout-shell .pay-options,
+  .checkout-shell .coupon-box,
+  .checkout-shell .checkout-summary-row,
+  .checkout-shell #coError{max-width:none;margin-left:0;margin-right:0;}
+  .checkout-shell .coupon-box{margin-top:14px;}
+
+  @media (min-width:860px){
+    .checkout-shell .form-2col{grid-template-columns:190px minmax(0,1fr);gap:16px 26px;}
+    .checkout-shell .pay-options,
+    .checkout-shell .coupon-box,
+    .checkout-shell .checkout-summary-row,
+    .checkout-shell #coError{grid-column:1 / -1;}
+  }
+
+  @media (max-width:859px){
+    .auth-panel-shell,.acct-shell,.checkout-shell{max-width:none;padding:0;}
+  }
+
   .acct-addr-card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;position:relative;}
   .acct-order-card{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease;}
   .acct-order-card:active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,30,30,.08);}
@@ -1085,15 +1123,24 @@
   .rv-mine-actions button{font-size:11px;padding:5px 11px;border-radius:7px;border:1px solid var(--line);background:transparent;cursor:pointer;font-weight:600;color:var(--text);}
   .rv-more{width:100%;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:9px;background:transparent;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--text);}
   /* ---- Write-review sheet ---- */
-  .rvf-stars{display:flex;gap:6px;justify-content:center;margin:4px 0 6px;}
+  .rvf-stars{display:flex;gap:6px;justify-content:flex-start;margin:4px 0 6px;}
   .rvf-stars button{background:none;border:none;font-size:32px;line-height:1;cursor:pointer;color:var(--line);padding:0;}
   .rvf-stars button.on{color:#fbbc04;}
-  .rvf-hint{text-align:center;font-size:11.5px;color:var(--muted);margin:0 0 16px;min-height:16px;}
-  .rvf-prod{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:16px;}
+  .rvf-hint{text-align:left;font-size:11.5px;color:var(--muted);margin:0 0 16px;min-height:16px;}
+  .rvf-prod{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;margin:0 0 16px;max-width:100%;box-sizing:border-box;}
   .rvf-prod img{width:44px;height:44px;object-fit:cover;border-radius:7px;flex:none;}
   .rvf-prod p{margin:0;font-size:12.5px;font-weight:600;line-height:1.35;}
   .rvf-sheet-label{display:block;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;}
   .rvf-sheet-input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;background:transparent;color:var(--text);box-sizing:border-box;}
+  /* Review sheet: sab kuch ek hi column me, left-aligned */
+  .rvf-sheet-column{max-width:720px;margin:0 auto;width:100%;}
+  .rvf-sheet-column .pdp-name{text-align:left;margin-bottom:14px;}
+  #rvfImgsPreview,
+  #rvfUploadHint{margin-left:0;margin-right:0;}
+  @media (min-width:860px){
+    .rvf-sheet-column .rvf-imgs-preview{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));}
+  }
+
   /* ---- Review composer: write + attach in one box ---- */
   .rvf-composer{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:6px;}
   .rvf-composer-input{width:100%;border:none;outline:none;resize:vertical;background:transparent;padding:13px 14px;font-size:13.5px;font-family:inherit;color:var(--text);min-height:96px;box-sizing:border-box;}
@@ -1388,9 +1435,12 @@
       column-gap:34px;
       align-items:start;
     }
-    .pdp-media-wrap{grid-column:1;grid-row:1;}
-    .pdp-media{margin:0;}
-    .pdp-thumbs{grid-column:1;grid-row:2;margin:12px 0 0;align-self:start;}
+    .pdp-media-wrap{grid-column:1;grid-row:1;width:100%;max-width:520px;margin:0 auto;}
+    .pdp-media{margin:0;width:100%;}
+    .pdp-thumbs{
+      grid-column:1;grid-row:2;margin:12px auto 0;align-self:start;
+      width:100%;max-width:520px;justify-content:flex-start;
+    }
     .pdp-details{
       grid-column:2;grid-row:1 / span 2;
       display:flex;flex-direction:column;min-width:0;
@@ -1404,18 +1454,22 @@
     .pdp-reviews{border-top:1px solid var(--line);margin-top:22px;}
     .pdp-foot{padding-left:32px;padding-right:32px;}
 
-    /* Gallery grid: 2x2 like the reference layout */
-    .pdp-media.grid-mode{
-      aspect-ratio:auto;height:auto;background:transparent;display:grid;
-      grid-template-columns:1fr 1fr;gap:10px;padding:0;align-content:start;
+    /* Ek hi badi image — desktop par bhi phone jaisa. Purana 2x2 grid hata diya,
+       isliye grid-mode ko solo ki tarah hi behave karaya gaya hai. */
+    .pdp-media.grid-mode,
+    .pdp-media.solo-mode{
+      aspect-ratio:1/1;height:auto;background:var(--surface-2);
+      display:flex;align-items:center;justify-content:center;
+      padding:0;align-content:center;
+      border-radius:14px;overflow:hidden;
     }
-    .pdp-media.grid-mode img{
-      width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;
-      border-radius:10px;background:var(--surface-2);
+    .pdp-media.grid-mode img,
+    .pdp-media.solo-mode img{
+      width:100%;height:100%;aspect-ratio:auto;
+      object-fit:cover;border-radius:0;background:transparent;
     }
     .pdp-media.grid-mode .badge-sale,
     .pdp-media.grid-mode .badge-oos{top:10px;left:10px;}
-    .pdp-media.solo-mode{aspect-ratio:1/1;}
 
     /* action buttons sit in the gallery's top-right corner */
     .pdp-wish-btn{top:12px;right:12px;}
@@ -2023,6 +2077,7 @@
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="pdp-scroll">
+      <div class="checkout-shell">
       <h2 class="auth-title">Delivery Details</h2>
       <p class="auth-sub">Confirm where we should deliver this order and how you'll pay.</p>
       <div class="form-2col">
@@ -2099,6 +2154,7 @@
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRow" style="display:none;"><span>COD Charge</span><span id="checkoutCodAmount">₹0</span></div>
       <div class="checkout-summary-row checkout-summary-sub" id="checkoutCodRemainingRow" style="display:none;"><span>Pay via COD (on delivery)</span><span id="checkoutCodRemainingAmount">₹0</span></div>
       <div class="checkout-summary-row"><span id="checkoutTotalLabel">Order Total</span><span id="checkoutTotal">₹0</span></div>
+      </div>
     </div>
     <div class="pdp-foot">
       <button class="pdp-add-btn" id="placeOrderBtn" style="flex:1;">Place Order</button>
@@ -2169,6 +2225,7 @@
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="pdp-scroll">
+      <div class="acct-shell">
       <h2 class="pdp-name" style="margin-bottom:16px;">My Account</h2>
       <div class="form-2col">
       <input id="acctAvatarFile" type="file" accept="image/*" style="display:none;" onchange="onAvatarPicked(this)">
@@ -2217,6 +2274,7 @@
       <div id="acctPanelOrders" style="display:none;">
         <p class="acct-section-title">Orders</p>
         <div id="acctOrdersList"></div>
+      </div>
       </div>
       </div>
     </div>
@@ -2306,6 +2364,7 @@
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="pdp-scroll">
+      <div class="rvf-sheet-column">
       <h2 class="pdp-name" id="rvfHeading">Rate this product</h2>
       <div class="rvf-prod" id="rvfProd"></div>
       <div class="rvf-stars" id="rvfStars"></div>
@@ -2326,6 +2385,7 @@
       <input id="rvfImgs" type="file" accept="image/*" multiple style="display:none;" onchange="onReviewImagesPicked(this)">
       <div class="rvf-imgs-preview" id="rvfImgsPreview"></div>
       <p class="rvf-upload-hint" id="rvfUploadHint">Up to 5 photos. Each one is compressed automatically, so even large phone photos are fine. The first photo is shown as the main one.</p>
+      </div>
     </div>
     <div class="pdp-foot">
       <button class="pdp-add-btn" id="rvfSubmit" onclick="submitReview()">Submit Review</button>
@@ -2343,6 +2403,7 @@
     <div class="pdp-scroll">
       <!-- Login panel -->
       <div id="loginPanel">
+        <div class="auth-panel-shell">
         <h2 class="auth-title">Welcome to Shyam Auto</h2>
         <p class="auth-sub">Login to track your orders, save addresses and check out faster.</p>
 
@@ -2360,6 +2421,7 @@
         </button>
 
         <p class="auth-terms">By continuing, you agree to Shyam Auto's <a href="#" onclick="openInfo('terms');return false;">Terms of Service</a> and <a href="#" onclick="openInfo('privacy');return false;">Privacy Policy</a>.</p>
+        </div>
       </div>
 
       <!-- Account panel (shown after login) -->
