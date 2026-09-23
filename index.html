@@ -5970,14 +5970,16 @@
       const names = (o.items||[]).map(it => it.name).join(', ');
       const date = new Date(o.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
       const qty = (o.items||[]).reduce((s, it) => s + Number(it.qty || 0), 0);
+      const qtyLabel = qty + (qty === 1 ? ' item' : ' items');
+      const key = orderKey(o);
       return `
-        <button class="order-row" onclick="openOrderDetail('${orderKey(o)}')">
+        <button class="order-row" onclick="openOrderDetail('${key}')">
           <div class="order-row-top">
-            <span class="order-row-id">#${orderKey(o)}</span>
+            <span class="order-row-id">#${key}</span>
             <span class="order-status-badge ${orderStatusClass(o.status)}">${o.status}</span>
           </div>
           <p class="order-row-items">${names}</p>
-          <div class="order-row-meta"><span>${date} · ${qty} item${qty === 1 ? '' : 's'}</span><span>₹${Number(o.total).toLocaleString('en-IN')}</span></div>
+          <div class="order-row-meta"><span>${date} · ${qtyLabel}</span><span>₹${Number(o.total).toLocaleString('en-IN')}</span></div>
           <div class="order-row-cta">Tap to view full details ›</div>
         </button>
       `;
@@ -6009,11 +6011,14 @@
     const itemsHtml = (activeOrder.items||[]).map(it => {
       const p = it.product_id != null ? findProduct(it.product_id) : null;
       const thumb = p && Array.isArray(p.images) && p.images.length ? p.images[0] : null;
+      const reviewedFlag = hasReviewed(it.product_id);
+      const reviewHandler = p ? ('openReviewForm(' + p.id + ', ' + orderKey(activeOrder) + ')') : "showToast('Product no longer available')";
       // Poora row clickable -> us product ka PDP khulta hai, jahan se user
       // dobara order kar sakta hai. Product delete ho gaya ho to saaf message.
+      const rowHandler = p ? ('reorderProduct(' + p.id + ')') : '';
+      const rowClass = p ? 'order-product-row tappable' : 'order-product-row';
       return `
-      <div class="order-product-row ${p ? 'tappable' : ''}"
-           ${p ? `onclick="reorderProduct(${p.id})" role="button" tabindex="0"` : ''}>
+      <div class="${rowClass}" ${rowHandler ? `onclick="${rowHandler}" role="button" tabindex="0"` : ''}>
         <div class="order-product-thumb">${thumb ? `<img src="${thumb}" alt="${it.name}" loading="lazy">` : iconSvg}</div>
         <div class="order-product-info">
           <p class="order-product-name">${it.name}</p>
@@ -6025,9 +6030,9 @@
           ${p ? '<p class="order-product-reorder">Tap to open product & order again ›</p>'
               : '<p class="order-product-reorder muted">This product is no longer available</p>'}
           ${isDelivered ? `
-            <button class="order-review-btn ${hasReviewed(it.product_id) ? 'done' : ''}" onclick="event.stopPropagation(); ${p ? `openReviewForm(${p.id}, ${activeOrder.id})` : `showToast('Product no longer available')`}">
+            <button class="order-review-btn ${reviewedFlag ? 'done' : ''}" onclick="event.stopPropagation(); ${reviewHandler}">
               <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              ${hasReviewed(it.product_id) ? 'Edit Your Review' : 'Rate &amp; Review Product'}
+              ${reviewedFlag ? 'Edit Your Review' : 'Rate &amp; Review Product'}
             </button>` : ''}
         </div>
       </div>`;
@@ -6131,13 +6136,13 @@
     items.forEach(it => {
       const p = it.product_id != null ? findProduct(it.product_id) : null;
       if(!p || p.in_stock === false){ skipped++; return; }
-      // Variant name se matching variant dhoondo, warna default
-      let vIdx = 0;
-      if(Array.isArray(p.variants) && p.variants.length){
+      // addToCart(id, btnEl) — variant/qty params nahi hain. Variant us order se
+      // match karke select karo, phir qty ke hisaab se utni baar add karo.
+      if(Array.isArray(p.variants) && p.variants.length && it.variant){
         const found = p.variants.findIndex(v => v.name === it.variant);
-        vIdx = found !== -1 ? found : 0;
+        if(found !== -1) pdpSelectedVariantIndex = found;
       }
-      addToCart(p.id, vIdx, Number(it.qty) || 1);
+      for(let n = Math.max(1, Number(it.qty) || 1); n > 0; n--) addToCart(p.id);
       added++;
     });
     if(!added){ showToast('Ye products ab available nahi hain'); return; }
