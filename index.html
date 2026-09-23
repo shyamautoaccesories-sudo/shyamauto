@@ -5024,9 +5024,11 @@
     setTimeout(function(){
       document.getElementById('ordersListView').style.display = 'block';
       document.getElementById('orderDetailView').style.display = 'none';
-      document.getElementById('ordersList').innerHTML = '<p class="empty-hint">Loading...</p>';
       ordersOverlay.classList.add('open');
       pushOverlayHistory();
+      // List ko saaf chhodo — "Loading..." placeholder chhod dena hi bug tha:
+      // product band karke wapas aane par wahi stuck screen dikhti thi.
+      renderMyOrdersList();
       openOrderDetail(key);
     }, 0);
   }
@@ -6040,6 +6042,21 @@
   document.getElementById('ordersClose').addEventListener('click', closeMyOrdersFn);
   ordersOverlay.addEventListener('click', closeMyOrdersFn);
 
+  // List view visible ho aur usme sirf placeholder pada ho — turant asli list
+  // render kar do. Ye wahi safety net hai jo "Loading..." par atakne se bachata hai.
+  function ensureOrdersListRendered(){
+    const wrap = document.getElementById('ordersList');
+    if(!wrap) return;
+    const listShown = document.getElementById('ordersListView') &&
+      document.getElementById('ordersListView').style.display !== 'none';
+    if(!listShown) return;
+    const txt = (wrap.textContent || '').trim();
+    if(!wrap.innerHTML.trim() || txt === 'Loading...' || /^Loading/i.test(txt)){
+      renderMyOrdersList();
+    }
+  }
+  window.ensureOrdersListRendered = ensureOrdersListRendered;
+
   function renderMyOrdersList(){
     const wrap = document.getElementById('ordersList');
     if(myOrders.length === 0){
@@ -6206,6 +6223,9 @@
     const p = findProduct(productId);
     if(!p){ showToast('Product ab available nahi hai'); return; }
     closeOrderDetail();
+    // Product band karne par user list par wapas aayega — usse taaza rakho,
+    // warna purana "Loading..." / detail wahi reh jaata tha.
+    ensureOrdersListRendered();
     setTimeout(() => openProduct(p.id), 0);
   }
 
