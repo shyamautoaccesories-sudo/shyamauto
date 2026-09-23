@@ -2738,6 +2738,8 @@
   function cardHtml(p){
     const thumb = Array.isArray(p.images) && p.images.length ? p.images[0] : null;
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+    const priceInfo = displayPriceInfo(p);
+    const showMrp = priceInfo.mrp != null && priceInfo.mrp > priceInfo.price;
     const outOfStock = isProductOutOfStock(p);
     return `
     <div class="card ${outOfStock ? 'is-oos' : ''}" onclick="openProduct(${p.id})">
@@ -2755,7 +2757,7 @@
         <span class="card-cat">${p.cat}${p.brand ? ` · ${p.brand}` : ''}</span>
         <p class="card-name">${p.name}</p>
         ${hasVariants ? `<span class="card-variants">${p.variants.map(v => v.name).filter(Boolean).join(' · ')}</span>` : ''}
-        <span class="plate"><span class="price">${hasVariants ? 'From ' : ''}₹${p.price.toLocaleString('en-IN')}</span>${p.sale ? `<span class="mrp">₹${p.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
+        <span class="plate"><span class="price">${priceInfo.hasVariants ? 'From ' : ''}₹${priceInfo.price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${priceInfo.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
         <div class="card-foot">
           <span class="rating">${p.rating ? '★ ' + p.rating + (p.rating_count ? ' (' + p.rating_count + ')' : '') : 'No reviews yet'}</span>
           <button class="add-btn" ${outOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${outOfStock ? 'Out of stock' : 'Add to cart'}">
@@ -2765,6 +2767,44 @@
       </div>
     </div>`;
   }
+  // Card aur PDP ke beech price mismatch na ho — dono ek hi rule se price nikaalein.
+  // Variants hone par base p.price ignore karke variant ka price use karo, warna
+  // card "From ₹1" dikhata tha aur PDP/cart ₹4,750.
+  function variantPriceList(p){
+    if(!p || !Array.isArray(p.variants) || !p.variants.length) return [];
+    return p.variants
+      .map(v => ({
+        variant: v,
+        price: Number(v.price != null ? v.price : p.price),
+        mrp: v.mrp != null ? Number(v.mrp) : (p.mrp != null ? Number(p.mrp) : null),
+        inStock: !(v.stock != null && v.stock <= 0)
+      }))
+      .filter(x => !isNaN(x.price));
+  }
+  // "From" ke liye sabse sasta available variant; sab out of stock ho to sabse sasta.
+  function displayPriceInfo(p){
+    const list = variantPriceList(p);
+    if(!list.length){
+      return {
+        price: Number(p.price) || 0,
+        mrp: p.mrp != null ? Number(p.mrp) : null,
+        hasVariants: false,
+        isRange: false
+      };
+    }
+    const pool = list.filter(x => x.inStock).length ? list.filter(x => x.inStock) : list;
+    const cheapest = pool.reduce((a, b) => (b.price < a.price ? b : a), pool[0]);
+    const prices = pool.map(x => x.price);
+    return {
+      price: cheapest.price,
+      mrp: cheapest.mrp,
+      hasVariants: true,
+      isRange: Math.min(...prices) !== Math.max(...prices),
+      lowest: Math.min(...prices),
+      highest: Math.max(...prices)
+    };
+  }
+
   function isProductOutOfStock(p){
     if(!p) return false;
     if(p.in_stock === false) return true;
@@ -4462,6 +4502,10 @@
      the product view so the customer sees it before tapping Add to Cart
      instead of only getting a toast afterwards.
      --------------------------------------------------------------------- */
+  // Isse zyada stock par product view chup rehta hai — sirf cart/checkout ka
+  // limit enforce hota hai.
+  var LOW_STOCK_THRESHOLD = 2;
+
   function pdpAvailableStock(p, v){
     if(v && v.stock != null) return Number(v.stock);
     if(p && p.stock != null) return Number(p.stock);
@@ -4494,27 +4538,22 @@
     var key = cartKeyFor(p.id, pdpSelectedVariantIndex);
     if(cart[key]) inCart = cart[key].qty;
 
-    if(available != null){
-      if(available <= 5){
-        set("warn",
-          "<strong>Only " + available + " left</strong> in stock" +
-          (v ? " for " + String(v.name) : "") +
-          (inCart ? " \u00b7 " + inCart + " already in your cart" : "") +
-          ". Order soon.");
-        return;
-      }
-      set("info",
-        "<strong>" + available + " in stock</strong>" +
+    // Sirf TAB dekhao jab stock 2 ya usse kam bache — 2 se zyada par kuch nahi.
+    // (Pehle 5 tak "Only N left" dikhta tha, aur 5 se zyada par "N in stock" —
+    //  dono hi customer ko bina zaroorat ke hila dete the.)
+    if(available != null && available <= LOW_STOCK_THRESHOLD){
+      set("warn",
+        "<strong>Only " + available + " left</strong> in stock" +
         (v ? " for " + String(v.name) : "") +
-        (inCart ? " \u00b7 " + inCart + " already in your cart" : "") + ".");
+        (inCart ? " \u00b7 " + inCart + " already in your cart" : "") +
+        ". Order soon.");
       return;
     }
 
-    // 3) no stock number tracked — but a variant cap can still exist
-    if(inCart){
-      set("info", "<strong>" + inCart + " in your cart.</strong> Cart mein quantity badhane par stock limit yahin dikhegi.");
-      return;
-    }
+    // Stock theek hai (ya track hi nahi hota) — note chhupa do.
+    // Limit tabhi dikhegi jab customer available se zyada add karne ki koshish kare.
+    note.className = "pdp-stock-note";
+    text.innerHTML = "";
     note.className = "pdp-stock-note";
     text.innerHTML = "";
   }
