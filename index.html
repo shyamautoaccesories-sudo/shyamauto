@@ -421,8 +421,22 @@
   }
 
   /* My Orders: list aur order detail box ke andar centre */
+  /* Order list + detail sheet ki poori width lein — right side khaali na bache */
   #ordersListView,
-  #orderDetailView{max-width:none;margin:0;width:100%;}
+  #orderDetailView{max-width:none;margin:0;width:100%;box-sizing:border-box;}
+  #orderDetailBody{width:100%;}
+  .order-tracker-card,
+  .order-summary-card,
+  .order-info-card,
+  .order-product-row,
+  .order-placed-strip{width:100%;box-sizing:border-box;}
+  /* My Orders sheet desktop: content poori width, tracker steps ek line me */
+  @media (min-width:860px){
+    #ordersOverlay .pdp-sheet{max-width:720px;}
+    #ordersListView,#orderDetailView{max-width:none;}
+    .order-tracker-label{font-size:9.5px;white-space:nowrap;}
+    .order-tracker-step{padding:0 2px;}
+  }
   .acct-addr-card{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;position:relative;}
   .acct-order-card{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease;}
   .acct-order-card:active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,30,30,.08);}
@@ -679,6 +693,33 @@
   .gearbrand-logo span{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--yellow);}
   .gearbrand-item p{font-size:11px;font-weight:600;color:var(--muted);line-height:1.2;}
   .empty-hint-inline{font-size:12px;color:var(--muted);}
+
+  /* ---------- Trusted Brands (admin Gallery → storefront) ---------- */
+  .trusted{padding:26px 16px 8px;}
+  .trusted-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .trusted-head h3{font-size:13px;color:var(--muted);font-weight:600;text-transform:none;font-family:var(--font-body);margin:0;}
+  .trusted-viewall{
+    border:none;background:none;color:var(--accent);font-weight:700;font-size:12px;
+    cursor:pointer;font-family:inherit;padding:4px 2px;white-space:nowrap;
+  }
+  .trusted-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+  .trusted-scroll::-webkit-scrollbar{display:none;}
+  .trusted-item{
+    flex:0 0 auto;width:150px;border-radius:14px;overflow:hidden;
+    background:var(--surface);border:1px solid var(--line);cursor:zoom-in;
+    aspect-ratio:1/1;
+  }
+  .trusted-item img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* View all → grid, jaise product grid */
+  .trusted-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  @media (min-width:860px){
+    .trusted-scroll{flex-wrap:wrap;overflow-x:visible;}
+    .trusted-item{width:180px;}
+    .trusted{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
+    .trusted-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;}
+  }
+  .trusted-empty{font-size:12px;color:var(--muted);}
 
   /* ---------- Testimonials (Google-review style) ---------- */
   .testi-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
@@ -1648,6 +1689,15 @@
   <div class="gearbrand-scroll" id="gearBrandScroll"></div>
 </section>
 
+<!-- Trusted Brands (admin Gallery photos) -->
+<section class="trusted" id="trustedBrands">
+  <div class="section-head trusted-head">
+    <h3>Trusted Brands</h3>
+    <button class="trusted-viewall" id="trustedViewAllBtn" onclick="openTrustedAll()" style="display:none;">View all</button>
+  </div>
+  <div class="trusted-scroll" id="trustedScroll"></div>
+</section>
+
 <!-- Testimonials -->
 <section class="block">
   <div class="section-head"><h2>Riders Say</h2></div>
@@ -1878,7 +1928,7 @@
 
 <!-- My Orders -->
 <div class="pdp-overlay" id="ordersOverlay">
-  <div class="pdp-sheet" style="max-width:560px;" onclick="event.stopPropagation()">
+  <div class="pdp-sheet" style="max-width:720px;" onclick="event.stopPropagation()">
     <div class="pdp-handle"></div>
     <button class="pdp-close" id="ordersClose" aria-label="Close">
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2727,7 +2777,7 @@
     };
   }
 
-  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
+  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], gallery: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
   let bestsellers = [], newArrivals = [], helmets = [], saleProducts = [];
   let categories = [];
@@ -2783,7 +2833,77 @@
       </a>`
     ).join('');
 
-    // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
+    // ---- Trusted Brands: admin panel → Gallery se upload ki gayi photos ----
+  var TRUSTED_PREVIEW_COUNT = 8;
+
+  function trustedPhotos(){
+    var g = (site && site.gallery) ? site.gallery : [];
+    if(!Array.isArray(g)) return [];
+    return g.map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
+  }
+
+  function renderTrustedBrands(){
+    var wrap = document.getElementById('trustedScroll');
+    var section = document.getElementById('trustedBrands');
+    if(!wrap || !section) return;
+
+    var photos = trustedPhotos();
+    if(!photos.length){
+      // Koi photo upload nahi hui — section dikhane ka matlab nahi
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+
+    var btn = document.getElementById('trustedViewAllBtn');
+    if(btn) btn.style.display = photos.length > TRUSTED_PREVIEW_COUNT ? 'block' : 'none';
+
+    // Strip par sirf pehli 8 — baaki "View all" me
+    wrap.className = 'trusted-scroll';
+    wrap.innerHTML = photos.slice(0, TRUSTED_PREVIEW_COUNT).map(function(url, i){
+      return '<div class="trusted-item" onclick="zoomTrustedPhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+      '</div>';
+    }).join('');
+  }
+
+  // View all → saari photos grid me, product grid jaisa
+  function openTrustedAll(){
+    var photos = trustedPhotos();
+    if(!photos.length) return;
+    var wrap = document.getElementById('trustedScroll');
+    if(!wrap) return;
+
+    // Agar pehle se grid khula hai to wapas strip par le aao
+    if(wrap.className === 'trusted-grid'){
+      renderTrustedBrands();
+      var b0 = document.getElementById('trustedViewAllBtn');
+      if(b0) b0.textContent = 'View all';
+      return;
+    }
+
+    wrap.className = 'trusted-grid';
+    wrap.innerHTML = photos.map(function(url, i){
+      return '<div class="trusted-item" onclick="zoomTrustedPhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+      '</div>';
+    }).join('');
+
+    var b = document.getElementById('trustedViewAllBtn');
+    if(b) b.textContent = 'Show less';
+  }
+
+  // Photo par click → wahi lightbox zoom (product photos jaisa hi)
+  function zoomTrustedPhoto(i){
+    var photos = trustedPhotos();
+    if(!photos.length) return;
+    openLightbox(photos, i || 0);
+  }
+
+  // ---- Trusted Brands (admin Gallery photos) ----
+    renderTrustedBrands();
+
+  // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
     document.getElementById('gearBrandScroll').innerHTML = site.productBrands.length
       ? site.productBrands.map(gb =>
           `<a class="gearbrand-item" href="#" onclick="showProducts('brand','${gb.name.replace(/'/g,"\\'")}');return false;">
