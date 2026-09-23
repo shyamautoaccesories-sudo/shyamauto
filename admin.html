@@ -407,6 +407,15 @@
   .rv-today-body{flex:1;min-width:0;}
   .rv-today-prod{font-size:12px;font-weight:600;margin:0;}
   .rv-today-meta{font-size:10.5px;color:var(--muted);margin:2px 0 0;}
+  /* Reviews row ka delete button */
+  .rv-row-del{
+    flex:0 0 auto;width:32px;height:32px;margin-left:10px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid #fca5a5;border-radius:9px;background:#fff;
+    cursor:pointer;padding:0;
+  }
+  .rv-row-del svg{width:15px;height:15px;stroke:#dc2626;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .rv-row-del:hover{background:#fef2f2;}
   .rv-today-link{font-size:11px;font-weight:700;background:none;border:none;cursor:pointer;color:var(--text);text-decoration:underline;padding:0;font-family:inherit;}
   .ticket-filter-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;}
   .ticket-filter-row::-webkit-scrollbar{display:none;}
@@ -1015,23 +1024,7 @@
         </p>
       </div>
 
-      <div class="section-block" style="margin-top:26px;">
-        <h3>Product Reviews</h3>
-        <p class="hint" style="margin-bottom:12px;">Har product ke reviews yahan se manage hote hain — kharab ya galat review yahan se delete karein. Customers sirf apne delivered orders par review likh sakte hain.</p>
-        <div class="stat-grid" style="margin-bottom:14px;">
-          <div class="stat-card"><div class="num" id="setRvAvg">0.0</div><div class="lbl">Average Rating</div></div>
-          <div class="stat-card"><div class="num" id="setRvTotal">0</div><div class="lbl">Total Reviews</div></div>
-          <div class="stat-card"><div class="num" id="setRvLow">0</div><div class="lbl">Low (1-2★)</div></div>
-          <div class="stat-card"><div class="num" id="setRvToday">0</div><div class="lbl">Today</div></div>
-        </div>
-        <div class="ticket-filter-row" id="setReviewFilterRow">
-          <button class="ticket-filter-chip active" data-setrv="all" onclick="filterSetReviews('all')">All</button>
-          <button class="ticket-filter-chip" data-setrv="low" onclick="filterSetReviews('low')">Low (1-2★)</button>
-          <button class="ticket-filter-chip" data-setrv="today" onclick="filterSetReviews('today')">Today</button>
-          <button class="ticket-filter-chip" data-setrv="hidden" onclick="filterSetReviews('hidden')">Hidden</button>
-        </div>
-        <div id="setReviewList"></div>
-      </div>
+      <!-- Product Reviews block Settings se hata diya — review ab sirf Reviews section me hai -->
 
       <div class="section-block" style="margin-top:26px;">
         <h3>Branding</h3>
@@ -1833,7 +1826,6 @@
     renderOrdersHistory();
     renderTickets();
     renderReviews();
-    renderSettingsReviews();
     renderTodayReviews();
     renderAnalytics();
     renderDeliveryZones();
@@ -4623,6 +4615,12 @@
             (r.body ? " \u00b7 " + rvEsc(String(r.body).slice(0, 70)) : "") + '</div>' +
         '</div>' +
         '<span class="ticket-status-badge">' + (hidden ? "Hidden" : (r.admin_reply ? "Replied" : "Published")) + '</span>' +
+        // Delete seedha row se — review kholne ki zaroorat nahi.
+        // stopPropagation warna row ka openReviewSheet() bhi chal jayega.
+        '<button class="rv-row-del" title="Delete review" aria-label="Delete review"' +
+          ' onclick="event.stopPropagation();deleteReview(' + r.id + ')">' +
+          '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button>' +
       '</div>';
     }).join("");
   }
@@ -4742,10 +4740,10 @@
     showToast("Photo deleted");
   }
 
-  /* ===== Settings → Reviews ===== */
-  var setReviewFilter = "all";
+  /* ===== Settings → Reviews hata diya gaya — Reviews section hi single jagah hai ===== */
 
-  function filterSetReviews(f){
+  function __removedSettingsReviews(){ /* placeholder — neeche ka block hata diya gaya */ }
+  function __deadFilterSetReviews(f){
     setReviewFilter = f;
     document.querySelectorAll("#setReviewFilterRow .ticket-filter-chip").forEach(function(el){
       el.classList.toggle("active", el.dataset.setrv === f);
