@@ -4062,15 +4062,41 @@
   }
   function hasReviewed(pid){ return !!myReviewFor(pid); }
 
-  // Verified buyer check: the user bought this product and the order is Delivered.
-  function canReviewProduct(pid){
-    if(typeof currentUser === 'undefined' || !currentUser) return false;
-    var orders = (typeof myOrders !== 'undefined' && Array.isArray(myOrders)) ? myOrders : [];
-    return orders.some(function(o){
-      return o.status === 'Delivered' && (o.items || []).some(function(it){
-        return String(it.product_id) === String(pid);
-      });
+  // Product id number / string / null sab handle karo — warna String() compare
+  // chup-chaap fail ho jata hai aur review button kuch nahi karta.
+  function sameProductId(a, b){
+    if(a == null || b == null) return false;
+    var na = Number(a), nb = Number(b);
+    if(!isNaN(na) && !isNaN(nb)) return na === nb;
+    return String(a).trim() === String(b).trim();
+  }
+
+  function orderHasDeliveredProduct(o, pid){
+    if(!o) return false;
+    var st = String(o.status || '').trim().toLowerCase();
+    if(st !== 'delivered') return false;
+    return (o.items || []).some(function(it){
+      return sameProductId(it && it.product_id, pid);
     });
+  }
+
+  // Verified buyer check: the user bought this product and the order is Delivered.
+  // Optional ordersList pass karo (fresh fetch ka result) — warna myOrders.
+  function canReviewProduct(pid, ordersList){
+    if(typeof currentUser === 'undefined' || !currentUser) return false;
+    var orders = Array.isArray(ordersList)
+      ? ordersList
+      : ((typeof myOrders !== 'undefined' && Array.isArray(myOrders)) ? myOrders : []);
+    return orders.some(function(o){ return orderHasDeliveredProduct(o, pid); });
+  }
+
+  // Review form kholte waqt hamesha taaza orders use karo.
+  async function loadOrdersForReview(){
+    try{
+      var rows = await loadMyOrders();
+      if(Array.isArray(rows) && rows.length) myOrders = rows;
+    }catch(e){ /* network fail — myOrders jo hai wahi use karo */ }
+    return (typeof myOrders !== 'undefined' && Array.isArray(myOrders)) ? myOrders : [];
   }
 
   function starStr(n){
@@ -4183,12 +4209,26 @@
 
   var reviewOverlay = document.getElementById('reviewOverlay');
 
-  function openReviewForm(pid, orderId){
+  async function openReviewForm(pid, orderId){
     if(typeof currentUser === 'undefined' || !currentUser){
       showToast('Please login first'); openReviewLogin(); return;
     }
-    if(!canReviewProduct(pid)){
-      showToast('You can only review delivered orders'); return;
+    // Fresh orders DB se — khaali/purani myOrders par bharosa mat karo.
+    var orders = await loadOrdersForReview();
+    if(!canReviewProduct(pid, orders)){
+      // Reason-specific message, taaki pata chale kya rok raha hai.
+      var mine = orders.filter(function(o){
+        return (o.items || []).some(function(it){ return sameProductId(it && it.product_id, pid); });
+      });
+      if(!mine.length){
+        showToast('Ye product aapke orders me nahi mila');
+      } else if(mine.some(function(o){ return orderHasDeliveredProduct(o, pid); }) === false){
+        var st = String(mine[0].status || 'Pending');
+        showToast('Review tabhi likh sakte hain jab order Delivered ho — abhi status: ' + st);
+      } else {
+        showToast('You can only review delivered orders');
+      }
+      return;
     }
     var p = findProduct(pid);
     if(!p) return;
