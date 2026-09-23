@@ -260,6 +260,17 @@
   .tk-add-tile svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
   .tk-add-tile[disabled]{opacity:.45;cursor:not-allowed;}
   .tk-photo-hint{font-size:10.5px;color:var(--muted);margin:7px 0 0;line-height:1.45;}
+  /* reply box: message on the left, attach on the right */
+  .tk-reply-row{display:flex;gap:8px;align-items:stretch;}
+  .tk-reply-row .chat-textarea{flex:1;min-width:0;margin:0;}
+  .tk-reply-attach{
+    flex:0 0 auto;width:52px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:var(--text);
+  }
+  .tk-reply-attach svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;}
+  .tk-reply-attach:hover{border-color:var(--text);background:var(--surface);}
+  .tk-reply-attach[disabled]{opacity:.45;cursor:not-allowed;}
+  .tk-reply-attach.has-photos{background:rgba(184,41,26,.08);border-color:rgba(184,41,26,.4);color:var(--yellow-deep);}
   .tk-thread-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
   .tk-thread-photos img{width:62px;height:62px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;}
   .tk-expiry{font-size:10px;color:var(--muted);margin-top:6px;}
@@ -1888,8 +1899,16 @@
         <p class="tk-expiry" id="chatThreadPhotoExpiry" style="display:none;"></p>
         <div id="chatThreadMessages" class="chat-thread-messages"></div>
         <div id="chatThreadReplyBox">
-          <textarea class="auth-input chat-textarea" id="chatReplyInput" placeholder="Type a message..." rows="2" style="min-height:50px;"></textarea>
-          <button class="btn-primary" style="width:100%;justify-content:center;margin-top:8px;" onclick="sendTicketReply()">Send</button>
+          <div class="tk-reply-row">
+            <textarea class="auth-input chat-textarea" id="chatReplyInput" placeholder="Type a message..." rows="2" style="min-height:50px;"></textarea>
+            <button type="button" class="tk-reply-attach" id="tkReplyAttachBtn" onclick="pickReplyPhotos()" aria-label="Attach a photo" title="Attach a photo of the product">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg>
+            </button>
+          </div>
+          <input id="tkReplyFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onReplyImagesPicked(this)">
+          <div class="tk-photos" id="tkReplyPhotoGrid"></div>
+          <p class="tk-photo-hint" id="tkReplyPhotoHint">Kisi bhi photo ko attach karein — damage, replacement ya product ka close-up. Photos 15 din baad automatically delete ho jayengi.</p>
+          <button class="btn-primary" style="width:100%;justify-content:center;margin-top:8px;" id="tkReplySendBtn" onclick="sendTicketReply()">Send</button>
         </div>
         <p id="chatThreadClosedNote" style="display:none;font-size:12px;color:var(--muted);text-align:center;padding:10px 0;">This ticket is closed. Raise a new request if you need further help.</p>
       </div>
@@ -5486,6 +5505,85 @@
     if(tkImageUrls.length) showToast("Photo added");
   }
 
+  /* ---- Photos attached to a reply (same pipeline as the new-ticket form) ---- */
+  var TK_REPLY_MAX = 3;
+  var tkReplyUrls = [];
+  var tkReplyUploading = false;
+  var tkReplyTicketId = null;
+
+  function pickReplyPhotos(){
+    if(tkReplyUploading) return;
+    if(tkReplyUrls.length >= TK_REPLY_MAX){
+      showToast("You can attach up to " + TK_REPLY_MAX + " photos here");
+      return;
+    }
+    document.getElementById("tkReplyFileInput").click();
+  }
+  function removeReplyPhoto(i){ tkReplyUrls.splice(i, 1); renderReplyPhotoGrid(); }
+
+  function renderReplyPhotoGrid(){
+    var grid = document.getElementById("tkReplyPhotoGrid");
+    if(!grid) return;
+    var btn = document.getElementById("tkReplyAttachBtn");
+    if(btn){
+      btn.disabled = tkReplyUploading || tkReplyUrls.length >= TK_REPLY_MAX;
+      btn.classList.toggle("has-photos", tkReplyUrls.length > 0);
+      btn.title = tkReplyUrls.length
+        ? ("Photos attached (" + tkReplyUrls.length + "/" + TK_REPLY_MAX + ")")
+        : "Attach a photo of the product";
+    }
+    var jsonAttr = JSON.stringify(tkReplyUrls).replace(/"/g, "&quot;");
+    var tiles = tkReplyUrls.map(function(u, i){
+      return '<div class="tk-tile">' +
+        '<img src="' + escHtml(u) + '" data-all="' + jsonAttr + '" onclick="openLightbox(JSON.parse(this.dataset.all), ' + i + ')">' +
+        '<button type="button" class="tk-tile-del" title="Remove photo" onclick="removeReplyPhoto(' + i + ')">&times;</button>' +
+      '</div>';
+    }).join("");
+    var addTile = tkReplyUrls.length >= TK_REPLY_MAX ? "" :
+      '<button type="button" class="tk-add-tile" onclick="pickReplyPhotos()"' + (tkReplyUploading ? " disabled" : "") + ">" +
+      (tkReplyUploading
+        ? "<span>Uploading…</span>"
+        : '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg><span>ADD PHOTO</span>') +
+      "</button>";
+    grid.innerHTML = tiles + addTile;
+    var hint = document.getElementById("tkReplyPhotoHint");
+    if(hint){
+      hint.textContent = tkReplyUrls.length >= TK_REPLY_MAX
+        ? "Maximum " + TK_REPLY_MAX + " photos attached. Remove one to add another."
+        : "Photo attach karein — damage, replacement ya product ka close-up. Photos 15 din baad automatically delete ho jayengi.";
+    }
+  }
+
+  async function onReplyImagesPicked(input){
+    var room = TK_REPLY_MAX - tkReplyUrls.length;
+    var files = Array.from(input.files || []).slice(0, Math.max(room, 0));
+    if(!files.length){ input.value = ""; return; }
+    var uid = await requireUserId();
+    if(!uid){ showToast("Please log in first"); input.value = ""; return; }
+    tkReplyUploading = true;
+    renderReplyPhotoGrid();
+    showToast(files.length > 1 ? "Compressing & uploading photos…" : "Compressing & uploading photo…");
+    for(var i = 0; i < files.length; i++){
+      var f = await compressTicketImage(files[i], 100 * 1024);
+      var path = uid + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + ".jpg";
+      var up = await sb.storage.from("ticket-images").upload(path, f, { upsert: false, contentType: "image/jpeg" });
+      if(up.error){ showToast("Photo upload failed"); continue; }
+      var pub = sb.storage.from("ticket-images").getPublicUrl(path);
+      if(pub && pub.data && pub.data.publicUrl) tkReplyUrls.push(pub.data.publicUrl);
+    }
+    input.value = "";
+    tkReplyUploading = false;
+    renderReplyPhotoGrid();
+    if(tkReplyUrls.length) showToast("Photo attached — now tap Send");
+  }
+
+  function resetReplyPhotos(){
+    tkReplyUrls = [];
+    tkReplyUploading = false;
+    tkReplyTicketId = null;
+    renderReplyPhotoGrid();
+  }
+
   function renderTicketThreadPhotos(){
     var wrap = document.getElementById("chatThreadPhotos");
     var exp = document.getElementById("chatThreadPhotoExpiry");
@@ -5596,22 +5694,30 @@
     `;
     renderThreadMessages();
     renderTicketThreadPhotos();
+    if(tkReplyTicketId !== activeTicket.id) resetReplyPhotos();
+    tkReplyTicketId = activeTicket.id;
     const closed = activeTicket.status === 'Closed';
     document.getElementById('chatThreadReplyBox').style.display = closed ? 'none' : 'block';
+    if(closed) resetReplyPhotos();
     document.getElementById('chatThreadClosedNote').style.display = closed ? 'block' : 'none';
   }
 
   function renderThreadMessages(){
     const msgs = Array.isArray(activeTicket.messages) ? activeTicket.messages : [];
-    document.getElementById('chatThreadMessages').innerHTML = msgs.map(m => `
+    // The most recent photo batch belongs to the newest customer message.
+    const allImgs = Array.isArray(activeTicket.images) ? activeTicket.images : [];
+    const recentImgs = (activeTicket.images_expire_at && allImgs.length) ? allImgs.slice(-3) : [];
+    document.getElementById('chatThreadMessages').innerHTML = msgs.map((m, idx) => `
       <div class="chat-bubble from-${m.sender === 'admin' ? 'admin' : 'customer'}">
         ${m.text.replace(/</g,'&lt;')}
+        ${(idx === msgs.length - 1 && recentImgs.length) ? `<div class="tk-thread-photos" style="margin-top:7px;">${recentImgs.map((u,k) => `<img src="${u}" style="width:56px;height:56px;" onclick="openLightbox(${JSON.stringify(recentImgs).replace(/"/g,"&quot;")}, ${k})">`).join('')}</div>` : ''}
         <span class="chat-bubble-time">${new Date(m.at).toLocaleString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
       </div>
     `).join('');
   }
 
   function closeTicketThread(){
+    resetReplyPhotos();
     const wasOpen = document.getElementById('chatThreadView').style.display === 'block';
     document.getElementById('chatThreadView').style.display = 'none';
     document.getElementById('chatMineList').style.display = 'block';
@@ -5622,12 +5728,46 @@
   async function sendTicketReply(){
     const input = document.getElementById('chatReplyInput');
     const text = input.value.trim();
-    if(!text || !activeTicket) return;
-    const { error } = await sb.rpc('add_ticket_message', { p_ticket_id: activeTicket.id, p_text: text, p_sender: 'customer' });
-    if(error){ showToast(error.message); return; }
-    activeTicket.messages = [...(activeTicket.messages||[]), { sender: 'customer', text, at: new Date().toISOString() }];
+    if(!activeTicket) return;
+    // A reply may be just a photo, just text, or both.
+    if(!text && !tkReplyUrls.length){ showToast("Type a message or attach a photo"); return; }
+
+    var sendBtn = document.getElementById('tkReplySendBtn');
+    if(sendBtn) sendBtn.disabled = true;
+
+    const msgText = text || '(photo attached)';
+    const { error } = await sb.rpc('add_ticket_message', { p_ticket_id: activeTicket.id, p_text: msgText, p_sender: 'customer' });
+    if(error){
+      if(sendBtn) sendBtn.disabled = false;
+      showToast(error.message);
+      return;
+    }
+
+    // Save the attached photos on the ticket, with a fresh 15-day expiry.
+    if(tkReplyUrls.length){
+      var existing = Array.isArray(activeTicket.images) ? activeTicket.images.slice() : [];
+      var merged = existing.concat(tkReplyUrls);
+      var patch = {
+        images: merged,
+        images_expire_at: new Date(Date.now() + 15 * 86400000).toISOString()
+      };
+      var upRes = await sb.from('tickets').update(patch).eq('id', activeTicket.id);
+      if(upRes.error){
+        if(sendBtn) sendBtn.disabled = false;
+        showToast("Message sent, but the photo could not be saved");
+        return;
+      }
+      activeTicket.images = merged;
+      activeTicket.images_expire_at = patch.images_expire_at;
+    }
+
+    activeTicket.messages = [...(activeTicket.messages||[]), { sender: 'customer', text: msgText, at: new Date().toISOString() }];
     input.value = '';
+    resetReplyPhotos();
     renderThreadMessages();
+    renderTicketThreadPhotos();
+    if(sendBtn) sendBtn.disabled = false;
+    showToast("Sent");
   }
 
   // ---- My Orders ----
