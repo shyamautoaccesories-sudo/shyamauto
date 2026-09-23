@@ -307,14 +307,15 @@
 
   @media (min-width:860px){
     /* wide screens: the sheet grows and the label column appears */
-    .pdp-sheet.wide{max-width:1040px;}
+    /* .wide ab content ke hisaab se — pehle 1040px par right side khaali reh jaati thi */
+    .pdp-sheet.wide{max-width:820px;}
     .form-2col{grid-template-columns:210px minmax(0,1fr);gap:16px 28px;max-width:none;margin:0;}
     /* keep long values readable — never clip them */
     .form-2col .auth-input{width:100%;}
     .form-2col textarea{width:100%;}
   }
   @media (min-width:1200px){
-    .pdp-sheet.wide{max-width:1100px;}
+    .pdp-sheet.wide{max-width:860px;}
   }
   @media (max-width:859px){
     /* phones: keep it stacked exactly as before */
@@ -377,21 +378,21 @@
   .acct-tab.active{background:var(--text);color:#fff;border-color:var(--text);}
 
   /* ---- modal alignment fixes: login / account / checkout ---- */
-  .auth-panel-shell{max-width:920px;margin:0 auto;padding:6px 0 10px;}
+  .auth-panel-shell{max-width:620px;margin:0;padding:6px 0 10px;}
   .auth-panel-shell .auth-title,
   .auth-panel-shell .auth-sub{max-width:none;text-align:left;}
   .auth-panel-shell .google-btn,
   .auth-panel-shell .terms-note{max-width:none;}
 
-  .acct-shell{max-width:940px;margin:0 auto;padding:4px 0 10px;}
+  .acct-shell{max-width:700px;margin:0;padding:4px 0 10px;}
   .acct-shell .form-2col{max-width:none;margin:0;display:block;}
-  .acct-shell .acct-head{max-width:840px;margin:0 auto 22px;}
-  .acct-shell .acct-tabs{max-width:840px;margin:0 auto 18px;}
+  .acct-shell .acct-head{max-width:none;margin:0 0 22px;}
+  .acct-shell .acct-tabs{max-width:none;margin:0 0 18px;}
   .acct-shell #acctPanelDetails,
   .acct-shell #acctPanelAddress,
-  .acct-shell #acctPanelOrders{max-width:840px;margin:0 auto;}
+  .acct-shell #acctPanelOrders{max-width:none;margin:0;}
 
-  .checkout-shell{max-width:920px;margin:0 auto;padding:4px 0 8px;}
+  .checkout-shell{max-width:680px;margin:0;padding:4px 0 8px;}
   .checkout-shell .auth-title,
   .checkout-shell .auth-sub{max-width:none;text-align:left;}
   .checkout-shell .form-2col{max-width:none;margin:0;}
@@ -1133,7 +1134,7 @@
   .rvf-sheet-label{display:block;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;}
   .rvf-sheet-input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;background:transparent;color:var(--text);box-sizing:border-box;}
   /* Review sheet: sab kuch ek hi column me, left-aligned */
-  .rvf-sheet-column{max-width:720px;margin:0 auto;width:100%;}
+  .rvf-sheet-column{max-width:640px;margin:0;width:100%;}
   .rvf-sheet-column .pdp-name{text-align:left;margin-bottom:14px;}
   #rvfImgsPreview,
   #rvfUploadHint{margin-left:0;margin-right:0;}
@@ -1867,7 +1868,7 @@
 
 <!-- My Orders -->
 <div class="pdp-overlay" id="ordersOverlay">
-  <div class="pdp-sheet" onclick="event.stopPropagation()">
+  <div class="pdp-sheet" style="max-width:660px;" onclick="event.stopPropagation()">
     <div class="pdp-handle"></div>
     <button class="pdp-close" id="ordersClose" aria-label="Close">
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
