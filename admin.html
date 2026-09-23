@@ -861,13 +861,24 @@
     </div>
 
 
-    <!-- Gallery -->
+    <!-- Brand Certificates -->
     <div class="view" id="view-gallery">
-      <p class="view-title">Gallery</p>
-      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-        Yahan se brand certificates upload karein — ye storefront par <strong>Authorised Brand Certificates</strong> section me dikhenge.
-        Har photo automatically compress hokar <strong>100KB se kam</strong> ho jaati hai.
-      </p>
+      <p class="view-title">Brand Certificates</p>
+      <div class="gal-drop" onclick="document.getElementById('certFileInput').click()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p><strong>Upload</strong></p>
+      </div>
+      <input id="certFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onCertFilesPicked(this)">
+      <div id="certUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
+      <p class="gal-count" id="certCount" style="margin:18px 0 10px;"></p>
+      <div id="certList"></div>
+
+      <p class="view-title" style="margin-top:34px;">Store Photos</p>
+      <div class="gal-drop" onclick="document.getElementById('galFileInput').click()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p><strong>Upload</strong></p>
+      </div>
+
       <div class="gal-drop" onclick="document.getElementById('galFileInput').click()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p><strong>Tap to upload photos</strong></p>
@@ -1636,6 +1647,9 @@
     }));
     const siteRow = siteRes.data || {};
 
+    // ---- Brand Certificates: apna alag column, Gallery se alag ----
+    const certRows = Array.isArray(siteRow.home_certificates) ? siteRow.home_certificates : [];
+
     // ---- Hero banners: up to 3 auto-scroll slides. Migrates old single-image
     // hero fields into Banner 1 the first time a store loads this admin. ----
     const heroObj = Object.assign({}, defaultHero, siteRow.hero);
@@ -1668,10 +1682,14 @@
       deal: Object.assign({}, defaultDeal, siteRow.deal),
       store: Object.assign({}, defaultStore, siteRow.store),
       logoUrl: siteRow.logo_url || null,
-      faviconUrl: siteRow.favicon_url || null
+      faviconUrl: siteRow.favicon_url || null,
+      certificates: certRows
     };
   }
-  let site = { gallery: [], products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
+  let site = { gallery: [], certificates: [], products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
+
+  // Certificate list kabhi undefined na rahe (purana site object, partial load, etc.)
+  if(!Array.isArray(site.certificates)) site.certificates = [];
 
   async function loadOrders(){
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
@@ -1820,7 +1838,7 @@
   // ---- Nav ----
   function goView(name){
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    if(name === 'gallery' && typeof renderGallery === 'function'){ try{ renderGallery(); }catch(e){} }
+    if(name === 'gallery' && typeof renderGallery === 'function'){ try{ renderCertificates(); }catch(e){} try{ renderGallery(); }catch(e){} }
     const target = document.getElementById('view-' + name);
     if(target) target.classList.add('active');
 
@@ -5497,6 +5515,105 @@
     `).join('') : '<p class="empty-hint">No visit data yet.</p>';
   }
 
+
+  /* ===================== BRAND CERTIFICATES ===================== */
+  var CERT_MAX_BYTES = 100 * 1024;
+
+  function certItems(){
+    var c = (site && site.certificates) ? site.certificates : [];
+    return Array.isArray(c) ? c : [];
+  }
+
+  async function uploadImage(file, prefix, maxBytes){
+    var blob = await compressToUnder(file, maxBytes);
+    if(!blob) return null;
+    var path = prefix + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
+    var up = await sb.storage.from('gallery-images').upload(path, blob, { contentType:'image/jpeg' });
+    if(up.error) return { error: up.error.message };
+    return {
+      item: {
+        url: sb.storage.from('gallery-images').getPublicUrl(path).data.publicUrl,
+        size: blob.size,
+        name: file.name
+      }
+    };
+  }
+
+  async function removeStoredImage(url){
+    try{
+      var seg = String(url || '').split('/gallery-images/')[1];
+      if(seg) await sb.storage.from('gallery-images').remove([decodeURIComponent(seg.split('?')[0])]);
+    }catch(e){}
+  }
+
+  async function onCertFilesPicked(input){
+    var files = Array.prototype.slice.call(input.files || []);
+    if(!files.length) return;
+    var status = document.getElementById('certUploadStatus');
+    var items = certItems().slice();
+    if(status) status.style.display = 'block';
+    for(var i = 0; i < files.length; i++){
+      if(status) status.textContent = 'Uploading ' + (i+1) + ' / ' + files.length + '…';
+      var res = await uploadImage(files[i], 'cert-', CERT_MAX_BYTES);
+      if(!res){ showToast('Could not read ' + files[i].name); continue; }
+      if(res.error){
+        if(status) status.style.display = 'none';
+        showToast('Upload fail: ' + res.error + ' — Supabase me "gallery-images" bucket banayein (public).');
+        input.value = '';
+        return;
+      }
+      items.push(res.item);
+      var save = await sb.from('site_content').update({ home_certificates: items }).eq('id', 1);
+      if(save.error){
+        if(status) status.style.display = 'none';
+        showToast('Save fail: ' + save.error.message);
+        input.value = '';
+        return;
+      }
+      site.certificates = items;
+      renderCertificates();
+    }
+    if(status) status.style.display = 'none';
+    input.value = '';
+    showToast(files.length + ' certificate upload ho gaya');
+  }
+
+  async function deleteCertPhoto(idx){
+    var items = certItems();
+    var item = items[idx];
+    if(!item) return;
+    if(!confirm('Ye certificate delete karna hai?')) return;
+    await removeStoredImage(item.url);
+    items = items.filter(function(_, i){ return i !== idx; });
+    var res = await sb.from('site_content').update({ home_certificates: items }).eq('id', 1);
+    if(res.error){ showToast(res.error.message); return; }
+    site.certificates = items;
+    renderCertificates();
+    showToast('Certificate deleted');
+  }
+
+  function renderCertificates(){
+    var wrap = document.getElementById('certList');
+    if(!wrap) return;
+    var items = certItems();
+    var cnt = document.getElementById('certCount');
+    if(cnt){
+      var total = items.reduce(function(s, it){ return s + (Number(it.size) || 0); }, 0);
+      cnt.textContent = items.length
+        ? items.length + ' certificate' + (items.length === 1 ? '' : 's') + ' · total ' + gallerySizeLabel(total)
+        : 'Abhi koi certificate upload nahi kiya.';
+    }
+    if(!items.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = '<div class="gal-grid">' + items.map(function(it, i){
+      return '<div class="gal-item">' +
+        '<img src="' + galEsc(it.url) + '" loading="lazy">' +
+        '<div class="gal-item-meta">' +
+          '<span class="gal-size">' + gallerySizeLabel(it.size) + '</span>' +
+          '<button class="gal-del" onclick="deleteCertPhoto(' + i + ')">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
 
   /* ===================== GALLERY ===================== */
   var GALLERY_MAX_BYTES = 100 * 1024;
