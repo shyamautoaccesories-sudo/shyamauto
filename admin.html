@@ -864,23 +864,24 @@
     <!-- Gallery -->
     <div class="view" id="view-gallery">
       <p class="view-title">Brand Certificates</p>
-      <div class="cert-block">
-        <p class="cert-sub">Upload brand certificate</p>
-        <div class="gal-drop" onclick="document.getElementById('certFileInput').click()">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <p><strong>Certificate photo</strong></p>
-          <span>JPG / PNG / WebP · max 1200×1200 px · auto-compress 100KB se kam</span>
+      <div class="cert-zone" onclick="document.getElementById('certFileInput').click()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="cert-zone-main">
+          <strong>Upload certificate</strong>
+          <span>JPG / PNG / WebP · auto-compress 100KB se kam · square (1:1) best</span>
         </div>
-        <input id="certFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onCertFilesPicked(this)">
-        <div id="certUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
-        <p class="cert-meta">Storefront par <strong>square tiles</strong> (1:1) me dikhta hai — square ya 4:3 certificate sabse sahi lagta hai. Lambi sheet ke kinare kat sakte hain.</p>
       </div>
-      <p class="gal-count" id="certCount" style="margin:0 0 12px;"></p>
+      <input id="certFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onCertFilesPicked(this)">
+      <div id="certUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
+      <div class="cert-bar">
+        <p class="gal-count" id="certCount" style="margin:0;"></p>
+        <span class="cert-hint">Storefront par "Authorised Brand Certificates" section me dikhte hain.</span>
+      </div>
       <div id="certList"></div>
 
-      <p class="view-title" style="margin-top:38px;">Store Photos</p>
+      <p class="view-title" style="margin-top:38px;">Gallery</p>
       <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-        Ye photos storefront ke gallery section me jaati hain — certificates se alag.
+        Ye store photos hain — certificates se alag.
       </p>
 
       <div class="gal-drop" onclick="document.getElementById('galFileInput').click()">
@@ -1648,16 +1649,14 @@
       variants: Array.isArray(p.variants) ? p.variants : [],
       stock: p.stock != null ? Number(p.stock) : null,
       in_stock: p.in_stock != null ? !!p.in_stock : true,
-      // ---- Homepage section flags ----
-      // Ye teen load par hi padhe jaate the LEKIN pehle yahan map nahi kiye gaye the,
-      // isliye Edit sheet har baar OFF dikhati thi aur Save par OFF ho jaate the.
+      // Homepage section flags — pehle yahan map nahi hote the, isliye Edit har baar OFF dikhata tha
       home_bestseller: !!p.home_bestseller,
       home_new_arrival: !!p.home_new_arrival,
       home_helmet: !!p.home_helmet
     }));
     const siteRow = siteRes.data || {};
 
-    // ---- Brand Certificates: apna alag column, Gallery se alag ----
+    // Brand Certificates: apna alag column
     const certRows = Array.isArray(siteRow.home_certificates) ? siteRow.home_certificates : [];
 
     // ---- Hero banners: up to 3 auto-scroll slides. Migrates old single-image
@@ -1698,7 +1697,6 @@
   }
   let site = { gallery: [], certificates: [], products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
 
-  // Certificate list kabhi undefined na rahe
   if(!Array.isArray(site.certificates)) site.certificates = [];
 
   async function loadOrders(){
@@ -2511,26 +2509,25 @@
 
   // ---- Product sheet ----
   const productSheetOverlay = document.getElementById('productSheetOverlay');
-  // ---- Homepage section flags: jo sheet dikha rahi hai wahi save hoga ----
-  // Agar kisi wajah se checkbox purane value se sync na ho paya, to sheet kholte
-  // waqt ka value hi bheja jaata hai — isse Save kabhi chupke se flag OFF nahi karega.
+  // ---- Homepage section flags: sheet jo dikha rahi hai wahi save hoga ----
   let sectionFlagSnapshot = null;
 
   function captureSectionFlags(){
-    const s = {
-      bestseller: !!(site.products || []).find(p => Number(p.id) === Number(editingProductId))?.home_bestseller,
-      newArrival: !!(site.products || []).find(p => Number(p.id) === Number(editingProductId))?.home_new_arrival,
-      helmet: !!(site.products || []).find(p => Number(p.id) === Number(editingProductId))?.home_helmet
+    var find = function(key){
+      var p = (site.products || []).find(function(x){ return Number(x.id) === Number(editingProductId); });
+      return !!(p && p[key]);
     };
-    sectionFlagSnapshot = editingProductId ? s : null;
+    sectionFlagSnapshot = editingProductId
+      ? { home_bestseller: find('home_bestseller'), home_new_arrival: find('home_new_arrival'), home_helmet: find('home_helmet') }
+      : null;
   }
 
-  function sectionFlag(elId, snapKey){
-    const box = document.getElementById(elId);
+  function sectionFlag(elId, key){
+    var box = document.getElementById(elId);
     if(box && !box.disabled) return !!box.checked;
-    const p = (site.products || []).find(x => Number(x.id) === Number(editingProductId));
-    if(p && p[snapKey]) return true;
-    if(sectionFlagSnapshot && sectionFlagSnapshot[snapKey.replace(/^home_/, '').replace(/_([a-z])/g, (m, c) => c.toUpperCase())]) return true;
+    var p = (site.products || []).find(function(x){ return Number(x.id) === Number(editingProductId); });
+    if(p && p[key]) return true;
+    if(sectionFlagSnapshot && sectionFlagSnapshot[key]) return true;
     return false;
   }
 
@@ -4239,10 +4236,20 @@
   .gal-size{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);font-weight:600;}
   .gal-del{border:1px solid #fca5a5;background:#fff;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:10.5px;font-weight:700;color:#dc2626;font-family:inherit;}
   .gal-del:hover{background:#fef2f2;}
-  .cert-block{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface-2);margin-bottom:26px;}
-  .cert-block .gal-drop{margin-bottom:0;background:var(--surface);}
-  .cert-meta{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5;}
-  .cert-sub{font-size:13px;font-weight:700;margin:0 0 10px;}
+  /* ---------- Brand Certificates: compact strip + grid ---------- */
+  .cert-zone{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s ease;max-width:520px;}
+  .cert-zone:hover{border-color:var(--accent);}
+  .cert-zone svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:0 0 auto;}
+  .cert-zone-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .cert-zone-main strong{font-size:13px;}
+  .cert-zone-main span{font-size:11px;color:var(--muted);}
+  .cert-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;}
+  .cert-hint{font-size:11.5px;color:var(--muted);}
+  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;}
+  .cert-card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden;display:flex;flex-direction:column;}
+  .cert-card .cert-media{width:100%;aspect-ratio:1/1;background:var(--surface-2);overflow:hidden;display:block;cursor:zoom-in;}
+  .cert-card .cert-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cert-card .cert-foot{padding:7px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
 </style></head>
 <body>
   <div class="print-bar">
@@ -5625,15 +5632,21 @@
         : 'Abhi koi certificate upload nahi kiya.';
     }
     if(!items.length){ wrap.innerHTML = ''; return; }
-    wrap.innerHTML = '<div class="gal-grid">' + items.map(function(it, i){
-      return '<div class="gal-item">' +
-        '<img src="' + galEsc(it.url) + '" loading="lazy">' +
-        '<div class="gal-item-meta">' +
+    wrap.innerHTML = '<div class="cert-grid">' + items.map(function(it, i){
+      return '<div class="cert-card">' +
+        '<div class="cert-media" onclick="openCertPreview(' + i + ')"><img src="' + galEsc(it.url) + '" loading="lazy"></div>' +
+        '<div class="cert-foot">' +
           '<span class="gal-size">' + gallerySizeLabel(it.size) + '</span>' +
           '<button class="gal-del" onclick="deleteCertPhoto(' + i + ')">Delete</button>' +
         '</div>' +
       '</div>';
     }).join('') + '</div>';
+  }
+
+  // Poora certificate naye tab me kholo (preview)
+  function openCertPreview(idx){
+    var it = certItems()[idx];
+    if(it && it.url) window.open(it.url, '_blank');
   }
 
   /* ===================== GALLERY ===================== */
