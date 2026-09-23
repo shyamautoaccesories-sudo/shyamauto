@@ -993,6 +993,7 @@
     padding:6px 12px;border-radius:8px;background:rgba(184,41,26,0.05);display:inline-flex;align-items:center;gap:5px;
   }
   .order-review-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;}
+  .order-review-btn.done{color:#0a7c2f;border-color:rgba(10,124,47,.35);background:rgba(10,124,47,.06);}
   .order-summary-card{background:var(--bg);border-radius:12px;padding:14px;margin-top:6px;}
   .order-summary-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:3px 0;}
   .order-summary-row.total{font-weight:700;color:var(--text);font-size:14.5px;padding-top:9px;margin-top:7px;border-top:1px dashed var(--line);}
@@ -1052,6 +1053,15 @@
   .rvf-prod p{margin:0;font-size:12.5px;font-weight:600;line-height:1.35;}
   .rvf-sheet-label{display:block;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;}
   .rvf-sheet-input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;background:transparent;color:var(--text);box-sizing:border-box;}
+  /* ---- Review composer: write + attach in one box ---- */
+  .rvf-composer{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:6px;}
+  .rvf-composer-input{width:100%;border:none;outline:none;resize:vertical;background:transparent;padding:13px 14px;font-size:13.5px;font-family:inherit;color:var(--text);min-height:96px;box-sizing:border-box;}
+  .rvf-composer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-top:1px solid var(--line);background:var(--surface-2);}
+  .rvf-attach{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;color:var(--text);}
+  .rvf-attach:hover{border-color:var(--text);}
+  .rvf-attach svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+  .rvf-attach[disabled]{opacity:.45;cursor:not-allowed;}
+  .rvf-composer-count{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
   .rvf-imgs-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin-top:8px;}
   .rvf-tile{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line);}
   .rvf-tile img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -2241,7 +2251,7 @@
 
 <!-- Write / edit a review sheet -->
 <div class="pdp-overlay" id="reviewOverlay">
-  <div class="pdp-sheet" onclick="event.stopPropagation()">
+  <div class="pdp-sheet wide" onclick="event.stopPropagation()">
     <div class="pdp-handle"></div>
     <button class="pdp-close" id="reviewClose" aria-label="Close">
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2254,8 +2264,16 @@
       <label class="rvf-sheet-label" for="rvfTitle">Headline (optional)</label>
       <input class="rvf-sheet-input" id="rvfTitle" type="text" maxlength="80" placeholder="e.g. Fitting perfect, quality genuine">
       <label class="rvf-sheet-label" for="rvfBody">Your review</label>
-      <textarea class="rvf-sheet-input" id="rvfBody" rows="5" maxlength="1500" placeholder="Product kaisa laga? Quality, fitting, delivery — jo bhi batana chahein."></textarea>
-      <label class="rvf-sheet-label">Add photos (optional)</label>
+      <div class="rvf-composer">
+        <textarea class="rvf-composer-input" id="rvfBody" rows="5" maxlength="1500" placeholder="Product kaisa laga? Quality, fitting, delivery — jo bhi batana chahein."></textarea>
+        <div class="rvf-composer-bar">
+          <button type="button" class="rvf-attach" onclick="pickReviewPhotos()" aria-label="Add photos">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg>
+            <span id="rvfAttachLabel">Add photos</span>
+          </button>
+          <span class="rvf-composer-count" id="rvfCharCount">0 / 1500</span>
+        </div>
+      </div>
       <input id="rvfImgs" type="file" accept="image/*" multiple style="display:none;" onchange="onReviewImagesPicked(this)">
       <div class="rvf-imgs-preview" id="rvfImgsPreview"></div>
       <p class="rvf-upload-hint" id="rvfUploadHint">Up to 5 photos. Each one is compressed automatically, so even large phone photos are fine. The first photo is shown as the main one.</p>
@@ -4104,9 +4122,31 @@
     document.getElementById('rvfSubmit').textContent = mine ? 'Update Review' : 'Submit Review';
     renderRvfStars();
     renderRvfImagePreview();
+    updateReviewComposerUi();
     reviewOverlay.classList.add('open');
     if(typeof pushOverlayHistory === 'function') pushOverlayHistory();
   }
+
+  function updateReviewComposerUi(){
+    var body = document.getElementById("rvfBody");
+    var count = document.getElementById("rvfCharCount");
+    if(body && count) count.textContent = body.value.length + " / 1500";
+    var lbl = document.getElementById("rvfAttachLabel");
+    var btn = document.querySelector(".rvf-attach");
+    if(lbl){
+      var n = rvfImageUrls.length;
+      lbl.textContent = n ? ("Photos (" + n + "/" + RVF_MAX_PHOTOS + ")") : "Add photos";
+    }
+    if(btn) btn.disabled = rvfUploading || rvfImageUrls.length >= RVF_MAX_PHOTOS;
+  }
+
+  (function(){
+    var body = document.getElementById("rvfBody");
+    if(body){
+      body.addEventListener("input", updateReviewComposerUi);
+      body.addEventListener("keyup", updateReviewComposerUi);
+    }
+  })();
 
   function renderRvfStars(){
     var labels = ['', 'Very poor', 'Not good', 'Just okay', 'Good', 'Excellent!'];
@@ -4232,6 +4272,7 @@
       ((full || rvfUploading) ? ' disabled' : '') + '>' +
       (rvfUploading ? '<span>Uploading\u2026</span>' : camIcon) + '</button>';
     grid.innerHTML = tiles + (full ? '' : addTile);
+    updateReviewComposerUi();
     var hint = document.getElementById('rvfUploadHint');
     if(hint){
       hint.textContent = full
@@ -5775,7 +5816,7 @@
             <span class="order-product-price">₹${(it.price * it.qty).toLocaleString('en-IN')}</span>
           </div>
           ${isDelivered ? `
-            <button class="order-review-btn" onclick="event.stopPropagation(); ${p ? `openReviewForm(${p.id}, ${activeOrder.id})` : `showToast('Product no longer available')`}">
+            <button class="order-review-btn ${hasReviewed(it.product_id) ? 'done' : ''}" onclick="event.stopPropagation(); ${p ? `openReviewForm(${p.id}, ${activeOrder.id})` : `showToast('Product no longer available')`}">
               <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               ${hasReviewed(it.product_id) ? 'Edit Your Review' : 'Rate &amp; Review Product'}
             </button>` : ''}
