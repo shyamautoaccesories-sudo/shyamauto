@@ -4808,8 +4808,14 @@
     document.getElementById("acctEmail").value = currentUser.sub || "";
     document.getElementById("acctAvatarInner").innerHTML = acctAvatarHtml();
     renderAddressList();
+    // Orders tab ke liye myOrders pehle load karo — warna renderAccountOrders()
+    // khaali array par chalta tha aur "No orders yet." dikh jata tha.
     renderAccountOrders();
     acctTab("details");
+    loadMyOrders().then(function(rows){
+      myOrders = Array.isArray(rows) ? rows : [];
+      renderAccountOrders();
+    }).catch(function(){});
     acctOverlay.classList.add("open");
     pushOverlayHistory();
   }
@@ -5017,13 +5023,21 @@
       return;
     }
     wrap.innerHTML = list.slice(0, 3).map(function(o){
-      var count = (o.items || []).reduce(function(s, it){ return s + it.qty; }, 0);
+      var items = Array.isArray(o.items) ? o.items : [];
+      var count = items.reduce(function(s, it){ return s + Number(it.qty || 0); }, 0);
+      var names = items.map(function(it){ return it.name; }).filter(Boolean).join(', ');
+      var key = (typeof orderKey === 'function') ? orderKey(o) : String(o.id);
+      var dateStr = o.created_at
+        ? new Date(o.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+        : '';
       return '<div class="acct-addr-card">' +
-        '<span class="acct-addr-label">#' + escHtml(o.id) + '</span>' +
+        '<span class="acct-addr-label">#' + escHtml(key) + '</span>' +
         '<p class="acct-addr-name">' + escHtml(o.status) + '</p>' +
-        '<p class="acct-addr-line">' + count + ' item' + (count === 1 ? '' : 's') + ' \u00b7 \u20b9' +
+        (names ? '<p class="acct-addr-line">' + escHtml(names) + '</p>' : '') +
+        '<p class="acct-addr-line">' + (dateStr ? escHtml(dateStr) + ' \u00b7 ' : '') +
+          count + ' item' + (count === 1 ? '' : 's') + ' \u00b7 \u20b9' +
           Number(o.total || 0).toLocaleString("en-IN") + '</p>' +
-        '<div class="acct-addr-actions"><button onclick="closeAccount(); openOrderDetail(\'' + escHtml(o.id) + '\')">View order</button></div>' +
+        '<div class="acct-addr-actions"><button onclick="closeAccount(); openOrderDetail(\'' + escHtml(key) + '\')">View order</button></div>' +
       '</div>';
     }).join("") +
     '<button class="btn-outline" style="width:100%;justify-content:center;margin-top:6px;" onclick="closeAccount(); openMyOrders()">See all my orders</button>';
@@ -6156,6 +6170,7 @@
     if(error){ showToast(error.message); return; }
     const o = findMyOrder(id);
     if(o) o.status = 'Cancelled';
+    if(typeof renderAccountOrders === 'function') renderAccountOrders();
     showToast('Order cancelled');
     openOrderDetail(id);
   }
