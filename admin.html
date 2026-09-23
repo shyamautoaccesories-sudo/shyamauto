@@ -1334,6 +1334,25 @@
         <span style="font-size:13px;font-weight:600;">Mark as Out of Stock</span>
         <label class="switch"><input type="checkbox" id="p_outOfStock"><span class="switch-track"></span></label>
       </div>
+      <label class="form-label" style="margin-top:6px;display:block;">Show in Homepage Sections</label>
+      <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Tick karein wahi section jahan ye product dikhna chahiye. Kuch bhi tick na karein to product sirf apni category me rahega.</p>
+
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Bestsellers</span>
+        <label class="switch"><input type="checkbox" id="p_homeBestseller"><span class="switch-track"></span></label>
+      </div>
+
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">New Arrivals</span>
+        <label class="switch"><input type="checkbox" id="p_homeNewArrival"><span class="switch-track"></span></label>
+      </div>
+
+      <div class="form-switch-row">
+        <span style="font-size:13px;font-weight:600;">Helmet Collection</span>
+        <label class="switch"><input type="checkbox" id="p_homeHelmet"><span class="switch-track"></span></label>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:14px;">Helmet Collection ke liye product ka category "Helmets" hona zaroori hai.</p>
+
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
         <label class="switch"><input type="checkbox" id="p_heroBanner"><span class="switch-track"></span></label>
@@ -2596,6 +2615,9 @@
       setSaleDiscountBlockVisibility(!!p.sale);
       document.getElementById('p_outOfStock').checked = p.in_stock === false;
       document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
+      document.getElementById('p_homeBestseller').checked = !!p.home_bestseller;
+      document.getElementById('p_homeNewArrival').checked = !!p.home_new_arrival;
+      document.getElementById('p_homeHelmet').checked = !!p.home_helmet;
       document.getElementById('p_desc').value = p.desc || '';
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
       renderModelCheckList(p.bike_model_ids || []);
@@ -2629,6 +2651,9 @@
       setSaleDiscountBlockVisibility(false);
       document.getElementById('p_outOfStock').checked = false;
       document.getElementById('p_heroBanner').checked = false;
+      document.getElementById('p_homeBestseller').checked = false;
+      document.getElementById('p_homeNewArrival').checked = false;
+      document.getElementById('p_homeHelmet').checked = false;
       document.getElementById('p_desc').value = '';
       addSpecRow('', '');
       renderModelCheckList([]);
@@ -2893,6 +2918,9 @@
       stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
       in_stock: !document.getElementById('p_outOfStock').checked,
       sale: document.getElementById('p_sale').checked,
+      home_bestseller: document.getElementById('p_homeBestseller').checked,
+      home_new_arrival: document.getElementById('p_homeNewArrival').checked,
+      home_helmet: document.getElementById('p_homeHelmet').checked,
       sale_discount: document.getElementById('p_sale').checked ? (Number(document.getElementById('p_saleDiscount').value) || null) : null,
       description: document.getElementById('p_desc').value.trim(),
       specs,
