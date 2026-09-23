@@ -608,10 +608,6 @@
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 12a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 12"/><circle cx="8.5" cy="9" r="0.9"/><circle cx="15.5" cy="9" r="0.9"/></svg>Appearance</span>
       </button>
 
-      <button class="side-item" data-view="gallery" onclick="goView('gallery')">
-        <span class="side-item-inner"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><polyline points="21 15 16 10 5 21"/></svg>Gallery</span>
-      </button>
-
       <button class="side-item" data-view="settings" onclick="goView('settings')">
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z"/></svg>Settings</span>
       </button>
@@ -968,26 +964,6 @@
       <div id="discountList"></div>
     </div>
 
-    <!-- Gallery -->
-    <div class="view" id="view-gallery">
-      <p class="view-title">Gallery</p>
-      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-        Yahan se photos upload karein — ye storefront par <strong>Trusted Brands</strong> section me dikhengi.
-        Har photo automatically compress hokar <strong>100KB se kam</strong> ho jaati hai.
-      </p>
-
-      <div class="gal-drop" id="galDrop" onclick="document.getElementById('galFileInput').click()">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p><strong>Tap to upload photos</strong></p>
-        <span>JPG, PNG, WebP — ek saath multiple select kar sakte hain</span>
-      </div>
-      <input id="galFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onGalleryFilesPicked(this)">
-      <div id="galUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
-
-      <p class="gal-count" id="galCount" style="margin:18px 0 10px;"></p>
-      <div id="galList"></div>
-    </div>
-
     <!-- Settings -->
     <div class="view" id="view-settings">
       <p class="view-title">Settings</p>
@@ -1334,25 +1310,6 @@
         <span style="font-size:13px;font-weight:600;">Mark as Out of Stock</span>
         <label class="switch"><input type="checkbox" id="p_outOfStock"><span class="switch-track"></span></label>
       </div>
-      <label class="form-label" style="margin-top:6px;display:block;">Show in Homepage Sections</label>
-      <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Tick karein wahi section jahan ye product dikhna chahiye. Kuch bhi tick na karein to product sirf apni category me rahega.</p>
-
-      <div class="form-switch-row">
-        <span style="font-size:13px;font-weight:600;">Bestsellers</span>
-        <label class="switch"><input type="checkbox" id="p_homeBestseller"><span class="switch-track"></span></label>
-      </div>
-
-      <div class="form-switch-row">
-        <span style="font-size:13px;font-weight:600;">New Arrivals</span>
-        <label class="switch"><input type="checkbox" id="p_homeNewArrival"><span class="switch-track"></span></label>
-      </div>
-
-      <div class="form-switch-row">
-        <span style="font-size:13px;font-weight:600;">Helmet Collection</span>
-        <label class="switch"><input type="checkbox" id="p_homeHelmet"><span class="switch-track"></span></label>
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:14px;">Helmet Collection ke liye product ka category "Helmets" hona zaroori hai.</p>
-
       <div class="form-switch-row">
         <span style="font-size:13px;font-weight:600;">Add to Home Hero Banner</span>
         <label class="switch"><input type="checkbox" id="p_heroBanner"><span class="switch-track"></span></label>
@@ -1827,7 +1784,6 @@
   // ---- Nav ----
   function goView(name){
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    if(name === 'gallery' && typeof renderGallery === 'function') renderGallery();
     const target = document.getElementById('view-' + name);
     if(target) target.classList.add('active');
 
@@ -2615,9 +2571,6 @@
       setSaleDiscountBlockVisibility(!!p.sale);
       document.getElementById('p_outOfStock').checked = p.in_stock === false;
       document.getElementById('p_heroBanner').checked = !!(site.hero && site.hero.banners && site.hero.banners[0] && Number(site.hero.banners[0].productId) === Number(p.id));
-      document.getElementById('p_homeBestseller').checked = !!p.home_bestseller;
-      document.getElementById('p_homeNewArrival').checked = !!p.home_new_arrival;
-      document.getElementById('p_homeHelmet').checked = !!p.home_helmet;
       document.getElementById('p_desc').value = p.desc || '';
       (p.specs || []).forEach(s => addSpecRow(s[0], s[1]));
       renderModelCheckList(p.bike_model_ids || []);
@@ -2651,9 +2604,6 @@
       setSaleDiscountBlockVisibility(false);
       document.getElementById('p_outOfStock').checked = false;
       document.getElementById('p_heroBanner').checked = false;
-      document.getElementById('p_homeBestseller').checked = false;
-      document.getElementById('p_homeNewArrival').checked = false;
-      document.getElementById('p_homeHelmet').checked = false;
       document.getElementById('p_desc').value = '';
       addSpecRow('', '');
       renderModelCheckList([]);
@@ -2918,9 +2868,6 @@
       stock: hasVariants ? null : (document.getElementById('p_stock').value === '' ? null : Math.max(0, Math.round(Number(document.getElementById('p_stock').value)))),
       in_stock: !document.getElementById('p_outOfStock').checked,
       sale: document.getElementById('p_sale').checked,
-      home_bestseller: document.getElementById('p_homeBestseller').checked,
-      home_new_arrival: document.getElementById('p_homeNewArrival').checked,
-      home_helmet: document.getElementById('p_homeHelmet').checked,
       sale_discount: document.getElementById('p_sale').checked ? (Number(document.getElementById('p_saleDiscount').value) || null) : null,
       description: document.getElementById('p_desc').value.trim(),
       specs,
@@ -4610,179 +4557,6 @@
     document.querySelectorAll('#ticketFilterRow .ticket-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.status === status));
     renderTickets();
   }
-
-  /* ===================== GALLERY ===================== */
-  // Uploaded photos -> storefront "Trusted Brands" strip.
-  // Har photo upload se pehle canvas se compress hoti hai (max 100KB).
-  var GALLERY_MAX_BYTES = 100 * 1024;
-
-  function galleryItems(){
-    var g = (site && site.gallery) ? site.gallery : [];
-    return Array.isArray(g) ? g : [];
-  }
-
-  // Canvas se compress: max side 1400px, quality step-down jab tak 100KB se kam na ho.
-  function compressToUnder(file, maxBytes){
-    return new Promise(function(resolve){
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var img = new Image();
-        img.onload = function(){
-          var maxSide = 1400;
-          var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-          var w = Math.max(1, Math.round(img.width * scale));
-          var h = Math.max(1, Math.round(img.height * scale));
-          var canvas = document.createElement('canvas');
-          canvas.width = w; canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-
-          var quality = 0.82;
-          var tries = 0;
-          (function attempt(){
-            canvas.toBlob(function(blob){
-              if(!blob){ resolve(null); return; }
-              if(blob.size <= maxBytes || quality <= 0.4 || tries >= 6){
-                resolve(blob); return;
-              }
-              quality -= 0.1; tries++;
-              // Hur baar thoda chhota bhi karo, warna sirf quality girne se
-              // bade photos 100KB ke andar nahi aate.
-              if(tries >= 3){
-                w = Math.round(w * 0.85); h = Math.round(h * 0.85);
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-              }
-              attempt();
-            }, 'image/jpeg', quality);
-          })();
-        };
-        img.onerror = function(){ resolve(null); };
-        img.src = e.target.result;
-      };
-      reader.onerror = function(){ resolve(null); };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function onGalleryFilesPicked(input){
-    var files = Array.prototype.slice.call(input.files || []);
-    if(!files.length) return;
-    var status = document.getElementById('galUploadStatus');
-    var items = galleryItems().slice();
-    status.style.display = 'block';
-
-    for(var i = 0; i < files.length; i++){
-      status.textContent = 'Uploading ' + (i+1) + ' / ' + files.length + '…';
-      var blob = await compressToUnder(files[i], GALLERY_MAX_BYTES);
-      if(!blob){ showToast('Could not read ' + files[i].name); continue; }
-
-      var path = 'gal-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
-      var up = await sb.storage.from('gallery-images').upload(path, blob, { contentType:'image/jpeg' });
-      if(up.error){
-        // Bucket na ho to saaf message — warna user ko lagega kuch hua hi nahi.
-        status.style.display = 'none';
-        showToast('Upload fail: ' + up.error.message + ' — Supabase me "gallery-images" bucket banayein (public).');
-        input.value = '';
-        return;
-      }
-      items.push({
-        url: sb.storage.from('gallery-images').getPublicUrl(path).data.publicUrl,
-        size: blob.size,
-        name: files[i].name
-      });
-      // Har photo ke baad save, taaki beech me band ho jaye to bhi kaam bacha rahe
-      await sb.from('site_content').update({ gallery: items }).eq('id', 1);
-      site.gallery = items;
-      renderGallery();
-    }
-
-    status.style.display = 'none';
-    input.value = '';
-    showToast(files.length + ' photo upload ho gayi');
-  }
-
-  async function deleteGalleryPhoto(idx){
-    var items = galleryItems();
-    var item = items[idx];
-    if(!item) return;
-    if(!confirm('Ye photo delete karni hai?')) return;
-
-    // Storage se bhi file hatao (agar path nikal paye)
-    try{
-      var seg = String(item.url).split('/gallery-images/')[1];
-      if(seg) await sb.storage.from('gallery-images').remove([decodeURIComponent(seg.split('?')[0])]);
-    }catch(e){ /* storage delete fail ho to DB se phir bhi hata do */ }
-
-    items = items.filter(function(_, i){ return i !== idx; });
-    var res = await sb.from('site_content').update({ gallery: items }).eq('id', 1);
-    if(res.error){ showToast(res.error.message); return; }
-    site.gallery = items;
-    renderGallery();
-    showToast('Photo deleted');
-  }
-
-  function gallerySizeLabel(bytes){
-    var n = Number(bytes) || 0;
-    if(!n) return '—';
-    if(n < 1024) return n + ' B';
-    if(n < 1024*1024) return (n/1024).toFixed(0) + ' KB';
-    return (n/(1024*1024)).toFixed(2) + ' MB';
-  }
-
-  function renderGallery(){
-    var wrap = document.getElementById('galList');
-    if(!wrap) return;
-    var items = galleryItems();
-    var cnt = document.getElementById('galCount');
-    if(cnt){
-      var total = items.reduce(function(s, it){ return s + (Number(it.size) || 0); }, 0);
-      cnt.textContent = items.length
-        ? items.length + ' photo' + (items.length === 1 ? '' : 's') + ' · total ' + gallerySizeLabel(total)
-        : 'Abhi koi photo upload nahi ki.';
-    }
-    if(!items.length){ wrap.innerHTML = ''; return; }
-
-    wrap.innerHTML = '<div class="gal-grid">' + items.map(function(it, i){
-      return '<div class="gal-item">' +
-        '<img src="' + galEsc(it.url) + '" loading="lazy" onclick="openGalleryPreview(\'' + galEsc(it.url) + '\')">' +
-        '<div class="gal-item-meta">' +
-          '<span class="gal-size">' + gallerySizeLabel(it.size) + '</span>' +
-          '<button class="gal-del" onclick="deleteGalleryPhoto(' + i + ')">Delete</button>' +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
-  }
-
-  function openGalleryPreview(url){
-    window.open(url, '_blank');
-  }
-
-  function galEsc(s){
-    return String(s == null ? '' : s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-
-  /* ===================== GALLERY ===================== */
-  .gal-drop{
-    border:2px dashed var(--line);border-radius:14px;padding:26px 18px;text-align:center;
-    cursor:pointer;background:var(--surface);transition:border-color .15s ease;
-  }
-  .gal-drop:hover{border-color:var(--accent);}
-  .gal-drop svg{width:30px;height:30px;stroke:var(--muted);fill:none;stroke-width:1.7;margin-bottom:8px;}
-  .gal-drop p{margin:0 0 4px;font-size:13.5px;}
-  .gal-drop span{font-size:11.5px;color:var(--muted);}
-  .gal-count{font-size:12px;color:var(--muted);}
-  .gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-  .gal-item{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);position:relative;}
-  .gal-item img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;cursor:zoom-in;}
-  .gal-item-meta{padding:8px 9px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
-  .gal-size{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);font-weight:600;}
-  .gal-del{
-    border:1px solid #fca5a5;background:#fff;border-radius:7px;padding:3px 8px;
-    cursor:pointer;font-size:10.5px;font-weight:700;color:#dc2626;font-family:inherit;
-  }
-  .gal-del:hover{background:#fef2f2;}
 
   /* ===================== PRODUCT REVIEWS ===================== */
   function rvStars(n){
