@@ -694,32 +694,32 @@
   .gearbrand-item p{font-size:11px;font-weight:600;color:var(--muted);line-height:1.2;}
   .empty-hint-inline{font-size:12px;color:var(--muted);}
 
-  /* ---------- Trusted Brands (admin Gallery → storefront) ---------- */
-  .trusted{padding:26px 16px 8px;}
-  .trusted-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-  .trusted-head h3{font-size:13px;color:var(--muted);font-weight:600;text-transform:none;font-family:var(--font-body);margin:0;}
-  .trusted-viewall{
+  /* ---------- Authorised Brand Certificates (admin Gallery → storefront) ---------- */
+  .certificates{padding:26px 16px 8px;}
+  .cert-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .cert-head h3{font-size:13px;color:var(--muted);font-weight:600;text-transform:none;font-family:var(--font-body);margin:0;}
+  .cert-viewall{
     border:none;background:none;color:var(--accent);font-weight:700;font-size:12px;
     cursor:pointer;font-family:inherit;padding:4px 2px;white-space:nowrap;
   }
-  .trusted-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
-  .trusted-scroll::-webkit-scrollbar{display:none;}
-  .trusted-item{
+  .cert-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+  .cert-scroll::-webkit-scrollbar{display:none;}
+  .cert-item{
     flex:0 0 auto;width:150px;border-radius:14px;overflow:hidden;
     background:var(--surface);border:1px solid var(--line);cursor:zoom-in;
     aspect-ratio:1/1;
   }
-  .trusted-item img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cert-item img{width:100%;height:100%;object-fit:cover;display:block;}
 
   /* View all → grid, jaise product grid */
-  .trusted-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
   @media (min-width:860px){
-    .trusted-scroll{flex-wrap:wrap;overflow-x:visible;}
-    .trusted-item{width:180px;}
-    .trusted{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
-    .trusted-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;}
+    .cert-scroll{flex-wrap:wrap;overflow-x:visible;}
+    .cert-item{width:180px;}
+    .certificates{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
+    .cert-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;}
   }
-  .trusted-empty{font-size:12px;color:var(--muted);}
+  .cert-empty{font-size:12px;color:var(--muted);}
 
   /* ---------- Testimonials (Google-review style) ---------- */
   .testi-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
@@ -1689,13 +1689,13 @@
   <div class="gearbrand-scroll" id="gearBrandScroll"></div>
 </section>
 
-<!-- Trusted Brands (admin Gallery photos) -->
-<section class="trusted" id="trustedBrands">
-  <div class="section-head trusted-head">
-    <h3>Trusted Brands</h3>
-    <button class="trusted-viewall" id="trustedViewAllBtn" onclick="openTrustedAll()" style="display:none;">View all</button>
+<!-- Authorised Brand Certificates (admin Gallery photos) -->
+<section class="certificates" id="brandCertificates">
+  <div class="section-head cert-head">
+    <h3>Authorised Brand Certificates</h3>
+    <button class="cert-viewall" id="certificatesViewAllBtn" onclick="openCertificatesAll()" style="display:none;">View all</button>
   </div>
-  <div class="trusted-scroll" id="trustedScroll"></div>
+  <div class="cert-scroll" id="certificatesScroll"></div>
 </section>
 
 <!-- Testimonials -->
@@ -2857,21 +2857,21 @@
       </a>`
     ).join('');
 
-    // ---- Trusted Brands: admin panel → Gallery se upload ki gayi photos ----
-  var TRUSTED_PREVIEW_COUNT = 8;
+    // ---- Authorised Brand Certificates: admin panel → Gallery se upload kiye gaye certificate photos ----
+  var CERT_PREVIEW_COUNT = 8;
 
-  function trustedPhotos(){
+  function certificatePhotos(){
     var g = (site && site.gallery) ? site.gallery : [];
     if(!Array.isArray(g)) return [];
     return g.map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
   }
 
-  function renderTrustedBrands(){
-    var wrap = document.getElementById('trustedScroll');
-    var section = document.getElementById('trustedBrands');
+  function renderBrandCertificates(){
+    var wrap = document.getElementById('certificatesScroll');
+    var section = document.getElementById('brandCertificates');
     if(!wrap || !section) return;
 
-    var photos = trustedPhotos();
+    var photos = certificatePhotos();
     if(!photos.length){
       // Koi photo upload nahi hui — section dikhane ka matlab nahi
       section.style.display = 'none';
@@ -2879,53 +2879,53 @@
     }
     section.style.display = 'block';
 
-    var btn = document.getElementById('trustedViewAllBtn');
-    if(btn) btn.style.display = photos.length > TRUSTED_PREVIEW_COUNT ? 'block' : 'none';
+    var btn = document.getElementById('certificatesViewAllBtn');
+    if(btn) btn.style.display = photos.length > CERT_PREVIEW_COUNT ? 'block' : 'none';
 
     // Strip par sirf pehli 8 — baaki "View all" me
-    wrap.className = 'trusted-scroll';
-    wrap.innerHTML = photos.slice(0, TRUSTED_PREVIEW_COUNT).map(function(url, i){
-      return '<div class="trusted-item" onclick="zoomTrustedPhoto(' + i + ')">' +
-        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+    wrap.className = 'cert-scroll';
+    wrap.innerHTML = photos.slice(0, CERT_PREVIEW_COUNT).map(function(url, i){
+      return '<div class="cert-item" onclick="zoomCertificatePhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Brand certificate" loading="lazy">' +
       '</div>';
     }).join('');
   }
 
   // View all → saari photos grid me, product grid jaisa
-  function openTrustedAll(){
-    var photos = trustedPhotos();
+  function openCertificatesAll(){
+    var photos = certificatePhotos();
     if(!photos.length) return;
-    var wrap = document.getElementById('trustedScroll');
+    var wrap = document.getElementById('certificatesScroll');
     if(!wrap) return;
 
     // Agar pehle se grid khula hai to wapas strip par le aao
-    if(wrap.className === 'trusted-grid'){
-      renderTrustedBrands();
-      var b0 = document.getElementById('trustedViewAllBtn');
+    if(wrap.className === 'cert-grid'){
+      renderBrandCertificates();
+      var b0 = document.getElementById('certificatesViewAllBtn');
       if(b0) b0.textContent = 'View all';
       return;
     }
 
-    wrap.className = 'trusted-grid';
+    wrap.className = 'cert-grid';
     wrap.innerHTML = photos.map(function(url, i){
-      return '<div class="trusted-item" onclick="zoomTrustedPhoto(' + i + ')">' +
-        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+      return '<div class="cert-item" onclick="zoomCertificatePhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Brand certificate" loading="lazy">' +
       '</div>';
     }).join('');
 
-    var b = document.getElementById('trustedViewAllBtn');
+    var b = document.getElementById('certificatesViewAllBtn');
     if(b) b.textContent = 'Show less';
   }
 
   // Photo par click → wahi lightbox zoom (product photos jaisa hi)
-  function zoomTrustedPhoto(i){
-    var photos = trustedPhotos();
+  function zoomCertificatePhoto(i){
+    var photos = certificatePhotos();
     if(!photos.length) return;
     openLightbox(photos, i || 0);
   }
 
-  // ---- Trusted Brands (admin Gallery photos) ----
-    renderTrustedBrands();
+  // ---- Authorised Brand Certificates (admin Gallery photos) ----
+    renderBrandCertificates();
 
   // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
     document.getElementById('gearBrandScroll').innerHTML = site.productBrands.length
