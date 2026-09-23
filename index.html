@@ -702,20 +702,41 @@
     border:none;background:none;color:var(--accent);font-weight:700;font-size:12px;
     cursor:pointer;font-family:inherit;padding:4px 2px;white-space:nowrap;
   }
-  .cert-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+  .cert-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;scrollbar-width:none;}
   .cert-scroll::-webkit-scrollbar{display:none;}
   .cert-item{
-    flex:0 0 auto;width:150px;border-radius:14px;overflow:hidden;
-    background:var(--surface);border:1px solid var(--line);cursor:zoom-in;
-    aspect-ratio:1/1;
+    flex:0 0 auto;width:128px;scroll-snap-align:start;position:relative;
+    border-radius:16px;overflow:hidden;cursor:zoom-in;display:block;
+    background:linear-gradient(150deg, var(--yellow-deep), var(--yellow));
+    box-shadow:0 8px 18px -10px rgba(0,100,210,0.45);
+    aspect-ratio:128/164;
   }
-  .cert-item img{width:100%;height:100%;object-fit:cover;display:block;}
-
-  /* View all → grid, jaise product grid */
-  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  .cert-item::before{
+    content:'';position:absolute;inset:0;
+    background-image:repeating-linear-gradient(115deg, rgba(255,255,255,0.07) 0 14px, transparent 14px 28px);
+    pointer-events:none;
+  }
+  .cert-item img{
+    position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+    width:88%;height:88%;object-fit:contain;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,0.28));
+  }
+  .cert-item-fallback{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:700;color:rgba(255,255,255,0.42);
+    font-size:26px;letter-spacing:0.5px;text-transform:uppercase;
+  }
+  .cert-item-label{
+    position:absolute;left:0;right:0;bottom:0;z-index:2;padding:9px 9px 10px;
+    background:linear-gradient(0deg, rgba(0,20,50,0.65), transparent 75%);
+    color:#fff;font-weight:600;font-size:12px;line-height:1.2;
+  }
+  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:14px;}
   @media (min-width:860px){
     .cert-scroll{flex-wrap:wrap;overflow-x:visible;}
-    .cert-item{width:180px;}
+    .cert-item{width:200px;aspect-ratio:200/250;border-radius:20px;}
+    .cert-item-fallback{font-size:40px;}
+    .cert-item-label{padding:14px;font-size:15px;}
     .certificates{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
     .cert-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;}
   }
@@ -1690,9 +1711,9 @@
 </section>
 
 <!-- Authorised Brand Certificates -->
-<section class="certificates" id="brandCertificates">
+<section class="trusted" id="brandCertificates">
   <div class="section-head cert-head">
-    <h3>Authorised Brand Certificates</h3>
+    <h3 id="certHeading">Authorised Brand Certificates</h3>
     <button class="cert-viewall" id="certificatesViewAllBtn" onclick="openCertificatesAll()" style="display:none;">View all</button>
   </div>
   <div class="cert-scroll" id="certificatesScroll"></div>
@@ -2781,7 +2802,7 @@
     };
   }
 
-  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], gallery: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal, certificates: [] };
+  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], gallery: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
   let bestsellers = [], newArrivals = [], helmets = [], saleProducts = [];
   let categories = [];
@@ -2860,19 +2881,10 @@
     // ---- Authorised Brand Certificates: admin panel ke apne upload se ----
   var CERT_PREVIEW_COUNT = 8;
 
-  function toPhotoUrl(x){
-    return typeof x === 'string' ? x : (x && x.url);
-  }
-
   function certificatePhotos(){
-    // Admin panel ke apne "Brand Certificates" upload se aate hain.
-    var c = (site && site.certificates) ? site.certificates : [];
-    var list = Array.isArray(c) ? c.map(toPhotoUrl).filter(Boolean) : [];
-    if(list.length) return list;
-
-    // Fallback: purani gallery photos, taaki pehle se upload kiya hua data gayab na ho.
     var g = (site && site.gallery) ? site.gallery : [];
-    return Array.isArray(g) ? g.map(toPhotoUrl).filter(Boolean) : [];
+    if(!Array.isArray(g)) return [];
+    return g.map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
   }
 
   function renderBrandCertificates(){
@@ -2896,6 +2908,7 @@
     wrap.innerHTML = photos.slice(0, CERT_PREVIEW_COUNT).map(function(url, i){
       return '<div class="cert-item" onclick="zoomCertificatePhoto(' + i + ')">' +
         '<img src="' + url + '" alt="Brand certificate" loading="lazy">' +
+        '<div class="cert-item-label">Certificate ' + (i + 1) + '</div>' +
       '</div>';
     }).join('');
   }
@@ -2919,6 +2932,7 @@
     wrap.innerHTML = photos.map(function(url, i){
       return '<div class="cert-item" onclick="zoomCertificatePhoto(' + i + ')">' +
         '<img src="' + url + '" alt="Brand certificate" loading="lazy">' +
+        '<div class="cert-item-label">Certificate ' + (i + 1) + '</div>' +
       '</div>';
     }).join('');
 
@@ -2983,12 +2997,6 @@
     site = await loadSiteContent();
     renderStorefront();
   }
-
-  // Admin panel me change karke wapas aane par storefront turant update ho jaye
-  // (realtime event kisi wajah se na aaye to bhi).
-  document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible') refreshSite();
-  });
 
   function cardHtml(p){
     const thumb = Array.isArray(p.images) && p.images.length ? p.images[0] : null;
