@@ -2731,6 +2731,10 @@
         : ((p.rating != null && Number(p.rating) > 0) ? p.rating : null),
       rating_count: p.rating_count != null ? Number(p.rating_count) : 0,
       sale: !!p.sale, desc: p.description != null ? p.description : p.desc, specs: p.specs || [],
+      home_bestseller: !!p.home_bestseller,
+      home_new_arrival: !!p.home_new_arrival,
+      home_helmet: !!p.home_helmet,
+      sort_order: p.sort_order != null ? Number(p.sort_order) : null,
       bike_model_ids: p.bike_model_ids || [], images: p.images || [], variants: Array.isArray(p.variants) ? p.variants : [],
       stock: p.stock != null ? Number(p.stock) : null, in_stock: p.in_stock != null ? !!p.in_stock : true,
       delivery_charge: p.delivery_charge != null ? Number(p.delivery_charge) : 0,
@@ -2805,9 +2809,29 @@
   function renderStorefront(){
     applyBranding();
     products = site.products;
-    bestsellers = products.slice(0,5);
-    newArrivals = products.slice(5,10);
-    helmets = products.filter(p => p.cat === "Helmets");
+    // Homepage sections ab admin panel ke "Show in Homepage Sections" ticks se
+    // bante hain — pehle ye position se the (pehle 5 / agle 5), isliye jo bhi
+    // product add hota tha woh apne aap Bestsellers/New Arrivals me chala jata tha.
+    function homeFlag(p, key){ return !!(p && p[key]); }
+    function bySortOrder(a, b){
+      const ao = a.sort_order != null ? Number(a.sort_order) : null;
+      const bo = b.sort_order != null ? Number(b.sort_order) : null;
+      if(ao != null && bo != null && ao !== bo) return ao - bo;
+      if(ao != null && bo == null) return -1;
+      if(ao == null && bo != null) return 1;
+      return 0;
+    }
+
+    bestsellers = products.filter(p => homeFlag(p, 'home_bestseller')).sort(bySortOrder);
+    newArrivals = products.filter(p => homeFlag(p, 'home_new_arrival')).sort(bySortOrder);
+
+    // Helmet Collection: tick lagaya ho YA category Helmets ho.
+    // (Jo products sirf category se aate hain unhe bhi dikhna chahiye — warna
+    //  purane helmets gayab ho jayenge jinke paas naya flag nahi hai.)
+    helmets = products
+      .filter(p => homeFlag(p, 'home_helmet') || p.cat === "Helmets")
+      .sort(bySortOrder);
+
     saleProducts = products.filter(p => p.sale);
     categories = [...new Set(products.map(p => p.cat))];
 
@@ -2915,7 +2939,9 @@
 
     document.getElementById('bestsellerGrid').innerHTML = bestsellers.map(cardHtml).join('');
     document.getElementById('newArrivalGrid').innerHTML = newArrivals.map(cardHtml).join('');
-    document.getElementById('helmetGrid').innerHTML = helmets.map(cardHtml).join('');
+    document.getElementById('helmetGrid').innerHTML = helmets.length
+      ? helmets.map(cardHtml).join('')
+      : '<p class="empty-hint-inline">Koi helmet product add nahi hua. Admin → Products me "Helmet Collection" tick karein.</p>';
     document.getElementById('saleGrid').innerHTML = saleProducts.map(cardHtml).join('');
     document.getElementById('saleSection').style.display = saleProducts.length ? 'block' : 'none';
 
@@ -3239,8 +3265,9 @@
   // further narrow down.
   function contextProductList(){
     let list = products.slice();
-    if(activeSection === 'bestsellers') list = list.slice(0,5);
-    else if(activeSection === 'new') list = list.slice(5,10);
+    // Section page par bhi wahi products jo homepage par dikhe
+    if(activeSection === 'bestsellers') list = products.filter(p => !!p.home_bestseller);
+    else if(activeSection === 'new') list = products.filter(p => !!p.home_new_arrival);
     else if(activeSection === 'sale') list = list.filter(p => p.sale);
     if(activeCat !== 'All') list = list.filter(p => p.cat === activeCat);
     if(activeModel) list = list.filter(p => (p.bike_model_ids || []).includes(activeModel));
