@@ -1501,20 +1501,26 @@
 
     /* Two columns: the gallery on the left, details stacked on the right.
        Each side is ONE grid item, so the right column always starts at the
-       very top and never lines up with the gallery's last row. */
-    .pdp-scroll{
+       very top and never lines up with the gallery's last row.
+       Scoped to #pdpOverlay only — every other sheet (checkout, account,
+       orders, review, share, auth, info) reuses .pdp-scroll/.pdp-sheet too,
+       and this grid was squeezing their single-child content into just the
+       left ~1fr track, leaving the right ~0.92fr track empty ("half cut"
+       popups) and, inside checkout/account, compounding with the nested
+       .form-2col label column to leave almost no room for the inputs. */
+    #pdpOverlay .pdp-scroll{
       display:grid;
       grid-template-columns:minmax(0,1fr) minmax(0,0.92fr);
       column-gap:34px;
       align-items:start;
     }
-    .pdp-media-wrap{grid-column:1;grid-row:1;width:100%;max-width:520px;margin:0 auto;}
-    .pdp-media{margin:0;width:100%;}
-    .pdp-thumbs{
+    #pdpOverlay .pdp-media-wrap{grid-column:1;grid-row:1;width:100%;max-width:520px;margin:0 auto;}
+    #pdpOverlay .pdp-media{margin:0;width:100%;}
+    #pdpOverlay .pdp-thumbs{
       grid-column:1;grid-row:2;margin:12px auto 0;align-self:start;
       width:100%;max-width:520px;justify-content:flex-start;
     }
-    .pdp-details{
+    #pdpOverlay .pdp-details{
       grid-column:2;grid-row:1 / span 2;
       display:flex;flex-direction:column;min-width:0;
       position:sticky;top:0;
