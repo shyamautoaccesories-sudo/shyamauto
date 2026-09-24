@@ -571,6 +571,8 @@
   .pdp-plate-row .plate .mrp{font-size:14px;}
   .pdp-plate-row .plate{padding:9px 16px;}
   .plate .mrp{font-size:9.5px;text-decoration:line-through;opacity:0.55;}
+  .plate .off{font-size:9.5px;font-weight:800;background:rgba(255,255,255,.24);color:#fff;border-radius:5px;padding:1.5px 5px;letter-spacing:.1px;}
+  .pdp-plate-row .plate .off{font-size:11.5px;padding:2px 7px;}
   .card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
   .rating{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);}
   .add-btn{
@@ -3026,7 +3028,7 @@
         <span class="card-cat">${p.cat}${p.brand ? ` · ${p.brand}` : ''}</span>
         <p class="card-name">${p.name}</p>
         ${hasVariants ? `<span class="card-variants">${p.variants.map(v => v.name).filter(Boolean).join(' · ')}</span>` : ''}
-        <span class="plate"><span class="price">${priceInfo.hasVariants ? 'From ' : ''}₹${priceInfo.price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${priceInfo.mrp.toLocaleString('en-IN')}</span>` : ''}</span>
+        <span class="plate"><span class="price">${priceInfo.hasVariants ? 'From ' : ''}₹${priceInfo.price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${priceInfo.mrp.toLocaleString('en-IN')}</span><span class="off">${Math.round((priceInfo.mrp - priceInfo.price) / priceInfo.mrp * 100)}% OFF</span>` : ''}</span>
         <div class="card-foot">
           <span class="rating">${p.rating ? '★ ' + p.rating + (p.rating_count ? ' (' + p.rating_count + ')' : '') : 'No reviews yet'}</span>
           <button class="add-btn" ${outOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${p.id}, this)" aria-label="${outOfStock ? 'Out of stock' : 'Add to cart'}">
@@ -4798,7 +4800,7 @@
     const mrp = v ? v.mrp : p.mrp;
     const showMrp = v ? (mrp && mrp > price) : (p.sale && mrp);
     document.getElementById('pdpPlate').innerHTML =
-      `<span class="price">₹${price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${mrp.toLocaleString('en-IN')}</span>` : ''}`;
+      `<span class="price">₹${price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${mrp.toLocaleString('en-IN')}</span><span class="off">${Math.round((mrp - price) / mrp * 100)}% OFF</span>` : ''}`;
     const addBtn = document.getElementById('pdpAddBtn');
     const variantOutOfStock = v && v.stock != null && v.stock <= 0;
     const outOfStock = isProductOutOfStock(p) || variantOutOfStock;
