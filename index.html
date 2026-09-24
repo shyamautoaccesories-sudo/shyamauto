@@ -1712,7 +1712,7 @@
 </section>
 
 <!-- Certification -->
-<section class="trusted" id="brandCertificates">
+<section class="certificates" id="brandCertificates">
   <div class="section-head cert-head">
     <h3 id="certHeading">Certification</h3>
     <button class="cert-viewall" id="certificatesViewAllBtn" onclick="openCertificatesAll()" style="display:none;">View all</button>
@@ -2829,58 +2829,10 @@
     }
   }
 
-  function renderStorefront(){
-    applyBranding();
-    products = site.products;
-    // Homepage sections ab admin panel ke "Show in Homepage Sections" ticks se
-    // bante hain — pehle ye position se the (pehle 5 / agle 5), isliye jo bhi
-    // product add hota tha woh apne aap Bestsellers/New Arrivals me chala jata tha.
-    function homeFlag(p, key){ return !!(p && p[key]); }
-    function bySortOrder(a, b){
-      const ao = a.sort_order != null ? Number(a.sort_order) : null;
-      const bo = b.sort_order != null ? Number(b.sort_order) : null;
-      if(ao != null && bo != null && ao !== bo) return ao - bo;
-      if(ao != null && bo == null) return -1;
-      if(ao == null && bo != null) return 1;
-      return 0;
-    }
-
-    bestsellers = products.filter(p => homeFlag(p, 'home_bestseller')).sort(bySortOrder);
-    newArrivals = products.filter(p => homeFlag(p, 'home_new_arrival')).sort(bySortOrder);
-
-    // Helmet Collection: tick lagaya ho YA category Helmets ho.
-    // (Jo products sirf category se aate hain unhe bhi dikhna chahiye — warna
-    //  purane helmets gayab ho jayenge jinke paas naya flag nahi hai.)
-    helmets = products
-      .filter(p => homeFlag(p, 'home_helmet') || p.cat === "Helmets")
-      .sort(bySortOrder);
-
-    saleProducts = products.filter(p => p.sale);
-    categories = [...new Set(products.map(p => p.cat))];
-
-    // ---- Hero banner (auto-scroll carousel, up to 3 slides) ----
-    renderHeroCarousel();
-    document.getElementById('dealTag').textContent = site.deal.tag;
-    document.getElementById('dealTitle').textContent = site.deal.title;
-    document.getElementById('dealSub').textContent = site.deal.sub;
-    document.getElementById('dealBtn').textContent = site.deal.btn;
-
-    // ---- Categories & brands (photo carousel cards) ----
-    const chevronSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-    document.getElementById('categoryScroll').innerHTML = site.categories.map(c =>
-      `<a class="shop-card" href="#" onclick="showProducts('cat','${c.label.replace(/'/g,"\\'")}');return false;">
-        ${c.image_url ? `<img src="${c.image_url}" alt="${c.label}" loading="lazy">` : `<div class="shop-card-fallback">${c.label.slice(0,2)}</div>`}
-        <div class="shop-card-label"><span>${c.label}</span>${chevronSvg}</div>
-      </a>`
-    ).join('');
-    document.getElementById('brandScroll').innerHTML = site.brands.map(b =>
-      `<a class="shop-card" href="#" onclick="showBikeModels('${b.label.replace(/'/g,"\\'")}');return false;">
-        ${b.image_url ? `<img src="${b.image_url}" alt="${b.label}" loading="lazy">` : `<div class="shop-card-fallback">${b.code}</div>`}
-        <div class="shop-card-label"><span>${b.label}</span>${chevronSvg}</div>
-      </a>`
-    ).join('');
-
-    // ---- Authorised Brand Certificates: admin panel ke apne upload se ----
+  // ---- Certification: admin panel ke apne upload se ----
+  // (Top-level on purpose — the cards below call these via inline
+  // onclick="...", which only resolves against window/global functions.
+  // Nesting these inside renderStorefront() used to break every tap.)
   var CERT_PREVIEW_COUNT = 8;
 
   function certificatePhotos(){
@@ -2949,7 +2901,58 @@
     openLightbox(photos, i || 0);
   }
 
-  // ---- Certification ----
+  function renderStorefront(){
+    applyBranding();
+    products = site.products;
+    // Homepage sections ab admin panel ke "Show in Homepage Sections" ticks se
+    // bante hain — pehle ye position se the (pehle 5 / agle 5), isliye jo bhi
+    // product add hota tha woh apne aap Bestsellers/New Arrivals me chala jata tha.
+    function homeFlag(p, key){ return !!(p && p[key]); }
+    function bySortOrder(a, b){
+      const ao = a.sort_order != null ? Number(a.sort_order) : null;
+      const bo = b.sort_order != null ? Number(b.sort_order) : null;
+      if(ao != null && bo != null && ao !== bo) return ao - bo;
+      if(ao != null && bo == null) return -1;
+      if(ao == null && bo != null) return 1;
+      return 0;
+    }
+
+    bestsellers = products.filter(p => homeFlag(p, 'home_bestseller')).sort(bySortOrder);
+    newArrivals = products.filter(p => homeFlag(p, 'home_new_arrival')).sort(bySortOrder);
+
+    // Helmet Collection: tick lagaya ho YA category Helmets ho.
+    // (Jo products sirf category se aate hain unhe bhi dikhna chahiye — warna
+    //  purane helmets gayab ho jayenge jinke paas naya flag nahi hai.)
+    helmets = products
+      .filter(p => homeFlag(p, 'home_helmet') || p.cat === "Helmets")
+      .sort(bySortOrder);
+
+    saleProducts = products.filter(p => p.sale);
+    categories = [...new Set(products.map(p => p.cat))];
+
+    // ---- Hero banner (auto-scroll carousel, up to 3 slides) ----
+    renderHeroCarousel();
+    document.getElementById('dealTag').textContent = site.deal.tag;
+    document.getElementById('dealTitle').textContent = site.deal.title;
+    document.getElementById('dealSub').textContent = site.deal.sub;
+    document.getElementById('dealBtn').textContent = site.deal.btn;
+
+    // ---- Categories & brands (photo carousel cards) ----
+    const chevronSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+    document.getElementById('categoryScroll').innerHTML = site.categories.map(c =>
+      `<a class="shop-card" href="#" onclick="showProducts('cat','${c.label.replace(/'/g,"\\'")}');return false;">
+        ${c.image_url ? `<img src="${c.image_url}" alt="${c.label}" loading="lazy">` : `<div class="shop-card-fallback">${c.label.slice(0,2)}</div>`}
+        <div class="shop-card-label"><span>${c.label}</span>${chevronSvg}</div>
+      </a>`
+    ).join('');
+    document.getElementById('brandScroll').innerHTML = site.brands.map(b =>
+      `<a class="shop-card" href="#" onclick="showBikeModels('${b.label.replace(/'/g,"\\'")}');return false;">
+        ${b.image_url ? `<img src="${b.image_url}" alt="${b.label}" loading="lazy">` : `<div class="shop-card-fallback">${b.code}</div>`}
+        <div class="shop-card-label"><span>${b.label}</span>${chevronSvg}</div>
+      </a>`
+    ).join('');
+
+    // ---- Certification ----
     renderBrandCertificates();
 
   // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
