@@ -416,6 +416,24 @@
   }
   .rv-row-del svg{width:15px;height:15px;stroke:#dc2626;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
   .rv-row-del:hover{background:#fef2f2;}
+  /* ---------- Certification: upload zone + landscape card grid ---------- */
+  .cert-zone{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s ease;max-width:520px;}
+  .cert-zone:hover{border-color:var(--accent);}
+  .cert-zone svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:0 0 auto;}
+  .cert-zone-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .cert-zone-main strong{font-size:13px;}
+  .cert-zone-main span{font-size:11px;color:var(--muted);}
+  .cert-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;}
+  .gal-count{font-size:12px;color:var(--muted);}
+  .cert-hint{font-size:11.5px;color:var(--muted);}
+  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .cert-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+  .cert-card .cert-media{width:100%;aspect-ratio:4/3;background:var(--surface-2);overflow:hidden;display:block;cursor:zoom-in;}
+  .cert-card .cert-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cert-card .cert-foot{padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .gal-size{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);font-weight:600;}
+  .gal-del{border:1px solid #fca5a5;background:#fff;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:10.5px;font-weight:700;color:#dc2626;font-family:inherit;}
+  .gal-del:hover{background:#fef2f2;}
   .rv-today-link{font-size:11px;font-weight:700;background:none;border:none;cursor:pointer;color:var(--text);text-decoration:underline;padding:0;font-family:inherit;}
   .ticket-filter-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;}
   .ticket-filter-row::-webkit-scrollbar{display:none;}
@@ -608,8 +626,8 @@
         <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 12a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 12"/><circle cx="8.5" cy="9" r="0.9"/><circle cx="15.5" cy="9" r="0.9"/></svg>Appearance</span>
       </button>
 
-      <button class="side-item" data-view="gallery" onclick="goView('gallery')">
-        <span class="side-item-inner"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><polyline points="21 15 16 10 5 21"/></svg>Gallery</span>
+      <button class="side-item" data-view="certification" onclick="goView('certification')">
+        <span class="side-item-inner"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.5 13.5 7 22l5-2.5L17 22l-1.5-8.5"/></svg>Certification</span>
       </button>
 
       <button class="side-item" data-view="settings" onclick="goView('settings')">
@@ -861,38 +879,26 @@
     </div>
 
 
-    <!-- Gallery -->
-    <div class="view" id="view-gallery">
-      <p class="view-title">Brand Certificates</p>
+    <!-- Certification -->
+    <div class="view" id="view-certification">
+      <p class="view-title">Certification</p>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+        Yahan apne brand/authorisation certificates upload karein. Ye storefront par ek scrollable card strip me dikhte hain — card par tap karte hi certificate fullscreen open hota hai.
+      </p>
       <div class="cert-zone" onclick="document.getElementById('certFileInput').click()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <div class="cert-zone-main">
           <strong>Upload certificate</strong>
-          <span>JPG / PNG / WebP · auto-compress 100KB se kam · square (1:1) best</span>
+          <span>JPG / PNG · auto-compress 100KB se kam · landscape (jaise 4:3 ya 3:2) best</span>
         </div>
       </div>
       <input id="certFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onCertFilesPicked(this)">
       <div id="certUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
       <div class="cert-bar">
         <p class="gal-count" id="certCount" style="margin:0;"></p>
-        <span class="cert-hint">Storefront par "Authorised Brand Certificates" section me dikhte hain.</span>
+        <span class="cert-hint">Storefront par "Certification" section me dikhte hain.</span>
       </div>
       <div id="certList"></div>
-
-      <p class="view-title" style="margin-top:38px;">Gallery</p>
-      <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-        Ye photos storefront par "Trusted Brands We Deal In" section me photo-only cards ki tarah dikhte hain — certificates se alag.
-      </p>
-
-      <div class="gal-drop" onclick="document.getElementById('galFileInput').click()">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p><strong>Tap to upload photos</strong></p>
-        <span>JPG, PNG, WebP — auto-compress 50KB se kam · square (1:1) best · ek saath multiple select kar sakte hain</span>
-      </div>
-      <input id="galFileInput" type="file" accept="image/*" multiple style="display:none;" onchange="onGalleryFilesPicked(this)">
-      <div id="galUploadStatus" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;display:none;"></div>
-      <p class="gal-count" id="galCount" style="margin:18px 0 10px;"></p>
-      <div id="galList"></div>
     </div>
 
     <!-- Product Reviews -->
@@ -1695,7 +1701,7 @@
       certificates: certRows
     };
   }
-  let site = { gallery: [], certificates: [], products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
+  let site = { certificates: [], products: [], categories: [], brands: [], productBrands: [], bikeModels: [], hero: defaultHero, heroAd: defaultHeroAd, deal: defaultDeal, store: defaultStore, logoUrl: null, faviconUrl: null };
 
   if(!Array.isArray(site.certificates)) site.certificates = [];
 
@@ -1846,7 +1852,7 @@
   // ---- Nav ----
   function goView(name){
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    if(name === 'gallery'){ try{ renderCertificates(); }catch(e){} try{ renderGallery(); }catch(e){} }
+    if(name === 'certification'){ try{ renderCertificates(); }catch(e){} }
     const target = document.getElementById('view-' + name);
     if(target) target.classList.add('active');
 
@@ -4216,40 +4222,6 @@
   .print-bar{ text-align:center; margin:16px 0; }
   .print-bar button{ font-family:inherit; font-size:14px; font-weight:700; padding:10px 22px; border-radius:8px; border:none; background:#B8291A; color:#fff; cursor:pointer; margin:0 6px; }
   @media print{ .print-bar{ display:none; } body{ margin:0; } }
-
-  /* ===================== REVIEW ROW DELETE ===================== */
-  .rv-row-del{flex:0 0 auto;width:32px;height:32px;margin-left:10px;display:flex;align-items:center;justify-content:center;border:1px solid #fca5a5;border-radius:9px;background:#fff;cursor:pointer;padding:0;}
-  .rv-row-del svg{width:15px;height:15px;stroke:#dc2626;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
-  .rv-row-del:hover{background:#fef2f2;}
-
-  /* ===================== GALLERY ===================== */
-  .gal-drop{border:2px dashed var(--line);border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;background:var(--surface);transition:border-color .15s ease;}
-  .gal-drop:hover{border-color:var(--accent);}
-  .gal-drop svg{width:30px;height:30px;stroke:var(--muted);fill:none;stroke-width:1.7;margin-bottom:8px;}
-  .gal-drop p{margin:0 0 4px;font-size:13.5px;}
-  .gal-drop span{font-size:11.5px;color:var(--muted);}
-  .gal-count{font-size:12px;color:var(--muted);}
-  .gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-  .gal-item{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);}
-  .gal-item img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;}
-  .gal-item-meta{padding:8px 9px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
-  .gal-size{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);font-weight:600;}
-  .gal-del{border:1px solid #fca5a5;background:#fff;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:10.5px;font-weight:700;color:#dc2626;font-family:inherit;}
-  .gal-del:hover{background:#fef2f2;}
-  /* ---------- Brand Certificates: compact strip + grid ---------- */
-  .cert-zone{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s ease;max-width:520px;}
-  .cert-zone:hover{border-color:var(--accent);}
-  .cert-zone svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:0 0 auto;}
-  .cert-zone-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .cert-zone-main strong{font-size:13px;}
-  .cert-zone-main span{font-size:11px;color:var(--muted);}
-  .cert-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;}
-  .cert-hint{font-size:11.5px;color:var(--muted);}
-  .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;}
-  .cert-card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden;display:flex;flex-direction:column;}
-  .cert-card .cert-media{width:100%;aspect-ratio:1/1;background:var(--surface-2);overflow:hidden;display:block;cursor:zoom-in;}
-  .cert-card .cert-media img{width:100%;height:100%;object-fit:cover;display:block;}
-  .cert-card .cert-foot{padding:7px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
 </style></head>
 <body>
   <div class="print-bar">
@@ -5649,10 +5621,6 @@
     if(it && it.url) window.open(it.url, '_blank');
   }
 
-  /* ===================== GALLERY ===================== */
-  var GALLERY_MAX_BYTES = 50 * 1024;
-  function galleryItems(){ var g = (site && site.gallery) ? site.gallery : []; return Array.isArray(g) ? g : []; }
-
   function compressToUnder(file, maxBytes){
     return new Promise(function(resolve){
       var reader = new FileReader();
@@ -5695,51 +5663,6 @@
     });
   }
 
-  async function onGalleryFilesPicked(input){
-    var files = Array.prototype.slice.call(input.files || []);
-    if(!files.length) return;
-    var status = document.getElementById('galUploadStatus');
-    var items = galleryItems().slice();
-    if(status) status.style.display = 'block';
-    for(var i = 0; i < files.length; i++){
-      if(status) status.textContent = 'Uploading ' + (i+1) + ' / ' + files.length + '…';
-      var blob = await compressToUnder(files[i], GALLERY_MAX_BYTES);
-      if(!blob){ showToast('Could not read ' + files[i].name); continue; }
-      var path = 'gal-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.jpg';
-      var up = await sb.storage.from('gallery-images').upload(path, blob, { contentType:'image/jpeg' });
-      if(up.error){
-        if(status) status.style.display = 'none';
-        showToast('Upload fail: ' + up.error.message + ' — Supabase me "gallery-images" bucket banayein (public).');
-        input.value = '';
-        return;
-      }
-      items.push({ url: sb.storage.from('gallery-images').getPublicUrl(path).data.publicUrl, size: blob.size, name: files[i].name });
-      await sb.from('site_content').update({ gallery: items }).eq('id', 1);
-      site.gallery = items;
-      renderGallery();
-    }
-    if(status) status.style.display = 'none';
-    input.value = '';
-    showToast(files.length + ' photo upload ho gayi');
-  }
-
-  async function deleteGalleryPhoto(idx){
-    var items = galleryItems();
-    var item = items[idx];
-    if(!item) return;
-    if(!confirm('Ye photo delete karni hai?')) return;
-    try{
-      var seg = String(item.url).split('/gallery-images/')[1];
-      if(seg) await sb.storage.from('gallery-images').remove([decodeURIComponent(seg.split('?')[0])]);
-    }catch(e){}
-    items = items.filter(function(_, i){ return i !== idx; });
-    var res = await sb.from('site_content').update({ gallery: items }).eq('id', 1);
-    if(res.error){ showToast(res.error.message); return; }
-    site.gallery = items;
-    renderGallery();
-    showToast('Photo deleted');
-  }
-
   function gallerySizeLabel(bytes){
     var n = Number(bytes) || 0;
     if(!n) return '—';
@@ -5749,28 +5672,6 @@
   }
   function galEsc(s){
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-  function renderGallery(){
-    var wrap = document.getElementById('galList');
-    if(!wrap) return;
-    var items = galleryItems();
-    var cnt = document.getElementById('galCount');
-    if(cnt){
-      var total = items.reduce(function(s, it){ return s + (Number(it.size) || 0); }, 0);
-      cnt.textContent = items.length
-        ? items.length + ' photo' + (items.length === 1 ? '' : 's') + ' · total ' + gallerySizeLabel(total)
-        : 'Abhi koi photo upload nahi ki.';
-    }
-    if(!items.length){ wrap.innerHTML = ''; return; }
-    wrap.innerHTML = '<div class="gal-grid">' + items.map(function(it, i){
-      return '<div class="gal-item">' +
-        '<img src="' + galEsc(it.url) + '" loading="lazy">' +
-        '<div class="gal-item-meta">' +
-          '<span class="gal-size">' + gallerySizeLabel(it.size) + '</span>' +
-          '<button class="gal-del" onclick="deleteGalleryPhoto(' + i + ')">Delete</button>' +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
   }
 </script>
 <div class="sheet-overlay" id="reviewSheetOverlay">
