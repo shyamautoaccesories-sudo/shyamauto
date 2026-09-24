@@ -744,6 +744,28 @@
   }
   .cert-empty{font-size:12px;color:var(--muted);}
 
+  /* ---------- Trusted Brands We Deal In (admin "Gallery" upload → storefront, photo-only cards) ---------- */
+  .trusted-brands{padding:26px 16px 8px;}
+  .tbrand-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+  .tbrand-scroll::-webkit-scrollbar{display:none;}
+  .tbrand-item{
+    flex:0 0 auto;width:120px;aspect-ratio:1/1;scroll-snap-align:start;
+    border-radius:16px;overflow:hidden;cursor:zoom-in;position:relative;display:block;
+    background:linear-gradient(180deg, #F0EDE3, #E7E2D3);
+    box-shadow:0 1px 2px rgba(23,20,10,0.04), 0 10px 24px -12px rgba(23,20,10,0.22), 0 2px 8px rgba(23,20,10,0.06);
+    transition:transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .tbrand-item:active{transform:translateY(1px) scale(0.98);}
+  .tbrand-item img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .tbrand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;}
+  .tbrand-grid .tbrand-item{width:100%;}
+  @media (min-width:860px){
+    .trusted-brands{padding-left:40px;padding-right:40px;max-width:1200px;margin:0 auto;}
+    .tbrand-scroll{flex-wrap:wrap;overflow-x:visible;}
+    .tbrand-item{width:150px;border-radius:18px;}
+    .tbrand-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;}
+  }
+
   /* ---------- Testimonials (Google-review style) ---------- */
   .testi-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
   .testi-scroll::-webkit-scrollbar{display:none;}
@@ -1716,6 +1738,15 @@
 <section class="brands">
   <div class="section-head"><h3>Genuine brands we stock</h3></div>
   <div class="gearbrand-scroll" id="gearBrandScroll"></div>
+</section>
+
+<!-- Trusted Brands We Deal In -->
+<section class="trusted-brands" id="trustedBrandsSection" style="display:none;">
+  <div class="section-head cert-head">
+    <h3>Trusted Brands We Deal In</h3>
+    <button class="cert-viewall" id="trustedBrandsViewAllBtn" onclick="openTrustedBrandsAll()" style="display:none;">View all</button>
+  </div>
+  <div class="tbrand-scroll" id="trustedBrandsScroll"></div>
 </section>
 
 <!-- Authorised Brand Certificates -->
@@ -2806,11 +2837,16 @@
       heroAd: Object.assign({}, defaultHeroAd, siteRow.hero_ad),
       deal: Object.assign({}, defaultDeal, siteRow.deal),
       logoUrl: siteRow.logo_url || null,
-      faviconUrl: siteRow.favicon_url || null
+      faviconUrl: siteRow.favicon_url || null,
+      // Admin → "Gallery" section has its own separate upload area from
+      // "Brand Certificates"; each feeds a different storefront section,
+      // so both need mapping here or they silently stay empty.
+      certificates: Array.isArray(siteRow.home_certificates) ? siteRow.home_certificates : [],
+      gallery: Array.isArray(siteRow.gallery) ? siteRow.gallery : []
     };
   }
 
-  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], gallery: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
+  let site = { products: [], categories: defaultCategories, brands: defaultBrands, productBrands: defaultProductBrands, bikeModels: [], gallery: [], certificates: [], hero: defaultHero, heroBanners: [], heroImageUrl: null, heroImageMobileUrl: null, heroAd: defaultHeroAd, deal: defaultDeal };
   let products = [];
   let bestsellers = [], newArrivals = [], helmets = [], saleProducts = [];
   let categories = [];
@@ -2890,7 +2926,7 @@
   var CERT_PREVIEW_COUNT = 8;
 
   function certificatePhotos(){
-    var g = (site && site.gallery) ? site.gallery : [];
+    var g = (site && site.certificates) ? site.certificates : [];
     if(!Array.isArray(g)) return [];
     return g.map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
   }
@@ -2955,8 +2991,79 @@
     openLightbox(photos, i || 0);
   }
 
+  // ---- Trusted Brands We Deal In: admin panel ke "Gallery" upload se ----
+  // (Gallery is a separate upload area from Brand Certificates — see admin.)
+  var TBRAND_PREVIEW_COUNT = 10;
+
+  function trustedBrandPhotos(){
+    var g = (site && site.gallery) ? site.gallery : [];
+    if(!Array.isArray(g)) return [];
+    return g.map(function(x){ return typeof x === 'string' ? x : (x && x.url); }).filter(Boolean);
+  }
+
+  function renderTrustedBrands(){
+    var wrap = document.getElementById('trustedBrandsScroll');
+    var section = document.getElementById('trustedBrandsSection');
+    if(!wrap || !section) return;
+
+    var photos = trustedBrandPhotos();
+    if(!photos.length){
+      // Koi photo upload nahi hui — section dikhane ka matlab nahi
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+
+    var btn = document.getElementById('trustedBrandsViewAllBtn');
+    if(btn) btn.style.display = photos.length > TBRAND_PREVIEW_COUNT ? 'block' : 'none';
+
+    // Strip par sirf pehli 10 — baaki "View all" me
+    wrap.className = 'tbrand-scroll';
+    wrap.innerHTML = photos.slice(0, TBRAND_PREVIEW_COUNT).map(function(url, i){
+      return '<div class="tbrand-item" onclick="zoomTrustedBrandPhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+      '</div>';
+    }).join('');
+  }
+
+  // View all → saari photos grid me, product grid jaisa
+  function openTrustedBrandsAll(){
+    var photos = trustedBrandPhotos();
+    if(!photos.length) return;
+    var wrap = document.getElementById('trustedBrandsScroll');
+    if(!wrap) return;
+
+    // Agar pehle se grid khula hai to wapas strip par le aao
+    if(wrap.className === 'tbrand-grid'){
+      renderTrustedBrands();
+      var b0 = document.getElementById('trustedBrandsViewAllBtn');
+      if(b0) b0.textContent = 'View all';
+      return;
+    }
+
+    wrap.className = 'tbrand-grid';
+    wrap.innerHTML = photos.map(function(url, i){
+      return '<div class="tbrand-item" onclick="zoomTrustedBrandPhoto(' + i + ')">' +
+        '<img src="' + url + '" alt="Trusted brand" loading="lazy">' +
+      '</div>';
+    }).join('');
+
+    var b = document.getElementById('trustedBrandsViewAllBtn');
+    if(b) b.textContent = 'Show less';
+  }
+
+  // Photo par click → wahi lightbox zoom
+  function zoomTrustedBrandPhoto(i){
+    var photos = trustedBrandPhotos();
+    if(!photos.length) return;
+    openLightbox(photos, i || 0);
+  }
+
   // ---- Authorised Brand Certificates ----
     renderBrandCertificates();
+
+  // ---- Trusted Brands We Deal In ----
+    renderTrustedBrands();
 
   // ---- Genuine brands we stock (gear/accessory brands → filters products) ----
     document.getElementById('gearBrandScroll').innerHTML = site.productBrands.length
