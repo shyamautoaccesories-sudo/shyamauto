@@ -2291,8 +2291,8 @@
         <span id="pdpStockNoteText"></span>
       </div>
       <div class="pdp-notify-panel" id="pdpNotifyPanel">
-        <p class="pdp-notify-title"><strong id="pdpNotifySize">This size</strong> abhi stock mein nahi hai.</p>
-        <p class="pdp-notify-sub">Notify kar do — stock aate hi hum aapko message karenge.</p>
+        <p class="pdp-notify-title"><strong id="pdpNotifySize">This size</strong> is out of stock right now.</p>
+        <p class="pdp-notify-sub">Tap notify and we will message you the moment it is back.</p>
         <button type="button" class="pdp-notify-btn" id="pdpNotifyBtn" onclick="requestStockNotify()">
           <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
           <span>Notify me</span>
@@ -4960,7 +4960,7 @@
 
     if(!v) return;
     if(!currentUser){
-      showToast('Notify ke liye login karo');
+      showToast('Log in to get notified');
       if(typeof openAuth === 'function') openAuth();
       return;
     }
@@ -4968,7 +4968,7 @@
     if(btn){
       btn.disabled = true;
       var lbl = btn.querySelector('span');
-      if(lbl) lbl.textContent = 'Bhej rahe hain\u2026';
+      if(lbl) lbl.textContent = 'Sending\u2026';
     }
 
     var userRes = await sb.auth.getUser();
@@ -5009,10 +5009,10 @@
       if(lbl3) lbl3.textContent = 'Notify set';
     }
     if(done){
-      done.textContent = 'Done — ' + v.name + ' stock mein aate hi aapko batayenge. Request #' + res.data.id;
+      done.textContent = 'Done — we will let you know as soon as ' + v.name + ' is back in stock. Request #' + res.data.id;
       done.classList.add('show');
     }
-    showToast('Notify request bhej di gayi');
+    showToast('Notify request sent');
   }
 
   function renderPdpMedia(){
