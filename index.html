@@ -1252,7 +1252,10 @@
   }
   .pdp-variant-chip.active{border-color:var(--yellow);background:rgba(184,41,26,0.08);color:var(--yellow-deep);}
   .pdp-variant-chip.out-of-stock{opacity:0.55;text-decoration:line-through;text-decoration-thickness:1.5px;cursor:pointer;}
-  .pdp-variant-chip.out-of-stock.oos-open{border-color:var(--yellow);background:rgba(184,41,26,0.06);opacity:1;}
+  /* Out of stock size bhi select ho sakti hai — us par chord/underline nahi, aur
+     active hone par selected look ke saath kata hua text bana rehta hai. */
+  .pdp-variant-chip.out-of-stock.active,
+  .pdp-variant-chip.out-of-stock.oos-open{border-color:var(--yellow);background:rgba(184,41,26,0.08);opacity:1;}
   .pdp-notify-panel{display:none;margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,#fafafa);}
   .pdp-notify-panel.show{display:block;}
   .pdp-notify-title{font-size:13px;color:var(--text);margin-bottom:2px;}
@@ -1262,6 +1265,9 @@
   .pdp-notify-btn[disabled]{opacity:.6;cursor:default;}
   .pdp-notify-done{display:none;font-size:12px;color:#1E9E5C;margin-top:9px;line-height:1.5;}
   .pdp-notify-done.show{display:block;}
+  /* Add to Cart jab out of stock size select ho */
+  .pdp-add-btn.oos{background:var(--muted);color:#fff;}
+  .pdp-add-btn.oos:disabled{opacity:1;cursor:default;}
   .card-plate-note{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;}
   .cart-row-variant{font-size:11px;color:var(--muted);margin-top:1px;}
   .pdp-desc{margin-top:16px;}
@@ -4803,22 +4809,23 @@
   function selectPdpVariant(i){
     const pSel = findProduct(pdpCurrentId);
     const vSel = (pSel && Array.isArray(pSel.variants)) ? pSel.variants[i] : null;
-    const isOutOfStock = vSel && vSel.stock != null && vSel.stock <= 0;
+    const isOutOfStock = !!(vSel && vSel.stock != null && vSel.stock <= 0);
 
-    // Out of stock option par select nahi hota — uski jagah notify panel khulta hai.
-    if(isOutOfStock){
-      pdpNotifyIndex = i;
-      document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => el.classList.toggle('oos-open', idx === i));
-      renderPdpNotifyPanel(pSel, vSel);
-      return;
-    }
-
+    // Har chip click par wahi size select hoti hai — in stock ho ya out of stock.
+    // Out of stock par sirf itna farq hai: niche notify panel khulta hai aur
+    // Add to Cart khud "Out of Stock" ho jaata hai (updatePdpPlate dekhta hai).
     pdpSelectedVariantIndex = i;
-    document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach(el => el.classList.remove('oos-open'));
-    closePdpNotifyPanel();
-    // variant badla to uski apni stock limit dikhani hai
+    pdpNotifyIndex = isOutOfStock ? i : null;
+
+    document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+      el.classList.toggle('oos-open', isOutOfStock && idx === i);
+    });
+
+    if(isOutOfStock) renderPdpNotifyPanel(pSel, vSel);
+    else closePdpNotifyPanel();
+
     if(pSel) renderPdpStockNote(pSel, vSel);
-    document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => el.classList.toggle('active', idx === i));
     updatePdpPlate();
   }
 
@@ -4832,10 +4839,13 @@
     document.getElementById('pdpPlate').innerHTML =
       `<span class="price">₹${price.toLocaleString('en-IN')}</span>${showMrp ? `<span class="mrp">₹${mrp.toLocaleString('en-IN')}</span><span class="off">${Math.round((mrp - price) / mrp * 100)}% OFF</span>` : ''}`;
     const addBtn = document.getElementById('pdpAddBtn');
-    const variantOutOfStock = v && v.stock != null && v.stock <= 0;
+    const variantOutOfStock = !!(v && v.stock != null && v.stock <= 0);
     const outOfStock = isProductOutOfStock(p) || variantOutOfStock;
+    // Selected size out of stock ho to butn khud bata deta hai — customer ko
+    // tap karke toast ka intezaar nahi karna padta.
     addBtn.disabled = !!outOfStock;
     addBtn.textContent = outOfStock ? 'Out of Stock' : 'Add to Cart';
+    addBtn.classList.toggle('oos', !!outOfStock);
     renderPdpStockNote(p, v);
   }
 
@@ -4864,13 +4874,24 @@
       text.innerHTML = html;
     };
 
+    var hide = function(){
+      note.className = "pdp-stock-note";
+      text.innerHTML = "";
+    };
+
+    // Jab notify panel khula ho (out of stock size) to ye note chhupa rehta hai —
+    // panel ke saath dohra message dikhane ki zaroorat nahi.
+    var panelOpen = pdpNotifyIndex != null;
+
     // 1) this exact product (or variant) is out of stock
     if(isProductOutOfStock(p)){
+      if(panelOpen){ hide(); return; }
       set("low", "<strong>Out of stock.</strong> Ye product abhi available nahi hai — jab stock wapas aayega tab order kar payenge.");
       return;
     }
     var available = pdpAvailableStock(p, v);
     if(available != null && available <= 0){
+      if(panelOpen){ hide(); return; }
       set("low", "<strong>Out of stock.</strong> " + (v ? "Ye option" : "Ye product") + " abhi available nahi hai.");
       return;
     }
@@ -4894,10 +4915,7 @@
 
     // Stock theek hai (ya track hi nahi hota) — note chhupa do.
     // Limit tabhi dikhegi jab customer available se zyada add karne ki koshish kare.
-    note.className = "pdp-stock-note";
-    text.innerHTML = "";
-    note.className = "pdp-stock-note";
-    text.innerHTML = "";
+    hide();
   }
 
   /* ---------------------------------------------------------------------
@@ -5719,6 +5737,7 @@
     const p = findProduct(pdpCurrentId);
     if(!p) return;
     const v = (pdpSelectedVariantIndex != null && Array.isArray(p.variants)) ? p.variants[pdpSelectedVariantIndex] : null;
+    if(v && v.stock != null && v.stock <= 0) return; // out of stock size par qty ka koi matlab nahi
     const maxQty = v ? (v.stock != null ? v.stock : Infinity) : (p.stock != null ? p.stock : Infinity);
     const newQty = pdpQty + delta;
     if(delta > 0 && newQty > maxQty){
