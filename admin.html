@@ -444,6 +444,14 @@
   .ticket-status-badge.in-progress{background:rgba(214,137,16,0.14);color:#b0700f;}
   .ticket-status-badge.closed{background:rgba(30,158,92,0.12);color:var(--green);}
   .ticket-type-badge{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;}
+  .ticket-type-badge.stock-req{color:var(--accent);}
+  .row-card.stock-req{border-left:3px solid var(--accent);}
+  .stock-req-box{margin-top:10px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(232,67,43,0.05);}
+  .stock-req-head{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .stock-req-rows{display:flex;flex-direction:column;gap:5px;}
+  .stock-req-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;}
+  .stock-req-row span:first-child{color:var(--muted);flex:0 0 auto;}
+  .stock-req-row span:last-child{font-family:var(--font-mono);color:var(--text);text-align:right;word-break:break-word;}
   .ticket-thread-messages{display:flex;flex-direction:column;gap:10px;margin:10px 0;max-height:280px;overflow-y:auto;}
   .ticket-bubble{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.5;}
   .ticket-bubble.from-customer{align-self:flex-start;background:var(--surface-2);color:var(--text);border-radius:14px 14px 14px 4px;}
@@ -4653,6 +4661,53 @@
     return 'open';
   }
 
+  /* ---------------------------------------------------------------------
+     STOCK REQUEST — storefront ke "Notify me" se aane wale tickets.
+     Inhe yahan product + size ke saath readable form mein dikhaya jaata hai,
+     taaki admin ko raw message padh kar decode na karna pade.
+     --------------------------------------------------------------------- */
+  function isStockRequest(t){
+    return !!t && String(t.issue_type || '').trim().toLowerCase() === 'stock request';
+  }
+
+  // "Stock request" message se ek field nikalo: "Product: XYZ" -> "XYZ"
+  function stockReqField(t, label){
+    var msgs = (t && Array.isArray(t.messages)) ? t.messages : [];
+    var text = '';
+    for(var i = 0; i < msgs.length; i++){
+      if(msgs[i] && typeof msgs[i].text === 'string'){ text = msgs[i].text; break; }
+    }
+    var m = text.match(new RegExp('^' + label + '\\s*:\\s*(.+)$', 'm'));
+    return m ? m[1].trim() : '';
+  }
+
+  function stockRequestSummary(t){
+    var product = stockReqField(t, 'Product');
+    var size = stockReqField(t, 'Size / option');
+    if(!product && !size) return 'Stock request';
+    return 'Stock request — ' + (product || 'Unknown product') + (size ? ' · Size ' + size : '');
+  }
+
+  function stockRequestDetailHtml(t){
+    var product = stockReqField(t, 'Product');
+    var size = stockReqField(t, 'Size / option');
+    var pid = stockReqField(t, 'Product ID');
+    var vid = stockReqField(t, 'Variant ID');
+    var esc = function(s){ return String(s).replace(/</g, '&lt;'); };
+    var rows = [
+      ['Product', product || '—'],
+      ['Size / option', size || '—'],
+      ['Product ID', pid || '—']
+    ];
+    if(vid) rows.push(['Variant ID', vid]);
+    return '<p class="stock-req-head">Customer ne is size ke liye notify request bheji hai</p>' +
+      '<div class="stock-req-rows">' +
+      rows.map(function(r){
+        return '<div class="stock-req-row"><span>' + r[0] + '</span><span>' + esc(r[1]) + '</span></div>';
+      }).join('') +
+      '</div>';
+  }
+
   function filterTickets(status){
     ticketFilter = status;
     document.querySelectorAll('#ticketFilterRow .ticket-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.status === status));
@@ -5219,12 +5274,16 @@
     wrap.innerHTML = list.map(t => {
       const msgs = Array.isArray(t.messages) ? t.messages : [];
       const last = msgs.length ? msgs[msgs.length - 1].text : '';
+      const isStockReq = isStockRequest(t);
+      // Stock request ki pehli line summary ban jaati hai — list mein turant
+      // dikh jaata hai kaunsa product aur kaunsi size maangi gayi hai.
+      const sub = isStockReq ? stockRequestSummary(t) : last;
       return `
-        <div class="row-card" style="cursor:pointer;align-items:flex-start;" onclick="openTicketSheet('${t.id}')">
-          <div class="row-media" style="font-size:8.5px;">${t.id}</div>
+        <div class="row-card${isStockReq ? ' stock-req' : ''}" style="cursor:pointer;align-items:flex-start;" onclick="openTicketSheet('${t.id}')">
+          <div class="row-media" style="font-size:8.5px;">${isStockReq ? '\u{1F514}' : t.id}</div>
           <div class="row-info">
-            <div class="title">${t.customer_name} <span class="ticket-type-badge">· ${t.issue_type}</span></div>
-            <div class="sub" style="font-family:var(--font-body);">${last.replace(/</g,'&lt;')}</div>
+            <div class="title">${t.customer_name} <span class="ticket-type-badge${isStockReq ? ' stock-req' : ''}">· ${t.issue_type}</span></div>
+            <div class="sub" style="font-family:var(--font-body);">${sub.replace(/</g,'&lt;')}</div>
           </div>
           <span class="ticket-status-badge ${ticketStatusClass(t.status)}">${t.status}</span>
         </div>
@@ -5242,6 +5301,7 @@
       <p style="font-size:13px;font-weight:700;">${t.customer_name}</p>
       <p style="font-size:12px;color:var(--muted);margin-top:2px;">${t.customer_contact}</p>
       <p style="font-size:12px;color:var(--muted);margin-top:6px;"><strong style="color:var(--text);">${t.issue_type}</strong>${t.order_ref ? ' · ' + t.order_ref : ''}</p>
+      ${isStockRequest(t) ? '<div class="stock-req-box">' + stockRequestDetailHtml(t) + '</div>' : ''}
     `;
     document.getElementById('ticketStatusSelect').value = t.status;
     renderTicketThread(t);
