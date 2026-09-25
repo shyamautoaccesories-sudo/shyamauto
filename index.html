@@ -1251,7 +1251,17 @@
     font-size:12.5px;font-weight:600;color:var(--text);
   }
   .pdp-variant-chip.active{border-color:var(--yellow);background:rgba(184,41,26,0.08);color:var(--yellow-deep);}
-  .pdp-variant-chip.out-of-stock{opacity:0.45;text-decoration:line-through;}
+  .pdp-variant-chip.out-of-stock{opacity:0.55;text-decoration:line-through;text-decoration-thickness:1.5px;cursor:pointer;}
+  .pdp-variant-chip.out-of-stock.oos-open{border-color:var(--yellow);background:rgba(184,41,26,0.06);opacity:1;}
+  .pdp-notify-panel{display:none;margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,#fafafa);}
+  .pdp-notify-panel.show{display:block;}
+  .pdp-notify-title{font-size:13px;color:var(--text);margin-bottom:2px;}
+  .pdp-notify-sub{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+  .pdp-notify-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border:1.5px solid var(--yellow);border-radius:10px;background:transparent;color:var(--yellow-deep);font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer;}
+  .pdp-notify-btn svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+  .pdp-notify-btn[disabled]{opacity:.6;cursor:default;}
+  .pdp-notify-done{display:none;font-size:12px;color:#1E9E5C;margin-top:9px;line-height:1.5;}
+  .pdp-notify-done.show{display:block;}
   .card-plate-note{font-size:10.5px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;}
   .cart-row-variant{font-size:11px;color:var(--muted);margin-top:1px;}
   .pdp-desc{margin-top:16px;}
@@ -2273,6 +2283,15 @@
       <div class="pdp-stock-note" id="pdpStockNote">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/></svg>
         <span id="pdpStockNoteText"></span>
+      </div>
+      <div class="pdp-notify-panel" id="pdpNotifyPanel">
+        <p class="pdp-notify-title"><strong id="pdpNotifySize">This size</strong> abhi stock mein nahi hai.</p>
+        <p class="pdp-notify-sub">Notify kar do — stock aate hi hum aapko message karenge.</p>
+        <button type="button" class="pdp-notify-btn" id="pdpNotifyBtn" onclick="requestStockNotify()">
+          <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span>Notify me</span>
+        </button>
+        <p class="pdp-notify-done" id="pdpNotifyDone"></p>
       </div>
       <div class="pdp-variants" id="pdpVariantsBlock" style="display:none;">
         <h4>Select Option</h4>
@@ -4738,6 +4757,7 @@
     pdpQty = 1;
     pdpImages = Array.isArray(p.images) ? p.images : [];
     pdpActiveImgIdx = 0;
+    closePdpNotifyPanel();
     document.getElementById('pdpQty').textContent = pdpQty;
     renderPdpMedia();
     renderPdpThumbs();
@@ -4770,21 +4790,34 @@
     // Default to the first in-stock variant (or the first one if all are out of stock).
     const firstInStock = p.variants.findIndex(v => v.stock == null || v.stock > 0);
     pdpSelectedVariantIndex = firstInStock !== -1 ? firstInStock : 0;
+    closePdpNotifyPanel();
     chips.innerHTML = p.variants.map((v, i) => {
       const outOfStock = v.stock != null && v.stock <= 0;
-      return `<button type="button" class="pdp-variant-chip ${i === pdpSelectedVariantIndex ? 'active' : ''} ${outOfStock ? 'out-of-stock' : ''}" onclick="selectPdpVariant(${i})">${v.name}${outOfStock ? ' (Out of stock)' : ''}</button>`;
+      // Chip par sirf size ka naam — "(Out of stock)" likha nahi jaata.
+      // Kata hua text + halka rang khud bata deta hai ki option available nahi hai.
+      return `<button type="button" class="pdp-variant-chip${i === pdpSelectedVariantIndex ? ' active' : ''}${outOfStock ? ' out-of-stock' : ''}" onclick="selectPdpVariant(${i})"${outOfStock ? ' aria-label="' + v.name + ' — out of stock, notify me"' : ''}>${v.name}</button>`;
     }).join('');
     updatePdpPlate();
   }
 
   function selectPdpVariant(i){
-    pdpSelectedVariantIndex = i;
-    // variant badla to uski apni stock limit dikhani hai
     const pSel = findProduct(pdpCurrentId);
-    if(pSel){
-      const vSel = (i != null && Array.isArray(pSel.variants)) ? pSel.variants[i] : null;
-      renderPdpStockNote(pSel, vSel);
+    const vSel = (pSel && Array.isArray(pSel.variants)) ? pSel.variants[i] : null;
+    const isOutOfStock = vSel && vSel.stock != null && vSel.stock <= 0;
+
+    // Out of stock option par select nahi hota — uski jagah notify panel khulta hai.
+    if(isOutOfStock){
+      pdpNotifyIndex = i;
+      document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => el.classList.toggle('oos-open', idx === i));
+      renderPdpNotifyPanel(pSel, vSel);
+      return;
     }
+
+    pdpSelectedVariantIndex = i;
+    document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach(el => el.classList.remove('oos-open'));
+    closePdpNotifyPanel();
+    // variant badla to uski apni stock limit dikhani hai
+    if(pSel) renderPdpStockNote(pSel, vSel);
     document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => el.classList.toggle('active', idx === i));
     updatePdpPlate();
   }
@@ -4865,6 +4898,103 @@
     text.innerHTML = "";
     note.className = "pdp-stock-note";
     text.innerHTML = "";
+  }
+
+  /* ---------------------------------------------------------------------
+     STOCK REQUEST — out of stock size par "Notify me".
+     Product view ke andar hi ek support ticket ban jaata hai
+     (issue_type: 'Stock Request'), jisme product, size aur customer ka
+     detail hota hai — admin panel ke Support section mein wahi ticket
+     dikhega, alag channel banane ki zaroorat nahi.
+     --------------------------------------------------------------------- */
+  var pdpNotifyIndex = null;
+
+  function renderPdpNotifyPanel(p, v){
+    var panel = document.getElementById('pdpNotifyPanel');
+    if(!panel || !p) return;
+    var sizeEl = document.getElementById('pdpNotifySize');
+    var btn = document.getElementById('pdpNotifyBtn');
+    var done = document.getElementById('pdpNotifyDone');
+    if(sizeEl) sizeEl.textContent = v ? v.name : 'This size';
+    if(done){ done.classList.remove('show'); done.textContent = ''; }
+    if(btn){
+      btn.disabled = false;
+      var lbl = btn.querySelector('span');
+      if(lbl) lbl.textContent = 'Notify me';
+    }
+    panel.classList.add('show');
+  }
+
+  function closePdpNotifyPanel(){
+    var panel = document.getElementById('pdpNotifyPanel');
+    if(panel) panel.classList.remove('show');
+    document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach(el => el.classList.remove('oos-open'));
+    pdpNotifyIndex = null;
+  }
+
+  async function requestStockNotify(){
+    var p = findProduct(pdpCurrentId);
+    if(!p) return;
+    var i = pdpNotifyIndex;
+    var v = (i != null && Array.isArray(p.variants)) ? p.variants[i] : null;
+    var btn = document.getElementById('pdpNotifyBtn');
+    var done = document.getElementById('pdpNotifyDone');
+
+    if(!v) return;
+    if(!currentUser){
+      showToast('Notify ke liye login karo');
+      if(typeof openAuth === 'function') openAuth();
+      return;
+    }
+
+    if(btn){
+      btn.disabled = true;
+      var lbl = btn.querySelector('span');
+      if(lbl) lbl.textContent = 'Bhej rahe hain\u2026';
+    }
+
+    var userRes = await sb.auth.getUser();
+    var uu = userRes && userRes.data ? userRes.data.user : null;
+    var text =
+      'Stock request\n' +
+      'Product: ' + p.name + (p.cat ? ' (' + p.cat + ')' : '') + '\n' +
+      'Size / option: ' + v.name + '\n' +
+      'Product ID: ' + p.id +
+      (v.id != null ? '\nVariant ID: ' + v.id : '') +
+      '\nCustomer: ' + (currentUser.name || '') + ' · ' + (currentUser.sub || '');
+
+    var payload = {
+      customer_name: currentUser.name,
+      customer_contact: currentUser.sub,
+      user_id: uu ? uu.id : null,
+      issue_type: 'Stock Request',
+      order_ref: null,
+      status: 'Open',
+      messages: [{ sender: 'customer', text: text, at: new Date().toISOString() }],
+      images: [],
+      images_expire_at: null
+    };
+
+    var res = await sb.from('tickets').insert(payload).select().single();
+    if(res.error){
+      if(btn){
+        btn.disabled = false;
+        var lbl2 = btn.querySelector('span');
+        if(lbl2) lbl2.textContent = 'Notify me';
+      }
+      showToast(res.error.message);
+      return;
+    }
+
+    if(btn){
+      var lbl3 = btn.querySelector('span');
+      if(lbl3) lbl3.textContent = 'Notify set';
+    }
+    if(done){
+      done.textContent = 'Done — ' + v.name + ' stock mein aate hi aapko batayenge. Request #' + res.data.id;
+      done.classList.add('show');
+    }
+    showToast('Notify request bhej di gayi');
   }
 
   function renderPdpMedia(){
@@ -5580,6 +5710,7 @@
   }
   function closeProduct(){
     const wasOpen = pdpOverlay.classList.contains('open');
+    closePdpNotifyPanel();
     pdpOverlay.classList.remove('open');
     if(wasOpen) consumeOverlayHistory();
     if(typeof clearScrollLockIfIdle === 'function') clearScrollLockIfIdle();
