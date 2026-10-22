@@ -59,6 +59,8 @@
   .icon-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;}
   .logo{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:0.5px;display:flex;align-items:center;line-height:1;}
   .logo span{color:var(--yellow);}
+  #navLogo{visibility:hidden;}
+  #navLogo.ready{visibility:visible;}
   .logo img{display:block;max-height:40px;width:auto;}
   .topbar-actions{display:flex;gap:4px;}
   .cart-count{
@@ -73,7 +75,7 @@
     background:var(--yellow);color:#fff;overflow:hidden;white-space:nowrap;
     border-bottom:1px solid var(--yellow-deep);
   }
-  .trust-track{
+  .trust-track{visibility:hidden;
     display:inline-flex;align-items:center;gap:28px;padding:7px 0;
     animation:marquee 22s linear infinite;
   }
@@ -82,6 +84,7 @@
     display:inline-flex;align-items:center;gap:8px;
   }
   .trust-track span::before{content:"●";font-size:6px;}
+  .trust-track.ready{visibility:visible;}
   @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
   /* ---------- Hero banner (auto-scroll carousel) ---------- */
@@ -1254,6 +1257,10 @@
     padding:9px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--surface);
     font-size:12.5px;font-weight:600;color:var(--text);
   }
+  .pdp-variant-chip.has-img{display:flex;flex-direction:column;align-items:center;gap:5px;padding:5px 5px 7px;border-radius:12px;width:76px;}
+  .pdp-variant-chip.has-img img{width:64px;height:64px;object-fit:cover;border-radius:8px;display:block;background:var(--surface-2);}
+  .pdp-variant-chip.has-img span{font-size:11px;line-height:1.2;text-align:center;max-width:66px;word-break:break-word;}
+  .pdp-variant-chip.has-img.out-of-stock img{opacity:.5;}
   .pdp-variant-chip.active{border-color:var(--yellow);background:rgba(184,41,26,0.08);color:var(--yellow-deep);}
   .pdp-variant-chip.out-of-stock{opacity:0.55;text-decoration:line-through;text-decoration-thickness:1.5px;cursor:pointer;}
   /* Out of stock size bhi select ho sakti hai — us par chord/underline nahi, aur
@@ -1617,6 +1624,26 @@
     </div>
   </div>
 </header>
+<script>
+  // Logo: pehle saved (cache) logo se turant dikhta hai, taaki refresh par text wala "SHYAM AUTO" na chamke.
+  (function(){
+    var nav = document.getElementById('navLogo');
+    if(!nav) return;
+    try{
+      var u = localStorage.getItem('sa_logo_url');
+      if(u){
+        var img = document.createElement('img');
+        img.alt = 'Store logo';
+        img.src = u;
+        nav.innerHTML = '';
+        nav.appendChild(img);
+        nav.classList.add('ready');
+      }
+    }catch(e){}
+    // safety: net/Supabase slow ho to bhi 4 sec baad logo area dikh jaye
+    setTimeout(function(){ nav.classList.add('ready'); }, 4000);
+  })();
+</script>
 
 <!-- Header inline search results panel (persistent) -->
 <div class="header-search-backdrop" id="headerSearchBackdrop"></div>
@@ -1639,6 +1666,41 @@
     <span>100% GENUINE PRODUCTS</span>
   </div>
 </div>
+<script>
+  // Top red strip: pehle saved (cache) text se turant draw hota hai, phir Supabase se naya aate hi update.
+  // Isse refresh par purana text nahi dikhta.
+  (function(){
+    var DEFAULTS = ['FREE DELIVERY ABOVE \u20b9499','CASH ON DELIVERY AVAILABLE','7-DAY EASY RETURNS','100% GENUINE PRODUCTS'];
+    var current = null;
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function build(track, items, r){
+      var once = '';
+      for(var i = 0; i < r; i++){ once += items.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join(''); }
+      track.innerHTML = once + once;
+    }
+    window.fillTrustMarquee = function(items){
+      var track = document.getElementById('trustTrack');
+      if(!track) return;
+      items = (items && items.length) ? items : DEFAULTS;
+      current = items;
+      var strip = track.parentNode;
+      var need = Math.max(strip.clientWidth, window.innerWidth || 0);
+      var r = 1;
+      build(track, items, r);
+      while(track.scrollWidth / 2 < need && r < 40){ r++; build(track, items, r); }
+      // speed ~ 60px/sec, taaki kam ya zyada text par bhi same raftaar rahe
+      track.style.animationDuration = Math.max(8, Math.round((track.scrollWidth / 2) / 60)) + 's';
+      track.classList.add('ready');
+    };
+    var cached = null;
+    try{ cached = JSON.parse(localStorage.getItem('sa_marquee') || 'null'); }catch(e){}
+    window.fillTrustMarquee(Array.isArray(cached) ? cached : null);
+    var rt;
+    window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ window.fillTrustMarquee(current); }, 200); });
+    window.addEventListener('load', function(){ window.fillTrustMarquee(current); });
+  })();
+</script>
+
 
 <!-- Hero Banner (auto-scroll carousel, up to 3 slides) -->
 <section class="hero-banner" id="heroBanner">
@@ -2847,7 +2909,14 @@
     const navLogo = document.getElementById('navLogo');
     const menuLogo = document.getElementById('menuLogo');
     const footLogo = document.getElementById('footLogo');
-    if(navLogo) navLogo.innerHTML = logoHtml;
+    if(navLogo){
+      navLogo.innerHTML = logoHtml;
+      navLogo.classList.add('ready');
+    }
+    try{
+      if(site.logoUrl) localStorage.setItem('sa_logo_url', site.logoUrl);
+      else localStorage.removeItem('sa_logo_url');
+    }catch(e){}
     if(menuLogo) menuLogo.innerHTML = logoHtml;
     if(footLogo) footLogo.innerHTML = logoHtml;
 
@@ -2932,15 +3001,13 @@
 
   // ---- Top red scrolling strip — admin Appearance se edit hota hai ----
   function renderTrustMarquee(){
-    const track = document.getElementById('trustTrack');
-    if(!track) return;
     const items = (site.heroAd && Array.isArray(site.heroAd.marquee) ? site.heroAd.marquee : [])
       .map(s => String(s).trim()).filter(Boolean);
-    if(!items.length) return; // kuch save nahi hua to HTML wala default text hi rahega
-    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const once = items.map(t => '<span>' + esc(t) + '</span>').join('');
-    // do baar repeat — taaki loop smooth chale (animation -50% tak jaati hai)
-    track.innerHTML = once + once;
+    try{
+      if(items.length) localStorage.setItem('sa_marquee', JSON.stringify(items));
+      else localStorage.removeItem('sa_marquee');
+    }catch(e){}
+    if(window.fillTrustMarquee) window.fillTrustMarquee(items);
   }
 
   function renderStorefront(){
@@ -4332,6 +4399,7 @@
   let pdpQty = 1;
   let pdpImages = [];
   let pdpActiveImgIdx = 0;
+  let pdpVariantImg = null; // variant ki apni image (agar admin ne upload ki ho)
   let pdpSelectedVariantIndex = null;
 
   /* =====================================================================
@@ -4781,6 +4849,7 @@
     pdpQty = 1;
     pdpImages = Array.isArray(p.images) ? p.images : [];
     pdpActiveImgIdx = 0;
+    pdpVariantImg = null;
     closePdpNotifyPanel();
     document.getElementById('pdpQty').textContent = pdpQty;
     renderPdpMedia();
@@ -4819,8 +4888,11 @@
       const outOfStock = v.stock != null && v.stock <= 0;
       // Chip par sirf size ka naam — "(Out of stock)" likha nahi jaata.
       // Kata hua text + halka rang khud bata deta hai ki option available nahi hai.
-      return `<button type="button" class="pdp-variant-chip${i === pdpSelectedVariantIndex ? ' active' : ''}${outOfStock ? ' out-of-stock' : ''}" onclick="selectPdpVariant(${i})"${outOfStock ? ' aria-label="' + v.name + ' — out of stock, notify me"' : ''}>${v.name}</button>`;
+      return `<button type="button" class="pdp-variant-chip${i === pdpSelectedVariantIndex ? ' active' : ''}${outOfStock ? ' out-of-stock' : ''}${v.image ? ' has-img' : ''}" onclick="selectPdpVariant(${i})"${outOfStock ? ' aria-label="' + v.name + ' — out of stock, notify me"' : ''}>${v.image ? `<img src="${v.image}" alt="${v.name}" loading="lazy"><span>${v.name}</span>` : v.name}</button>`;
     }).join('');
+    // Product ki apni photo na ho, to default variant ki image main me dikhao.
+    const defV = p.variants[pdpSelectedVariantIndex];
+    if(!pdpImages.length && defV && defV.image){ pdpVariantImg = defV.image; renderPdpMedia(); }
     updatePdpPlate();
   }
 
@@ -4834,6 +4906,14 @@
     // Add to Cart khud "Out of Stock" ho jaata hai (updatePdpPlate dekhta hai).
     pdpSelectedVariantIndex = i;
     pdpNotifyIndex = isOutOfStock ? i : null;
+
+    // Variant ki image ho to main photo me wahi dikhao; na ho to gallery wali photo.
+    const newVarImg = (vSel && vSel.image) ? vSel.image : null;
+    if(newVarImg !== pdpVariantImg){
+      pdpVariantImg = newVarImg;
+      renderPdpMedia();
+      renderPdpThumbs();
+    }
 
     document.querySelectorAll('#pdpVariantChips .pdp-variant-chip').forEach((el, idx) => {
       el.classList.toggle('active', idx === i);
@@ -5042,7 +5122,7 @@
       : (p.sale ? '<span class="badge-sale">SALE</span>' : '');
     // Ek hi badi image — desktop ho ya mobile. 2x2 grid hata diya gaya.
     // Image badalne ke raaste: thumbnail tap, swipe (touch/mouse drag), ya arrow.
-    const img = pdpImages[pdpActiveImgIdx];
+    const img = pdpVariantImg || pdpImages[pdpActiveImgIdx];
     const many = pdpImages.length > 1;
     el.classList.remove('grid-mode');
     el.classList.add('solo-mode');
@@ -5057,7 +5137,7 @@
         <button class="pdp-nav next" onclick="event.stopPropagation();stepPdpImage(1)" aria-label="Next photo">
           <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <span class="pdp-img-count">${pdpActiveImgIdx + 1} / ${pdpImages.length}</span>`
+        ${pdpVariantImg ? '' : `<span class="pdp-img-count">${pdpActiveImgIdx + 1} / ${pdpImages.length}</span>`}`
         : '');
     attachPdpSwipe(el, many);
   }
@@ -5112,6 +5192,7 @@
 
   function stepPdpImage(delta){
     if(pdpImages.length <= 1) return;
+    pdpVariantImg = null;
     pdpActiveImgIdx = (pdpActiveImgIdx + delta + pdpImages.length) % pdpImages.length;
     renderPdpMedia();
     renderPdpThumbs();
@@ -5240,6 +5321,7 @@
 
   // open the PDP gallery in the lightbox
   function zoomPdpImage(i){
+    if(pdpVariantImg){ openLightbox([pdpVariantImg], 0); return; }
     openLightbox(pdpImages, i != null ? i : pdpActiveImgIdx);
   }
   // open a single review photo (with its siblings) in the lightbox
@@ -5725,7 +5807,7 @@
     const wrap = document.getElementById('pdpThumbs');
     if(pdpImages.length <= 1){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = pdpImages.map((src, i) =>
-      `<button class="pdp-thumb ${i === pdpActiveImgIdx ? 'active' : ''}" data-idx="${i}" onclick="selectPdpImage(${i})"><img src="${src}" alt="Photo ${i + 1}"></button>`
+      `<button class="pdp-thumb ${(i === pdpActiveImgIdx && !pdpVariantImg) ? 'active' : ''}" data-idx="${i}" onclick="selectPdpImage(${i})"><img src="${src}" alt="Photo ${i + 1}"></button>`
     ).join('');
   }
   // Re-lay out the gallery when the window crosses the desktop breakpoint.
@@ -5737,6 +5819,7 @@
   });
 
   function selectPdpImage(i){
+    pdpVariantImg = null;
     pdpActiveImgIdx = i;
     renderPdpMedia();
     renderPdpThumbs();
