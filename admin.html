@@ -747,6 +747,19 @@
       </div>
 
       <div class="section-block">
+        <h3>Top Scrolling Strip (red bar)</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">Website ke sabse upar red bar me jo text apne aap scroll hota hai, wo yahan se edit karein. <strong>Har line = ek message.</strong> Khaali chhodne par default text dikhega.</p>
+        <div class="form-group">
+          <label class="form-label">Messages (ek line me ek)</label>
+          <textarea class="form-textarea" id="f_marqueeText" rows="6" placeholder="FREE DELIVERY ABOVE ₹499"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-accent" style="flex:1;" onclick="saveMarquee()">Save Scrolling Text</button>
+          <button class="btn-outline" onclick="resetMarquee()">Reset to Default</button>
+        </div>
+      </div>
+
+      <div class="section-block">
         <h3>Deal Banner (hazard-stripe, mid-page)</h3>
         <div class="form-group"><label class="form-label">Tag text</label><input class="form-input" id="f_dealTag"></div>
         <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="f_dealTitle"></div>
@@ -3119,6 +3132,7 @@
       wireHeroSlotFilePreview(`hero_imgMobileFile_${n}`, `hero_imgMobilePreview_${n}`, `hero_imgMobilePreviewWrap_${n}`);
     }
 
+    renderMarqueeForm();
     document.getElementById('f_dealTag').value = site.deal.tag;
     document.getElementById('f_dealTitle').value = site.deal.title;
     document.getElementById('f_dealSub').value = site.deal.sub;
@@ -3134,6 +3148,36 @@
     if(site.deal.category) dealCatSel.value = site.deal.category;
     if(site.deal.productId) dealProdSel.value = site.deal.productId;
     toggleDealLinkFields();
+  }
+
+  // ---- Top scrolling strip (red bar) ----
+  const DEFAULT_MARQUEE = [
+    'FREE DELIVERY ABOVE ₹499',
+    'CASH ON DELIVERY AVAILABLE',
+    '7-DAY EASY RETURNS',
+    '100% GENUINE PRODUCTS'
+  ];
+  function renderMarqueeForm(){
+    const el = document.getElementById('f_marqueeText');
+    if(!el) return;
+    const saved = site.heroAd && Array.isArray(site.heroAd.marquee) ? site.heroAd.marquee : [];
+    el.value = (saved.length ? saved : DEFAULT_MARQUEE).join('\n');
+  }
+  async function saveMarquee(){
+    const lines = document.getElementById('f_marqueeText').value
+      .split('\n').map(s => s.trim()).filter(Boolean);
+    site.heroAd = Object.assign({}, site.heroAd, { marquee: lines });
+    const { error } = await sb.from('site_content').update({ hero_ad: site.heroAd }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    showToast('Scrolling text saved');
+  }
+  async function resetMarquee(){
+    if(!confirm('Default text wapas laga dein?')) return;
+    site.heroAd = Object.assign({}, site.heroAd, { marquee: [] });
+    const { error } = await sb.from('site_content').update({ hero_ad: site.heroAd }).eq('id', 1);
+    if(error){ showToast(error.message); return; }
+    renderMarqueeForm();
+    showToast('Default text restored');
   }
 
   function toggleDealLinkFields(){
