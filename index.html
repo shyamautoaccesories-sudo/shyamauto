@@ -1628,7 +1628,7 @@
 <div id="homeView">
 <!-- Trust marquee -->
 <div class="trust-strip">
-  <div class="trust-track">
+  <div class="trust-track" id="trustTrack">
     <span>FREE DELIVERY ABOVE ₹499</span>
     <span>CASH ON DELIVERY AVAILABLE</span>
     <span>7-DAY EASY RETURNS</span>
@@ -2930,8 +2930,22 @@
     openLightbox(photos, i || 0);
   }
 
+  // ---- Top red scrolling strip — admin Appearance se edit hota hai ----
+  function renderTrustMarquee(){
+    const track = document.getElementById('trustTrack');
+    if(!track) return;
+    const items = (site.heroAd && Array.isArray(site.heroAd.marquee) ? site.heroAd.marquee : [])
+      .map(s => String(s).trim()).filter(Boolean);
+    if(!items.length) return; // kuch save nahi hua to HTML wala default text hi rahega
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const once = items.map(t => '<span>' + esc(t) + '</span>').join('');
+    // do baar repeat — taaki loop smooth chale (animation -50% tak jaati hai)
+    track.innerHTML = once + once;
+  }
+
   function renderStorefront(){
     applyBranding();
+    renderTrustMarquee();
     products = site.products;
     // Homepage sections ab admin panel ke "Show in Homepage Sections" ticks se
     // bante hain — pehle ye position se the (pehle 5 / agle 5), isliye jo bhi
