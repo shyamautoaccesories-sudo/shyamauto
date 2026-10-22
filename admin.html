@@ -335,6 +335,15 @@
   .variant-remove svg{width:14px;height:14px;stroke:var(--red);fill:none;stroke-width:2;}
   .variant-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
   .variant-fields .form-label{margin-bottom:4px;font-size:10.5px;}
+  .variant-img-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .variant-img-btn{width:52px;height:52px;border-radius:10px;border:1.5px dashed var(--line);background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;padding:0;}
+  .variant-img-btn svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.8;}
+  .variant-img-btn img{width:100%;height:100%;object-fit:cover;display:block;}
+  .variant-img-btn.has{border-style:solid;}
+  .variant-img-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .variant-img-label{font-size:12px;font-weight:600;}
+  .variant-img-hint{font-size:10.5px;color:var(--muted);}
+  .variant-img-clear{font-size:11.5px;font-weight:700;color:var(--red);flex:0 0 auto;display:none;}
   .add-variant-btn{font-size:12.5px;color:var(--accent);font-weight:600;padding:8px 0;}
 
   /* ---- Compatible Bike Models — searchable multi-select dropdown ---- */
@@ -2888,13 +2897,88 @@
           <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+      <div class="variant-img-row">
+        <button type="button" class="variant-img-btn" onclick="pickVariantImage(this)" aria-label="Add variant image">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg>
+        </button>
+        <div class="variant-img-info">
+          <span class="variant-img-label">Variant image (optional)</span>
+          <span class="variant-img-hint">Auto-compress ~10KB. Khaali chhodoge to sirf naam dikhega.</span>
+        </div>
+        <button type="button" class="variant-img-clear" onclick="clearVariantImage(this)">Remove</button>
+        <input type="file" accept="image/*" class="variant-img-file" style="display:none;" onchange="onVariantImagePicked(this)">
+      </div>
       <div class="variant-fields">
         <div><label class="form-label">Price (₹)</label><input class="form-input variant-price" type="number" value="${v.price != null ? v.price : ''}"></div>
         <div><label class="form-label">MRP (₹)</label><input class="form-input variant-mrp" type="number" value="${v.mrp != null ? v.mrp : ''}"></div>
         <div><label class="form-label">Stock Qty</label><input class="form-input variant-stock" type="number" value="${v.stock != null ? v.stock : ''}"></div>
       </div>`;
     wrap.appendChild(row);
+    if(v.image) setVariantImagePreview(row, v.image, true);
     refreshSaleVariantPickerIfVisible();
+  }
+
+  // ---- Variant image (optional) — auto-compress to ~10KB ----
+  const VARIANT_IMG_MAX_BYTES = 10 * 1024;
+  function setVariantImagePreview(card, src, isExisting){
+    const btn = card.querySelector('.variant-img-btn');
+    btn.innerHTML = '<img src="' + src + '" alt="">';
+    btn.classList.add('has');
+    card.querySelector('.variant-img-clear').style.display = 'block';
+    if(isExisting) card.dataset.img = src;
+  }
+  function pickVariantImage(btn){
+    btn.closest('.variant-card').querySelector('.variant-img-file').click();
+  }
+  function onVariantImagePicked(input){
+    const card = input.closest('.variant-card');
+    const file = input.files && input.files[0];
+    if(!file) return;
+    card._file = file;
+    setVariantImagePreview(card, URL.createObjectURL(file), false);
+    input.value = '';
+  }
+  function clearVariantImage(btn){
+    const card = btn.closest('.variant-card');
+    card._file = null;
+    card.dataset.img = '';
+    const b = card.querySelector('.variant-img-btn');
+    b.classList.remove('has');
+    b.innerHTML = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><line x1="8" y1="5" x2="9.6" y2="2.6"/><line x1="16" y1="5" x2="14.4" y2="2.6"/></svg>';
+    btn.style.display = 'none';
+  }
+  // Chhoti square-ish image, white background, jab tak ~10KB me na aa jaye size/quality ghatate jao.
+  function compressVariantImage(file, maxBytes){
+    return new Promise(function(resolve){
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async function(){
+        URL.revokeObjectURL(url);
+        const sizes = [360, 300, 250, 210, 180, 150, 120, 96];
+        const qualities = [0.8, 0.68, 0.56, 0.46];
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        let best = null;
+        for(const side of sizes){
+          const scale = Math.min(1, side / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          canvas.width = w; canvas.height = h;
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          for(const q of qualities){
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', q));
+            if(!blob) continue;
+            if(!best || blob.size < best.size) best = blob;
+            if(blob.size <= maxBytes){ resolve(blob); return; }
+          }
+        }
+        resolve(best);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
   }
 
   function addSpecRow(key, val){
@@ -2923,7 +3007,9 @@
         price: Number(card.querySelector('.variant-price').value) || 0,
         mrp: Number(card.querySelector('.variant-mrp').value) || null,
         stock: card.querySelector('.variant-stock').value === '' ? null : Number(card.querySelector('.variant-stock').value),
-        sale: document.getElementById('p_sale').checked && !!document.querySelector(`#p_saleVariantList .sale-variant-check[data-idx="${i}"]`)?.checked
+        sale: document.getElementById('p_sale').checked && !!document.querySelector(`#p_saleVariantList .sale-variant-check[data-idx="${i}"]`)?.checked,
+        image: card.dataset.img || null,
+        _card: card
       })).filter(v => v.name && v.price > 0);
 
       if(variants.length === 0){ showToast('Add at least one variant with a name and price'); return; }
@@ -2967,6 +3053,33 @@
       }
     }
     const images = [...p_existingImages, ...uploadedUrls];
+
+    // ---- Variant images: compress to ~10KB and upload (sirf jin variants me nayi image chuni gayi) ----
+    for(const v of variants){
+      const card = v._card;
+      delete v._card;
+      if(card && card._file){
+        saveBtn.textContent = 'Uploading variant images...';
+        saveBtn.disabled = true;
+        const blob = await compressVariantImage(card._file, VARIANT_IMG_MAX_BYTES);
+        if(!blob){
+          showToast('Variant image padhi nahi gayi: ' + v.name);
+          saveBtn.textContent = originalBtnText;
+          saveBtn.disabled = false;
+          return;
+        }
+        const vPath = `variant-${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+        const { error: vUpErr } = await sb.storage.from('product-images').upload(vPath, blob, { contentType: 'image/jpeg' });
+        if(vUpErr){
+          showToast(vUpErr.message);
+          saveBtn.textContent = originalBtnText;
+          saveBtn.disabled = false;
+          return;
+        }
+        v.image = sb.storage.from('product-images').getPublicUrl(vPath).data.publicUrl;
+      }
+      if(!v.image) delete v.image;
+    }
 
     const data = {
       home_bestseller: sectionFlag('p_homeBestseller', 'home_bestseller'),
