@@ -245,6 +245,16 @@
   .order-item-row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
   .order-item-row .oi-name{color:var(--text);}
   .order-item-row .oi-qtyprice{color:var(--muted);font-family:var(--font-mono);font-size:11.5px;}
+  .order-item-row.has-thumb{align-items:center;gap:10px;padding:6px 0;}
+  .order-item-row .oi-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+  .order-item-row .oi-thumb{width:56px;height:56px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);flex:0 0 auto;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);}
+  .order-item-row .oi-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .order-item-row .oi-qtyprice{white-space:nowrap;flex:0 0 auto;}
+  .order-item-row .oi-thumb.zoomable{cursor:zoom-in;}
+  .oi-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.9);display:none;align-items:center;justify-content:center;padding:16px;}
+  .oi-lightbox.open{display:flex;}
+  .oi-lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;display:block;}
+  .oi-lightbox-close{position:absolute;top:14px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.18);color:#fff;font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
   .order-foot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;padding-top:12px;border-top:1px solid var(--line);}
   .order-total-lbl{font-size:11px;color:var(--muted);}
   .order-total-num{font-family:var(--font-mono);font-size:17px;font-weight:700;}
@@ -1547,6 +1557,11 @@
 </div>
 
 <!-- Category / Brand photo sheet -->
+<div class="oi-lightbox" id="oiLightbox" onclick="closeOrderImage()">
+  <button class="oi-lightbox-close" onclick="closeOrderImage()" aria-label="Close">&times;</button>
+  <img id="oiLightboxImg" alt="" onclick="event.stopPropagation()">
+</div>
+
 <div class="sheet-overlay" id="imageSheetOverlay">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-head">
@@ -4256,6 +4271,37 @@
     if(badge) badge.textContent = cur.length;
   }
 
+  function openOrderImage(el){
+    const img = el && el.querySelector('img');
+    if(!img) return;
+    document.getElementById('oiLightboxImg').src = img.src;
+    document.getElementById('oiLightbox').classList.add('open');
+  }
+  function closeOrderImage(){
+    const lb = document.getElementById('oiLightbox');
+    if(!lb) return;
+    lb.classList.remove('open');
+    document.getElementById('oiLightboxImg').src = '';
+  }
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeOrderImage(); });
+
+  // Order item ki image: pehle order item me saved image, phir variant image, phir product ki main image
+  function orderItemThumb(it){
+    const direct = it.image || it.image_url || it.img || it.thumbnail;
+    if(direct) return direct;
+    const prods = (site && site.products) || [];
+    const prod = it.product_id != null ? prods.find(x => String(x.id) === String(it.product_id)) : null;
+    if(!prod) return '';
+    if(Array.isArray(prod.variants) && prod.variants.length){
+      const vName = (it.variant || (String(it.name||'').includes(' — ') ? String(it.name).split(' — ').pop() : '') || '').trim().toLowerCase();
+      if(vName){
+        const v = prod.variants.find(x => String(x.name||'').trim().toLowerCase() === vName);
+        if(v && v.image) return v.image;
+      }
+    }
+    return (prod.images && prod.images[0]) || '';
+  }
+
   function orderCardHtml(o){
     return `
       <div class="order-card">
@@ -4283,7 +4329,7 @@
           <div>
             <div class="order-block-label">Items (${o.items})</div>
             <div class="order-items-list">
-              ${o.itemList.map(it => `<div class="order-item-row"><span class="oi-name">${it.name}</span><span class="oi-qtyprice">×${it.qty} · ₹${(it.price||0).toLocaleString('en-IN')}</span></div>`).join('')}
+              ${o.itemList.map(it => { const th = orderItemThumb(it); return `<div class="order-item-row has-thumb"><div class="oi-main"><div class="oi-thumb${th ? ' zoomable' : ''}"${th ? ` onclick="openOrderImage(this)" title="Click to view full image"` : ''}>${th ? `<img src="${th}" alt="" loading="lazy" onerror="this.parentNode.textContent='NO IMG';this.parentNode.classList.remove('zoomable');this.parentNode.removeAttribute('onclick')">` : 'NO IMG'}</div><span class="oi-name">${it.name}</span></div><span class="oi-qtyprice">×${it.qty} · ₹${(it.price||0).toLocaleString('en-IN')}</span></div>`; }).join('')}
             </div>
             ${o.couponCode ? `<div class="order-item-row" style="color:var(--green);font-weight:600;"><span class="oi-name">Coupon: ${o.couponCode}</span><span class="oi-qtyprice">−₹${o.discountAmount.toLocaleString('en-IN')}</span></div>` : ''}
             ${o.deliveryCharge > 0 ? `<div class="order-item-row"><span class="oi-name">Delivery Charge</span><span class="oi-qtyprice">₹${o.deliveryCharge.toLocaleString('en-IN')}</span></div>` : ''}
